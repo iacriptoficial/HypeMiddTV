@@ -9,7 +9,8 @@ from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
 import uuid
 from datetime import datetime
-from hyperliquid.api import Info, Exchange
+from hyperliquid.info import Info
+from hyperliquid.exchange import Exchange
 from hyperliquid.utils import constants
 import json
 import asyncio
