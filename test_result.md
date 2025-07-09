@@ -101,3 +101,116 @@
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
+
+user_problem_statement: "Test the TradingView to Hyperliquid middleware backend comprehensively"
+
+backend:
+  - task: "Webhook endpoint"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Webhook endpoint successfully tested. It accepts TradingView webhook data and returns a proper response with webhook_id and simulated Hyperliquid response."
+
+  - task: "Status endpoint"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Status endpoint successfully tested. It returns server status, environment, uptime, webhook statistics, and Hyperliquid connection status."
+
+  - task: "Logs endpoint"
+    implemented: true
+    working: false
+    file: "/app/backend/server.py"
+    stuck_count: 1
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+        - working: false
+          agent: "testing"
+          comment: "Logs endpoint returns a 500 Internal Server Error due to MongoDB ObjectId serialization issues. This is a common issue when returning MongoDB documents directly in FastAPI. The endpoint needs to be fixed to properly serialize MongoDB documents."
+
+  - task: "Environment switching"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Environment switching endpoint successfully tested. It allows switching between testnet and mainnet environments and properly updates the global configuration."
+
+  - task: "Webhooks retrieval endpoint"
+    implemented: true
+    working: false
+    file: "/app/backend/server.py"
+    stuck_count: 1
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+        - working: false
+          agent: "testing"
+          comment: "Webhooks retrieval endpoint returns a 500 Internal Server Error due to MongoDB ObjectId serialization issues. This is a common issue when returning MongoDB documents directly in FastAPI. The endpoint needs to be fixed to properly serialize MongoDB documents."
+
+  - task: "Responses retrieval endpoint"
+    implemented: true
+    working: false
+    file: "/app/backend/server.py"
+    stuck_count: 1
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+        - working: false
+          agent: "testing"
+          comment: "Responses retrieval endpoint returns a 500 Internal Server Error due to MongoDB ObjectId serialization issues. This is a common issue when returning MongoDB documents directly in FastAPI. The endpoint needs to be fixed to properly serialize MongoDB documents."
+
+frontend:
+  - task: "Frontend implementation"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/App.js"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "testing"
+          comment: "Frontend testing was not part of this test scope."
+
+metadata:
+  created_by: "testing_agent"
+  version: "1.0"
+  test_sequence: 1
+  run_ui: false
+
+test_plan:
+  current_focus:
+    - "Webhook endpoint"
+    - "Status endpoint"
+    - "Logs endpoint"
+    - "Environment switching"
+    - "Webhooks retrieval endpoint"
+    - "Responses retrieval endpoint"
+  stuck_tasks:
+    - "Logs endpoint"
+    - "Webhooks retrieval endpoint"
+    - "Responses retrieval endpoint"
+  test_all: true
+  test_priority: "high_first"
+
+agent_communication:
+    - agent: "testing"
+      message: "I've completed comprehensive testing of the TradingView to Hyperliquid middleware backend. The core functionality (webhook processing and status endpoint) is working correctly. However, there are issues with the logs, webhooks, and responses endpoints due to MongoDB ObjectId serialization problems. This is a common issue in FastAPI applications that directly return MongoDB documents. The environment switching functionality is working correctly. See the detailed test results for more information."
