@@ -1,38 +1,183 @@
-.App {
-    text-align: center;
+/* Custom scrollbar for dark theme */
+::-webkit-scrollbar {
+  width: 8px;
 }
 
-.App-logo {
-    height: 40vmin;
-    pointer-events: none;
+::-webkit-scrollbar-track {
+  background: #374151;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-    .App-logo {
-        animation: App-logo-spin infinite 20s linear;
-    }
+::-webkit-scrollbar-thumb {
+  background: #6B7280;
+  border-radius: 4px;
 }
 
-.App-header {
-    background-color: #0f0f10;
-    min-height: 100vh;
-    display: flex;
+::-webkit-scrollbar-thumb:hover {
+  background: #9CA3AF;
+}
+
+/* Animation for loading states */
+.loading-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: .5;
+  }
+}
+
+/* Transition effects */
+.transition-all {
+  transition: all 0.3s ease;
+}
+
+/* Button hover effects */
+button:hover {
+  transform: translateY(-1px);
+  transition: transform 0.2s ease;
+}
+
+/* Status indicator animation */
+.status-indicator {
+  animation: blink 2s infinite;
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0.3; }
+}
+
+/* Code block styling */
+pre {
+  font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .flex {
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    font-size: calc(10px + 2vmin);
-    color: white;
+  }
+  
+  .space-x-4 > * + * {
+    margin-left: 0;
+    margin-top: 1rem;
+  }
 }
 
-.App-link {
-    color: #61dafb;
+/* Dark theme enhancements */
+.bg-gray-900 {
+  background-color: #0f1419;
 }
 
-@keyframes App-logo-spin {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
+.bg-gray-800 {
+  background-color: #1e2936;
+}
+
+.bg-gray-700 {
+  background-color: #2a3441;
+}
+
+.border-gray-700 {
+  border-color: #374151;
+}
+
+/* Connection status indicator */
+.connection-status {
+  position: relative;
+}
+
+.connection-status::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: -12px;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: currentColor;
+}
+
+/* Tab navigation enhancement */
+.tab-active {
+  position: relative;
+}
+
+.tab-active::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #3B82F6, #1D4ED8);
+}
+
+/* Enhanced card styling */
+.card {
+  backdrop-filter: blur(10px);
+  background: rgba(30, 41, 54, 0.8);
+  border: 1px solid rgba(55, 65, 81, 0.5);
+}
+
+/* Log level indicators */
+.log-error {
+  border-left: 4px solid #DC2626;
+}
+
+.log-warning {
+  border-left: 4px solid #F59E0B;
+}
+
+.log-info {
+  border-left: 4px solid #10B981;
+}
+
+/* Webhook status badges */
+.status-badge {
+  position: relative;
+  overflow: hidden;
+}
+
+.status-badge::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  transition: left 0.5s;
+}
+
+.status-badge:hover::before {
+  left: 100%;
+}
+
+/* Enhanced text selection */
+::selection {
+  background: #3B82F6;
+  color: white;
+}
+
+/* Focus states for accessibility */
+button:focus,
+input:focus {
+  outline: 2px solid #3B82F6;
+  outline-offset: 2px;
+}
+
+/* Smooth transitions */
+* {
+  transition: all 0.2s ease;
 }
