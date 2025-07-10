@@ -133,13 +133,27 @@ async def test_hyperliquid_connection():
         await log_message("ERROR", f"Hyperliquid connection failed: {str(e)}")
         return False
 
-async def get_account_balance():
-    """Get account balance from Hyperliquid"""
+async def get_wallet_address():
+    """Get wallet address from private key"""
     try:
         if not hyperliquid_config.private_key:
             return None
             
-        exchange = hyperliquid_config.get_exchange_client()
+        from eth_account import Account
+        account = Account.from_key(hyperliquid_config.private_key)
+        return account.address
+        
+    except Exception as e:
+        await log_message("ERROR", f"Failed to get wallet address: {str(e)}")
+        return None
+
+async def get_account_balance():
+    """Get account balance from Hyperliquid"""
+    try:
+        if not hyperliquid_config.private_key:
+            await log_message("WARNING", "No private key configured")
+            return None
+            
         info = hyperliquid_config.get_info_client()
         
         # Get user address from private key
@@ -147,14 +161,18 @@ async def get_account_balance():
         account = Account.from_key(hyperliquid_config.private_key)
         user_address = account.address
         
+        await log_message("INFO", f"Fetching balance for address: {user_address}")
+        
         # Get user state
         user_state = info.user_state(user_address)
+        
         if user_state and 'marginSummary' in user_state:
             balance = float(user_state['marginSummary']['accountValue'])
             await log_message("INFO", f"Account balance retrieved: ${balance}")
             return balance
         else:
-            await log_message("WARNING", "Could not retrieve account balance")
+            await log_message("WARNING", "Could not retrieve account balance - marginSummary not found")
+            await log_message("INFO", f"User state response: {user_state}")
             return None
             
     except Exception as e:
