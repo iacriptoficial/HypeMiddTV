@@ -39,8 +39,9 @@ def test_webhook_endpoint():
         return False, None
 
 def test_status_endpoint():
-    """Test the server status endpoint"""
+    """Test the server status endpoint - Focus on wallet address and balance"""
     print("\n=== Testing Status Endpoint ===")
+    print("🎯 Focus: Wallet address and balance retrieval from Hyperliquid testnet")
     
     url = f"{BASE_URL}/status"
     
@@ -58,9 +59,42 @@ def test_status_endpoint():
             print(f"Successful Forwards: {status_data['successful_forwards']}")
             print(f"Failed Forwards: {status_data['failed_forwards']}")
             print(f"Hyperliquid Connected: {status_data['hyperliquid_connected']}")
-            if status_data.get('balance') is not None:
-                print(f"Balance: ${status_data['balance']}")
-            return True
+            
+            # Key focus areas from review request
+            wallet_address = status_data.get('wallet_address')
+            balance = status_data.get('balance')
+            
+            print(f"\n🔍 KEY TESTING POINTS:")
+            print(f"Wallet Address: {wallet_address}")
+            print(f"Balance: ${balance}" if balance is not None else "Balance: None")
+            
+            # Validate key requirements
+            success = True
+            if not wallet_address:
+                print("❌ CRITICAL: Wallet address is missing from status response")
+                success = False
+            else:
+                print("✅ Wallet address is present in status response")
+                
+            if balance is None:
+                print("❌ CRITICAL: Balance is None - not fetching real data from Hyperliquid testnet")
+                success = False
+            else:
+                print(f"✅ Balance retrieved: ${balance} - appears to be real data from Hyperliquid testnet")
+                
+            if status_data['environment'] != 'testnet':
+                print(f"❌ CRITICAL: Environment should be 'testnet', got '{status_data['environment']}'")
+                success = False
+            else:
+                print("✅ Environment correctly set to testnet")
+                
+            if not status_data['hyperliquid_connected']:
+                print("❌ CRITICAL: Hyperliquid connection failed")
+                success = False
+            else:
+                print("✅ Hyperliquid connection successful")
+                
+            return success
         else:
             print(f"❌ Status endpoint test failed: {response.text}")
             return False
