@@ -146,8 +146,20 @@ async def discover_associated_accounts(wallet_address):
         
         # Check wallet role
         try:
-            user_role = info.post("/info", {"type": "userRole", "user": wallet_address})
-            await log_message("INFO", f"Wallet role: {user_role}")
+            user_role_response = info.post("/info", {"type": "userRole", "user": wallet_address})
+            await log_message("INFO", f"Wallet role: {user_role_response}")
+            
+            # If this is an agent wallet, extract the main user address
+            if (user_role_response and 
+                isinstance(user_role_response, dict) and 
+                user_role_response.get('role') == 'agent' and 
+                'data' in user_role_response and 
+                'user' in user_role_response['data']):
+                
+                main_user_address = user_role_response['data']['user']
+                associated_accounts.append(main_user_address)
+                await log_message("INFO", f"Found main user account from agent: {main_user_address}")
+                
         except Exception as e:
             await log_message("WARNING", f"Could not get user role: {str(e)}")
         
@@ -183,7 +195,7 @@ async def discover_associated_accounts(wallet_address):
         
         # Remove duplicates
         unique_accounts = list(set(associated_accounts))
-        await log_message("INFO", f"Total unique accounts found: {len(unique_accounts)}")
+        await log_message("INFO", f"Total unique accounts found: {len(unique_accounts)} - {unique_accounts}")
         
         return unique_accounts
         
