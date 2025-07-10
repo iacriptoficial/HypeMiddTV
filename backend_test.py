@@ -8,12 +8,21 @@ import sys
 # Base URL from frontend/.env
 BASE_URL = "https://2862ac8e-57ac-4911-8d7a-896ae91802bf.preview.emergentagent.com/api"
 
-# Sample webhook payload for testing
+# Sample webhook payload for testing - Updated to match backend expectations
 SAMPLE_WEBHOOK_PAYLOAD = {
-    "ticker": "BTC",
+    "symbol": "BTC",  # Backend expects "symbol", not "ticker"
     "action": "buy",
     "price": 45000,
-    "quantity": 0.1,
+    "quantity": 0.001,  # Smaller quantity for testing
+    "timestamp": "2025-07-09T16:00:00Z"
+}
+
+# Additional test payloads for comprehensive testing
+SAMPLE_SELL_PAYLOAD = {
+    "symbol": "ETH",
+    "action": "sell", 
+    "price": 3200,
+    "quantity": 0.01,
     "timestamp": "2025-07-09T16:00:00Z"
 }
 
