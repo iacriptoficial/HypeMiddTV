@@ -55,7 +55,6 @@ class HyperliquidConfig:
         if not self.private_key:
             raise ValueError(f"No private key configured for {self.environment}")
         return Exchange(
-            wallet_address=None,
             private_key=self.private_key,
             base_url=self.base_url,
             skip_ws=True
