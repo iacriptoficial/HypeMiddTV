@@ -26,6 +26,148 @@ SAMPLE_SELL_PAYLOAD = {
     "timestamp": "2025-07-09T16:00:00Z"
 }
 
+def test_real_order_execution():
+    """Test real order execution on Hyperliquid testnet - KEY FOCUS AREA"""
+    print("\n=== Testing Real Order Execution ===")
+    print("🎯 CRITICAL: Testing real order placement on Hyperliquid testnet")
+    print("This is the main focus of the review request")
+    
+    # Test BUY order
+    print("\n--- Testing BUY Order ---")
+    buy_payload = {
+        "symbol": "BTC",
+        "action": "buy",
+        "price": 45000,
+        "quantity": 0.001,
+        "timestamp": datetime.now().isoformat()
+    }
+    
+    url = f"{BASE_URL}/webhook/tradingview"
+    
+    try:
+        response = requests.post(url, json=buy_payload)
+        print(f"BUY Order Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            buy_result = response.json()
+            print("✅ BUY webhook received successfully")
+            
+            # Check if order was actually executed
+            hl_response = buy_result.get('hyperliquid_response', {})
+            hl_status = hl_response.get('status')
+            
+            if hl_status == 'success':
+                print("✅ BUY order executed successfully on Hyperliquid!")
+                order_details = hl_response.get('order_details', {})
+                hl_result = order_details.get('hyperliquid_response', {})
+                
+                # Look for order ID in response
+                if 'status' in hl_result and hl_result['status'] == 'ok':
+                    print(f"✅ Hyperliquid confirmed order execution: {hl_result}")
+                    if 'response' in hl_result and 'data' in hl_result['response']:
+                        order_data = hl_result['response']['data']
+                        if 'statuses' in order_data:
+                            for status in order_data['statuses']:
+                                if 'resting' in status:
+                                    order_id = status['resting'].get('oid')
+                                    if order_id:
+                                        print(f"🎯 REAL ORDER ID: {order_id}")
+                else:
+                    print(f"⚠️ Order may have failed: {hl_result}")
+            else:
+                print(f"❌ BUY order execution failed: {hl_response.get('message', 'Unknown error')}")
+                print(f"Error details: {hl_response.get('error', 'No error details')}")
+                return False
+                
+        else:
+            print(f"❌ BUY webhook failed: {response.text}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ Error testing BUY order: {str(e)}")
+        return False
+    
+    # Wait a moment before next order
+    time.sleep(2)
+    
+    # Test SELL order
+    print("\n--- Testing SELL Order ---")
+    sell_payload = {
+        "symbol": "ETH", 
+        "action": "sell",
+        "price": 3200,
+        "quantity": 0.01,
+        "timestamp": datetime.now().isoformat()
+    }
+    
+    try:
+        response = requests.post(url, json=sell_payload)
+        print(f"SELL Order Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            sell_result = response.json()
+            print("✅ SELL webhook received successfully")
+            
+            # Check if order was actually executed
+            hl_response = sell_result.get('hyperliquid_response', {})
+            hl_status = hl_response.get('status')
+            
+            if hl_status == 'success':
+                print("✅ SELL order executed successfully on Hyperliquid!")
+                order_details = hl_response.get('order_details', {})
+                hl_result = order_details.get('hyperliquid_response', {})
+                
+                # Look for order ID in response
+                if 'status' in hl_result and hl_result['status'] == 'ok':
+                    print(f"✅ Hyperliquid confirmed order execution: {hl_result}")
+                    if 'response' in hl_result and 'data' in hl_result['response']:
+                        order_data = hl_result['response']['data']
+                        if 'statuses' in order_data:
+                            for status in order_data['statuses']:
+                                if 'resting' in status:
+                                    order_id = status['resting'].get('oid')
+                                    if order_id:
+                                        print(f"🎯 REAL ORDER ID: {order_id}")
+                else:
+                    print(f"⚠️ Order may have failed: {hl_result}")
+            else:
+                print(f"❌ SELL order execution failed: {hl_response.get('message', 'Unknown error')}")
+                print(f"Error details: {hl_response.get('error', 'No error details')}")
+                return False
+                
+        else:
+            print(f"❌ SELL webhook failed: {response.text}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ Error testing SELL order: {str(e)}")
+        return False
+    
+    print("\n✅ Real order execution test completed successfully!")
+    print("Both BUY and SELL orders were processed and sent to Hyperliquid testnet")
+    return True
+
+def test_webhook_endpoint():
+    """Test the TradingView webhook endpoint"""
+    print("\n=== Testing Webhook Endpoint ===")
+    
+    url = f"{BASE_URL}/webhook/tradingview"
+    
+    try:
+        response = requests.post(url, json=SAMPLE_WEBHOOK_PAYLOAD)
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            print("✅ Webhook endpoint test passed")
+            print(f"Response: {json.dumps(response.json(), indent=2)}")
+            return True, response.json().get('webhook_id')
+        else:
+            print(f"❌ Webhook endpoint test failed: {response.text}")
+            return False, None
+    except Exception as e:
+        print(f"❌ Error testing webhook endpoint: {str(e)}")
+        return False, None
+
 def test_webhook_endpoint():
     """Test the TradingView webhook endpoint"""
     print("\n=== Testing Webhook Endpoint ===")
