@@ -299,7 +299,21 @@ async def get_webhooks(limit: int = 50):
     """Get recent webhooks"""
     try:
         webhooks = await db.webhooks.find().sort("timestamp", -1).limit(limit).to_list(limit)
-        return {"webhooks": webhooks}
+        
+        # Convert to JSON-serializable format
+        webhooks_data = []
+        for webhook in webhooks:
+            webhook_data = {
+                "id": webhook.get("id"),
+                "timestamp": webhook.get("timestamp"),
+                "source": webhook.get("source"),
+                "payload": webhook.get("payload"),
+                "status": webhook.get("status"),
+                "error": webhook.get("error")
+            }
+            webhooks_data.append(webhook_data)
+            
+        return {"webhooks": webhooks_data}
         
     except Exception as e:
         await log_message("ERROR", f"Failed to get webhooks: {str(e)}")
