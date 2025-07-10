@@ -420,29 +420,24 @@ async def get_webhooks(limit: int = 50):
         await log_message("ERROR", f"Failed to get webhooks: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@api_router.get("/responses")
-async def get_hyperliquid_responses(limit: int = 50):
-    """Get recent Hyperliquid responses"""
+@api_router.get("/refresh-balance")
+async def force_refresh_balance():
+    """Force refresh account balance"""
     try:
-        responses = await db.hyperliquid_responses.find().sort("timestamp", -1).limit(limit).to_list(limit)
+        balance = await get_account_balance()
+        wallet_address = await get_wallet_address()
         
-        # Convert to JSON-serializable format
-        responses_data = []
-        for response in responses:
-            response_data = {
-                "id": response.get("id"),
-                "timestamp": response.get("timestamp"),
-                "webhook_id": response.get("webhook_id"),
-                "response_data": response.get("response_data"),
-                "status": response.get("status"),
-                "error": response.get("error")
-            }
-            responses_data.append(response_data)
-            
-        return {"responses": responses_data}
+        result = {
+            "wallet_address": wallet_address,
+            "balance": balance,
+            "timestamp": datetime.utcnow(),
+            "message": "Balance refreshed successfully"
+        }
+        
+        return result
         
     except Exception as e:
-        await log_message("ERROR", f"Failed to get responses: {str(e)}")
+        await log_message("ERROR", f"Failed to refresh balance: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.post("/environment")
