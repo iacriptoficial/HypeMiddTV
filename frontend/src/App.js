@@ -367,13 +367,7 @@ function App() {
                   <div className="bg-yellow-900 border border-yellow-700 rounded-lg p-4">
                     <h4 className="font-medium text-yellow-200 mb-2">⚠️ Formato da mensagem recomendado:</h4>
                     <pre className="text-xs text-yellow-100 bg-yellow-800 p-2 rounded overflow-x-auto">
-{`{
-  "symbol": "{{ticker}}",
-  "action": "{{strategy.order.action}}",
-  "price": {{close}},
-  "time": "{{time}}",
-  "alert_name": "{{alert_name}}"
-}`}
+{'{\n  "symbol": "{{ticker}}",\n  "action": "{{strategy.order.action}}",\n  "price": {{close}},\n  "time": "{{time}}",\n  "alert_name": "{{alert_name}}"\n}'}
                     </pre>
                   </div>
                 </div>
