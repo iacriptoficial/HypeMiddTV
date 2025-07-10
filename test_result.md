@@ -146,6 +146,9 @@ backend:
         - working: true
           agent: "main"
           comment: "Frontend now displays the correct trading account address (0x050610e7abcf9f4efb310adbc6c777e10dbc843b) instead of the agent wallet address, allowing user to verify the connection."
+        - working: true
+          agent: "testing"
+          comment: "✅ VERIFIED: Wallet address correctly displayed in status endpoint as 0x050610e7abcf9f4efb310adbc6c777e10dbc843b for user verification."
 
   - task: "API rate limiting prevention with caching"
     implemented: true
