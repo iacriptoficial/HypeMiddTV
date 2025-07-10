@@ -255,40 +255,63 @@ async def find_account_with_balance():
         await log_message("ERROR", f"Error in find_account_with_balance: {str(e)}")
         return None, 0.0
 
-async def get_account_balance():
-    """Get Hyperliquid exchange account balance by finding the correct address"""
+# Cache for balance to avoid rate limiting
+balance_cache = {
+    "balance": None,
+    "address": None,
+    "timestamp": None,
+    "expires_in": 30  # seconds
+}
+
+async def get_cached_balance():
+    """Get balance from cache or fetch if expired"""
+    global balance_cache
+    
+    current_time = datetime.utcnow().timestamp()
+    
+    # Check if cache is valid
+    if (balance_cache["timestamp"] and 
+        (current_time - balance_cache["timestamp"]) < balance_cache["expires_in"] and
+        balance_cache["balance"] is not None):
+        
+        await log_message("INFO", f"Using cached balance: ${balance_cache['balance']}")
+        return balance_cache["address"], balance_cache["balance"]
+    
+    # Cache expired or empty, fetch new data
     try:
-        # First try to find the account with balance
-        account_address, balance = await find_account_with_balance()
+        address, balance = await find_account_with_balance()
         
-        if account_address and balance > 0:
-            await log_message("INFO", f"Using account address: {account_address} with balance: ${balance}")
-            return balance
+        # Update cache
+        balance_cache["balance"] = balance
+        balance_cache["address"] = address
+        balance_cache["timestamp"] = current_time
         
-        # If no balance found, return None
-        await log_message("WARNING", "No balance found in any discoverable account")
-        return None
+        await log_message("INFO", f"Updated balance cache: ${balance}")
+        return address, balance
+        
+    except Exception as e:
+        await log_message("ERROR", f"Error fetching balance: {str(e)}")
+        # Return cached data if available, even if expired
+        if balance_cache["balance"] is not None:
+            await log_message("INFO", f"Returning stale cache due to error: ${balance_cache['balance']}")
+            return balance_cache["address"], balance_cache["balance"]
+        return None, None
+
+async def get_account_balance():
+    """Get Hyperliquid exchange account balance with caching"""
+    try:
+        address, balance = await get_cached_balance()
+        return balance
                 
     except Exception as e:
         await log_message("ERROR", f"Failed to get account balance: {str(e)}")
         return None
 
 async def get_wallet_address():
-    """Get the correct wallet address (the one with funds)"""
+    """Get the correct wallet address with caching"""
     try:
-        # Find the account with balance and return that address
-        account_address, balance = await find_account_with_balance()
-        
-        if account_address:
-            return account_address
-        
-        # Fallback to wallet address from private key
-        if hyperliquid_config.private_key:
-            from eth_account import Account
-            account = Account.from_key(hyperliquid_config.private_key)
-            return account.address
-            
-        return None
+        address, balance = await get_cached_balance()
+        return address
         
     except Exception as e:
         await log_message("ERROR", f"Failed to get wallet address: {str(e)}")
