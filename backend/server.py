@@ -263,6 +263,9 @@ async def get_server_status():
         # Get account balance
         balance = await get_account_balance()
         
+        # Get wallet address
+        wallet_address = await get_wallet_address()
+        
         # Calculate uptime
         uptime = datetime.utcnow() - server_start_time
         uptime_str = f"{uptime.days}d {uptime.seconds//3600}h {(uptime.seconds//60)%60}m"
@@ -276,7 +279,8 @@ async def get_server_status():
             successful_forwards=stats['successful_forwards'],
             failed_forwards=stats['failed_forwards'],
             hyperliquid_connected=hl_connected,
-            balance=balance
+            balance=balance,
+            wallet_address=wallet_address
         )
         
         return status
