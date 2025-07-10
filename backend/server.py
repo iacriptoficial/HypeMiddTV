@@ -467,21 +467,93 @@ async def handle_tradingview_webhook(request: Request):
         raise HTTPException(status_code=500, detail=str(e))
 
 async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
-    """Forward the webhook payload to Hyperliquid"""
+    """Forward the webhook payload to Hyperliquid and execute real trades"""
     try:
-        # For now, we'll just log the payload and simulate forwarding
-        # In a real implementation, you would parse the payload and execute trades
+        await log_message("INFO", f"Processing webhook {webhook_id} for Hyperliquid execution", {"payload": payload})
         
-        await log_message("INFO", f"Forwarding webhook {webhook_id} to Hyperliquid", {"payload": payload})
+        # Parse the TradingView payload
+        symbol = payload.get("symbol", "").replace("USDT", "").replace("USD", "")  # Convert BTCUSDT -> BTC
+        action = payload.get("action", "").lower()  # buy/sell
+        price = float(payload.get("price", 0))
+        quantity = float(payload.get("quantity", 0.01))  # Default small quantity if not provided
         
-        # Simulate response (in real implementation, this would be actual trading response)
-        response_data = {
-            "status": "simulated",
-            "message": "Webhook forwarded to Hyperliquid (simulated)",
-            "environment": hyperliquid_config.environment,
-            "timestamp": datetime.utcnow().isoformat(),
-            "original_payload": payload
+        # Validate required fields
+        if not symbol or not action or not price:
+            raise ValueError(f"Missing required fields: symbol={symbol}, action={action}, price={price}")
+        
+        # Map TradingView action to Hyperliquid action
+        side = "A" if action in ["buy", "long"] else "B"  # A = Ask (sell), B = Bid (buy) - Note: this might be inverted
+        if action in ["buy", "long"]:
+            side = "B"  # Buy
+        elif action in ["sell", "short"]:
+            side = "A"  # Sell
+        else:
+            raise ValueError(f"Unknown action: {action}")
+        
+        await log_message("INFO", f"Executing Hyperliquid order: {symbol} {action} {quantity} @ {price}")
+        
+        # Get exchange client
+        exchange = hyperliquid_config.get_exchange_client()
+        
+        # Prepare order data
+        order_data = {
+            "coin": symbol,
+            "is_buy": (side == "B"),
+            "sz": quantity,
+            "limit_px": price,
+            "order_type": {"limit": {"tif": "Gtc"}},  # Good Till Cancel
+            "reduce_only": False
         }
+        
+        await log_message("INFO", f"Hyperliquid order data: {order_data}")
+        
+        # Execute the order
+        try:
+            result = exchange.order(
+                coin=symbol,
+                is_buy=(side == "B"),
+                sz=quantity,
+                limit_px=price,
+                order_type={"limit": {"tif": "Gtc"}},
+                reduce_only=False
+            )
+            
+            await log_message("INFO", f"Hyperliquid order result: {result}")
+            
+            # Prepare successful response
+            response_data = {
+                "status": "success",
+                "message": "Order executed successfully on Hyperliquid",
+                "environment": hyperliquid_config.environment,
+                "timestamp": datetime.utcnow().isoformat(),
+                "order_details": {
+                    "symbol": symbol,
+                    "side": action,
+                    "quantity": quantity,
+                    "price": price,
+                    "hyperliquid_response": result
+                },
+                "original_payload": payload
+            }
+            
+        except Exception as order_error:
+            await log_message("ERROR", f"Hyperliquid order failed: {str(order_error)}")
+            
+            # Prepare error response
+            response_data = {
+                "status": "error",
+                "message": f"Order execution failed: {str(order_error)}",
+                "environment": hyperliquid_config.environment,
+                "timestamp": datetime.utcnow().isoformat(),
+                "order_details": {
+                    "symbol": symbol,
+                    "side": action,
+                    "quantity": quantity,
+                    "price": price
+                },
+                "error": str(order_error),
+                "original_payload": payload
+            }
         
         # Store the response
         hl_response = HyperliquidResponse(
@@ -493,8 +565,26 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
         return response_data
         
     except Exception as e:
-        await log_message("ERROR", f"Failed to forward to Hyperliquid: {str(e)}")
-        raise
+        error_msg = f"Failed to process webhook for Hyperliquid: {str(e)}"
+        await log_message("ERROR", error_msg)
+        
+        # Store error response
+        error_response = {
+            "status": "error",
+            "message": error_msg,
+            "environment": hyperliquid_config.environment,
+            "timestamp": datetime.utcnow().isoformat(),
+            "error": str(e),
+            "original_payload": payload
+        }
+        
+        hl_response = HyperliquidResponse(
+            webhook_id=webhook_id,
+            response_data=error_response
+        )
+        await db.hyperliquid_responses.insert_one(hl_response.dict())
+        
+        return error_response
 
 @api_router.get("/status")
 async def get_server_status():
