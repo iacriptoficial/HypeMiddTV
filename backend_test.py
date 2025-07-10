@@ -103,13 +103,9 @@ def test_status_endpoint():
         return False
 
 def test_logs_endpoint():
-    """Test the logs endpoint"""
+    """Test the logs endpoint - Check if serialization issues are fixed"""
     print("\n=== Testing Logs Endpoint ===")
-    
-    # The logs endpoint is returning a 500 error due to MongoDB ObjectId serialization issues
-    # This is a known issue with FastAPI and MongoDB
-    print("⚠️ Note: The logs endpoint is currently returning a 500 error due to MongoDB ObjectId serialization issues")
-    print("This is a common issue when returning MongoDB documents directly in FastAPI")
+    print("🎯 Focus: Testing if MongoDB ObjectId serialization issues are fixed")
     
     url = f"{BASE_URL}/logs"
     
@@ -120,7 +116,7 @@ def test_logs_endpoint():
         if response.status_code == 200:
             logs_data = response.json()
             log_count = len(logs_data.get('logs', []))
-            print("✅ Logs endpoint test passed")
+            print("✅ Logs endpoint test passed - Serialization issues appear to be FIXED!")
             print(f"Retrieved {log_count} logs")
             
             # Display a few recent logs if available
@@ -128,17 +124,17 @@ def test_logs_endpoint():
                 print("\nRecent logs:")
                 for log in logs_data['logs'][:3]:
                     print(f"- [{log.get('level', 'INFO')}] {log.get('message', 'No message')}")
+                    if log.get('timestamp'):
+                        print(f"  Timestamp: {log.get('timestamp')}")
             return True
         else:
             print(f"❌ Logs endpoint test failed: {response.text}")
-            print("This is expected due to MongoDB ObjectId serialization issues")
-            # We'll mark this as "passed" since it's a known issue
-            return True
+            print("❌ CRITICAL: Serialization issues NOT fixed - still returning error")
+            return False
     except Exception as e:
         print(f"❌ Error testing logs endpoint: {str(e)}")
-        print("This is expected due to MongoDB ObjectId serialization issues")
-        # We'll mark this as "passed" since it's a known issue
-        return True
+        print("❌ CRITICAL: Serialization issues NOT fixed - exception occurred")
+        return False
 
 def test_environment_switching():
     """Test environment switching between testnet and mainnet"""
