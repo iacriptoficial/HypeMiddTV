@@ -149,7 +149,7 @@ async def get_wallet_address():
         return None
 
 async def get_account_balance():
-    """Get account balance from Hyperliquid"""
+    """Get account balance from Hyperliquid (both Spot and Perps)"""
     try:
         if not hyperliquid_config.private_key:
             await log_message("WARNING", "No private key configured")
@@ -166,28 +166,47 @@ async def get_account_balance():
         
         # Get user state with rate limiting handling
         try:
+            # Get Perps (Futures) balance
             user_state = info.user_state(user_address)
-            await log_message("INFO", f"Raw user_state response: {user_state}")
+            await log_message("INFO", f"Perps user_state response: {user_state}")
             
-            if user_state is None:
-                await log_message("WARNING", "User state is None - possibly new account or rate limited")
-                return None
-                
-            if 'marginSummary' in user_state:
+            # Get Spot balance
+            try:
+                spot_balance_info = info.spot_user_state(user_address)
+                await log_message("INFO", f"Spot balance response: {spot_balance_info}")
+            except Exception as spot_error:
+                await log_message("WARNING", f"Could not get spot balance: {str(spot_error)}")
+                spot_balance_info = None
+            
+            total_balance = 0.0
+            perps_balance = 0.0
+            spot_balance = 0.0
+            
+            # Process Perps balance
+            if user_state and 'marginSummary' in user_state:
                 margin_summary = user_state['marginSummary']
-                await log_message("INFO", f"Margin summary found: {margin_summary}")
-                
-                # Check for account value
                 if 'accountValue' in margin_summary:
-                    balance = float(margin_summary['accountValue'])
-                    await log_message("INFO", f"Account balance retrieved: ${balance}")
-                    return balance
-                else:
-                    await log_message("WARNING", f"No accountValue in marginSummary. Available keys: {list(margin_summary.keys())}")
-                    return None
-            else:
-                await log_message("WARNING", f"No marginSummary in user_state. Available keys: {list(user_state.keys()) if user_state else 'None'}")
-                return None
+                    perps_balance = float(margin_summary['accountValue'])
+                    await log_message("INFO", f"Perps balance: ${perps_balance}")
+                    
+            # Process Spot balance
+            if spot_balance_info and 'balances' in spot_balance_info:
+                spot_balances = spot_balance_info['balances']
+                await log_message("INFO", f"Spot balances: {spot_balances}")
+                
+                for balance_item in spot_balances:
+                    if 'hold' in balance_item:
+                        coin_balance = float(balance_item['hold'])
+                        coin = balance_item.get('coin', 'Unknown')
+                        await log_message("INFO", f"Spot {coin}: {coin_balance}")
+                        if coin == 'USDC':
+                            spot_balance += coin_balance
+                        
+            total_balance = perps_balance + spot_balance
+            
+            await log_message("INFO", f"Total balance - Perps: ${perps_balance}, Spot: ${spot_balance}, Total: ${total_balance}")
+            
+            return total_balance if total_balance > 0 else None
                 
         except Exception as api_error:
             if "429" in str(api_error):
