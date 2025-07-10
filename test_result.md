@@ -196,17 +196,17 @@ backend:
           comment: "FIXED! Responses retrieval endpoint now working correctly. MongoDB ObjectId serialization issues have been resolved. Successfully retrieved Hyperliquid response data with proper JSON serialization including ID, webhook_id, status, and timestamp fields."
 
 frontend:
-  - task: "Frontend implementation"
+  - task: "Display wallet address in UI"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/frontend/src/App.js"
     stuck_count: 0
-    priority: "medium"
-    needs_retesting: false
+    priority: "high"
+    needs_retesting: true
     status_history:
-        - working: "NA"
-          agent: "testing"
-          comment: "Frontend testing was not part of this test scope."
+        - working: true
+          agent: "main"
+          comment: "Updated frontend to display wallet address in the Account Balance section. Now shows the wallet address to verify connection."
 
 metadata:
   created_by: "testing_agent"
