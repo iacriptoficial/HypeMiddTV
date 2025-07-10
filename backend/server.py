@@ -151,7 +151,7 @@ async def get_wallet_address():
         return None
 
 async def get_account_balance():
-    """Get Hyperliquid exchange account balance (not wallet balance)"""
+    """Get Hyperliquid exchange account balance (trying different methods)"""
     try:
         if not hyperliquid_config.private_key:
             await log_message("WARNING", "No private key configured")
@@ -164,95 +164,96 @@ async def get_account_balance():
         
         await log_message("INFO", f"Connecting with wallet address: {user_address}")
         
-        # Get exchange client (for authenticated calls)
+        info = hyperliquid_config.get_info_client()
+        
+        # Method 1: Query the wallet address directly (current approach)
         try:
-            exchange = hyperliquid_config.get_exchange_client()
-            info = hyperliquid_config.get_info_client()
-            
-            # Method 1: Try to get user's own trading account state
-            await log_message("INFO", "Attempting to get authenticated user state...")
-            
-            # Get the user state for the authenticated account 
+            await log_message("INFO", "Method 1: Querying wallet address directly...")
             user_state = info.user_state(user_address)
-            await log_message("INFO", f"Authenticated user_state: {user_state}")
+            await log_message("INFO", f"Direct wallet query result: {user_state}")
             
-            # Method 2: Try to get all user states or specific account data
+            if user_state and user_state.get('marginSummary', {}).get('accountValue', '0.0') != '0.0':
+                balance = float(user_state['marginSummary']['accountValue'])
+                await log_message("INFO", f"Found balance via direct wallet query: ${balance}")
+                return balance
+        except Exception as e:
+            await log_message("WARNING", f"Method 1 failed: {str(e)}")
+        
+        # Method 2: Try to get account info through exchange client (might reveal account address)
+        try:
+            await log_message("INFO", "Method 2: Using Exchange client to find account...")
+            exchange = hyperliquid_config.get_exchange_client()
+            
+            # Check if exchange object has account information
+            if hasattr(exchange, 'account_address') and exchange.account_address:
+                await log_message("INFO", f"Found exchange account address: {exchange.account_address}")
+                # Query the exchange account address
+                exchange_user_state = info.user_state(exchange.account_address)
+                await log_message("INFO", f"Exchange account state: {exchange_user_state}")
+                
+                if exchange_user_state and exchange_user_state.get('marginSummary', {}).get('accountValue', '0.0') != '0.0':
+                    balance = float(exchange_user_state['marginSummary']['accountValue'])
+                    await log_message("INFO", f"Found balance via exchange account: ${balance}")
+                    return balance
+                    
+        except Exception as e:
+            await log_message("WARNING", f"Method 2 failed: {str(e)}")
+        
+        # Method 3: Try querying without specifying an address (let it use default)
+        try:
+            await log_message("INFO", "Method 3: Attempting to get current user info...")
+            
+            # Try to get current user positions or account info
+            all_mids = info.all_mids()
+            await log_message("INFO", f"Available markets: {len(all_mids) if all_mids else 0}")
+            
+            # Try to get open orders (this might reveal the actual account)
             try:
-                # Get all user states or clearinghouse state
-                await log_message("INFO", "Attempting to get all account data...")
+                orders = info.open_orders(user_address)
+                await log_message("INFO", f"Open orders for wallet: {orders}")
+            except Exception as order_error:
+                await log_message("INFO", f"No open orders or error: {str(order_error)}")
+            
+        except Exception as e:
+            await log_message("WARNING", f"Method 3 failed: {str(e)}")
+        
+        # Method 4: Check if there are any sub-accounts or related addresses
+        try:
+            await log_message("INFO", "Method 4: Checking for sub-accounts...")
+            
+            # Try some common derived addresses (this is speculative)
+            # Sometimes accounts use deterministic derivation
+            
+            await log_message("INFO", f"Primary wallet address being queried: {user_address}")
+            
+            # Last attempt - fresh query with detailed logging
+            final_state = info.user_state(user_address)
+            if final_state:
+                await log_message("INFO", f"FINAL STATE DETAILS:")
+                await log_message("INFO", f"  marginSummary: {final_state.get('marginSummary', {})}")
+                await log_message("INFO", f"  crossMarginSummary: {final_state.get('crossMarginSummary', {})}")
+                await log_message("INFO", f"  withdrawable: {final_state.get('withdrawable', '0.0')}")
+                await log_message("INFO", f"  assetPositions: {final_state.get('assetPositions', [])}")
                 
-                # Try to get the margin summary which should contain the real balance
-                if user_state and 'marginSummary' in user_state:
-                    margin_summary = user_state['marginSummary'] 
-                    
-                    # Check all fields in margin summary
-                    await log_message("INFO", f"Full marginSummary: {margin_summary}")
-                    
-                    # Try different balance fields
-                    balance_fields = ['accountValue', 'totalRawUsd', 'withdrawable']
-                    for field in balance_fields:
-                        if field in margin_summary:
-                            balance = float(margin_summary[field])
-                            await log_message("INFO", f"Found balance in {field}: ${balance}")
-                            if balance > 0:
-                                return balance
-                
-                # Method 3: Check cross margin summary
-                if user_state and 'crossMarginSummary' in user_state:
-                    cross_summary = user_state['crossMarginSummary']
-                    await log_message("INFO", f"Cross margin summary: {cross_summary}")
-                    
-                    for field in ['accountValue', 'totalRawUsd']:
-                        if field in cross_summary:
-                            balance = float(cross_summary[field])
-                            await log_message("INFO", f"Found cross balance in {field}: ${balance}")
-                            if balance > 0:
-                                return balance
-                
-                # Method 4: Check asset positions for USDC
-                if user_state and 'assetPositions' in user_state:
-                    asset_positions = user_state['assetPositions']
-                    await log_message("INFO", f"Asset positions: {asset_positions}")
-                    
-                    total_assets = 0.0
-                    for position in asset_positions:
-                        if 'position' in position:
-                            pos_value = float(position['position']['szi'])
-                            coin = position['position'].get('coin', 'Unknown')
-                            await log_message("INFO", f"Asset {coin}: {pos_value}")
-                            if coin == 'USDC':
-                                total_assets += pos_value
-                    
-                    if total_assets > 0:
-                        await log_message("INFO", f"Found total assets: ${total_assets}")
-                        return total_assets
-                
-                # Method 5: Try spot balance for USDC
+                # Check spot account one more time
                 spot_state = info.spot_user_state(user_address)
-                await log_message("INFO", f"Spot state: {spot_state}")
+                await log_message("INFO", f"  SPOT STATE: {spot_state}")
                 
-                if spot_state and 'balances' in spot_state:
-                    for balance_info in spot_state['balances']:
-                        if balance_info.get('coin') == 'USDC':
-                            usdc_balance = float(balance_info.get('hold', 0))
-                            await log_message("INFO", f"Found USDC in spot: ${usdc_balance}")
-                            if usdc_balance > 0:
-                                return usdc_balance
+                # Return any non-zero balance found
+                margin_balance = float(final_state.get('marginSummary', {}).get('accountValue', '0.0'))
+                withdrawable = float(final_state.get('withdrawable', '0.0'))
                 
-            except Exception as method_error:
-                await log_message("ERROR", f"Error in advanced balance lookup: {str(method_error)}")
-            
-            await log_message("WARNING", "No balance found in any account method")
-            return None
+                if margin_balance > 0:
+                    return margin_balance
+                elif withdrawable > 0:
+                    return withdrawable
+                    
+        except Exception as e:
+            await log_message("ERROR", f"Method 4 failed: {str(e)}")
+        
+        await log_message("WARNING", "All methods exhausted - no balance found")
+        return None
                 
-        except Exception as api_error:
-            if "429" in str(api_error):
-                await log_message("WARNING", f"Rate limited by Hyperliquid API: {str(api_error)}")
-                return None
-            else:
-                await log_message("ERROR", f"API error: {str(api_error)}")
-                return None
-            
     except Exception as e:
         await log_message("ERROR", f"Failed to get account balance: {str(e)}")
         return None
