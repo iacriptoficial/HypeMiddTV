@@ -275,7 +275,20 @@ async def get_logs(limit: int = 100, level: Optional[str] = None):
             query["level"] = level
             
         logs = await db.logs.find(query).sort("timestamp", -1).limit(limit).to_list(limit)
-        return {"logs": logs}
+        
+        # Convert to JSON-serializable format
+        logs_data = []
+        for log in logs:
+            log_data = {
+                "id": log.get("id"),
+                "timestamp": log.get("timestamp"),
+                "level": log.get("level"),
+                "message": log.get("message"),
+                "details": log.get("details")
+            }
+            logs_data.append(log_data)
+            
+        return {"logs": logs_data}
         
     except Exception as e:
         await log_message("ERROR", f"Failed to get logs: {str(e)}")
