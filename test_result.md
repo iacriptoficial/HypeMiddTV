@@ -131,6 +131,9 @@ backend:
         - working: true
           agent: "main"
           comment: "Successfully displaying real balance: $964.08 USDC (Perps) + $50.00 USDC (Spot) = $1,014.08 USDC total. Balance is fetched from actual Hyperliquid testnet account."
+        - working: true
+          agent: "testing"
+          comment: "✅ VERIFIED: Real balance retrieval working correctly. Current balance $1014.075502 successfully fetched from Hyperliquid testnet with proper caching mechanism."
 
   - task: "Wallet address display for verification"
     implemented: true
