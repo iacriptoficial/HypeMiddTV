@@ -256,6 +256,11 @@ function App() {
                 <div className="text-sm text-gray-400 mt-2">
                   {currentEnvironment === "testnet" ? "Testnet Balance" : "Mainnet Balance"}
                 </div>
+                {status?.wallet_address && (
+                  <div className="text-xs text-gray-500 mt-2 break-all">
+                    Wallet: {status.wallet_address}
+                  </div>
+                )}
               </div>
             </div>
 
