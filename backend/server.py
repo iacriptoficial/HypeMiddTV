@@ -164,17 +164,37 @@ async def get_account_balance():
         
         await log_message("INFO", f"Fetching balance for address: {user_address}")
         
-        # Get user state
-        user_state = info.user_state(user_address)
-        
-        if user_state and 'marginSummary' in user_state:
-            balance = float(user_state['marginSummary']['accountValue'])
-            await log_message("INFO", f"Account balance retrieved: ${balance}")
-            return balance
-        else:
-            await log_message("WARNING", "Could not retrieve account balance - marginSummary not found")
-            await log_message("INFO", f"User state response: {user_state}")
-            return None
+        # Get user state with rate limiting handling
+        try:
+            user_state = info.user_state(user_address)
+            await log_message("INFO", f"Raw user_state response: {user_state}")
+            
+            if user_state is None:
+                await log_message("WARNING", "User state is None - possibly new account or rate limited")
+                return None
+                
+            if 'marginSummary' in user_state:
+                margin_summary = user_state['marginSummary']
+                await log_message("INFO", f"Margin summary found: {margin_summary}")
+                
+                # Check for account value
+                if 'accountValue' in margin_summary:
+                    balance = float(margin_summary['accountValue'])
+                    await log_message("INFO", f"Account balance retrieved: ${balance}")
+                    return balance
+                else:
+                    await log_message("WARNING", f"No accountValue in marginSummary. Available keys: {list(margin_summary.keys())}")
+                    return None
+            else:
+                await log_message("WARNING", f"No marginSummary in user_state. Available keys: {list(user_state.keys()) if user_state else 'None'}")
+                return None
+                
+        except Exception as api_error:
+            if "429" in str(api_error):
+                await log_message("WARNING", f"Rate limited by Hyperliquid API: {str(api_error)}")
+                return None
+            else:
+                raise api_error
             
     except Exception as e:
         await log_message("ERROR", f"Failed to get account balance: {str(e)}")
