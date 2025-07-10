@@ -161,6 +161,9 @@ backend:
         - working: true
           agent: "main"
           comment: "Implemented 30-second cache for balance data to prevent Hyperliquid API rate limiting (429 errors). System now maintains good performance while respecting API limits."
+        - working: true
+          agent: "testing"
+          comment: "✅ VERIFIED: Caching mechanism working correctly. Balance data cached for 30 seconds to prevent API rate limiting."
 
   - task: "MongoDB serialization fixes"
     implemented: true
