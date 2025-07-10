@@ -472,7 +472,7 @@ def run_all_tests():
     """Run all tests and report results"""
     print("=" * 80)
     print("TRADINGVIEW TO HYPERLIQUID MIDDLEWARE BACKEND TESTS")
-    print("FOCUS: Updated backend with fixed serialization and real Hyperliquid connection")
+    print("FOCUS: Real order execution testing as requested in review")
     print("=" * 80)
     print(f"Testing against: {BASE_URL}")
     print(f"Test started at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
@@ -488,6 +488,10 @@ def run_all_tests():
     # Test status endpoint (key focus area)
     status_success = test_status_endpoint()
     results["Status Endpoint"] = status_success
+    
+    # NEW: Test real order execution (MAIN FOCUS OF REVIEW REQUEST)
+    order_execution_success = test_real_order_execution()
+    results["Real Order Execution"] = order_execution_success
     
     # Test webhook endpoint to generate some data
     webhook_success, webhook_id = test_webhook_endpoint()
@@ -521,7 +525,7 @@ def run_all_tests():
         if not passed:
             all_passed = False
             # Mark critical failures
-            if test_name in ["Hyperliquid Connection", "Status Endpoint", "Logs Endpoint", "Webhooks Endpoint", "Responses Endpoint"]:
+            if test_name in ["Real Order Execution", "Hyperliquid Connection", "Status Endpoint", "Logs Endpoint", "Webhooks Endpoint", "Responses Endpoint"]:
                 critical_failures.append(test_name)
     
     print(f"\nOVERALL RESULT: {'✅ ALL TESTS PASSED' if all_passed else '❌ SOME TESTS FAILED'}")
