@@ -136,11 +136,66 @@ async def test_hyperliquid_connection():
         await log_message("ERROR", f"Hyperliquid connection failed: {str(e)}")
         return False
 
+async def discover_associated_accounts(wallet_address):
+    """Discover all accounts associated with a wallet address"""
+    try:
+        info = hyperliquid_config.get_info_client()
+        associated_accounts = [wallet_address]  # Always include the main wallet
+        
+        await log_message("INFO", f"Discovering accounts for wallet: {wallet_address}")
+        
+        # Check wallet role
+        try:
+            user_role = info.post("/info", {"type": "userRole", "user": wallet_address})
+            await log_message("INFO", f"Wallet role: {user_role}")
+        except Exception as e:
+            await log_message("WARNING", f"Could not get user role: {str(e)}")
+        
+        # Get sub-accounts if this is a master account
+        try:
+            sub_accounts_data = info.post("/info", {"type": "subAccounts", "user": wallet_address})
+            await log_message("INFO", f"Sub-accounts response: {sub_accounts_data}")
+            
+            if sub_accounts_data and isinstance(sub_accounts_data, list):
+                for sub_account in sub_accounts_data:
+                    if isinstance(sub_account, dict) and 'subAccountUser' in sub_account:
+                        sub_address = sub_account['subAccountUser']
+                        associated_accounts.append(sub_address)
+                        await log_message("INFO", f"Found sub-account: {sub_address}")
+                        
+        except Exception as e:
+            await log_message("WARNING", f"Could not get sub-accounts: {str(e)}")
+        
+        # Check for vault associations
+        try:
+            vault_data = info.post("/info", {"type": "userVaultEquities", "user": wallet_address})
+            await log_message("INFO", f"Vault data response: {vault_data}")
+            
+            if vault_data and isinstance(vault_data, list):
+                for vault_info in vault_data:
+                    if isinstance(vault_info, dict) and 'vault' in vault_info:
+                        vault_address = vault_info['vault']
+                        associated_accounts.append(vault_address)
+                        await log_message("INFO", f"Found vault: {vault_address}")
+                        
+        except Exception as e:
+            await log_message("WARNING", f"Could not get vault data: {str(e)}")
+        
+        # Remove duplicates
+        unique_accounts = list(set(associated_accounts))
+        await log_message("INFO", f"Total unique accounts found: {len(unique_accounts)}")
+        
+        return unique_accounts
+        
+    except Exception as e:
+        await log_message("ERROR", f"Error discovering accounts: {str(e)}")
+        return [wallet_address]  # Return at least the main wallet
+
 async def find_account_with_balance():
     """Try to find the correct account address that has balance"""
     try:
         if not hyperliquid_config.private_key:
-            return None
+            return None, 0.0
             
         from eth_account import Account
         account = Account.from_key(hyperliquid_config.private_key)
@@ -149,22 +204,13 @@ async def find_account_with_balance():
         info = hyperliquid_config.get_info_client()
         
         await log_message("INFO", f"Searching for account with balance...")
-        await log_message("INFO", f"Primary wallet address: {wallet_address}")
         
-        # List of addresses to try (wallet + potential patterns)
-        addresses_to_try = [wallet_address]
-        
-        # Check if we can determine other addresses
-        # The funds address from the transaction is: 0x050610e7abcf9f4efb310adbc6c777e10dbc843b
-        # Let's see if there's a pattern or if we can discover it
-        
-        # Method 1: Try to derive potential addresses or check for known patterns
-        # Since we know the correct address from the transactions, let's check if
-        # there's a way to derive it from the wallet address
+        # Discover all associated accounts
+        addresses_to_try = await discover_associated_accounts(wallet_address)
         
         for address in addresses_to_try:
             try:
-                await log_message("INFO", f"Checking address: {address}")
+                await log_message("INFO", f"Checking balance for address: {address}")
                 
                 # Check perps balance
                 user_state = info.user_state(address)
@@ -183,14 +229,14 @@ async def find_account_with_balance():
                 await log_message("INFO", f"Address {address}: Perps=${margin_balance}, Spot=${spot_balance}, Total=${total_balance}")
                 
                 if total_balance > 0:
-                    await log_message("INFO", f"Found account with balance: {address}")
+                    await log_message("INFO", f"✅ Found account with balance: {address}")
                     return address, total_balance
                     
             except Exception as e:
                 await log_message("WARNING", f"Error checking address {address}: {str(e)}")
                 continue
         
-        await log_message("WARNING", "No account with balance found")
+        await log_message("WARNING", "No account with balance found in discovered accounts")
         return None, 0.0
         
     except Exception as e:
