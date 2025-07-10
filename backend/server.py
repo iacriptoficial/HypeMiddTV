@@ -495,18 +495,6 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
         # Get exchange client
         exchange = hyperliquid_config.get_exchange_client()
         
-        # Prepare order data
-        order_data = {
-            "coin": symbol,
-            "is_buy": (side == "B"),
-            "sz": quantity,
-            "limit_px": price,
-            "order_type": {"limit": {"tif": "Gtc"}},  # Good Till Cancel
-            "reduce_only": False
-        }
-        
-        await log_message("INFO", f"Hyperliquid order data: {order_data}")
-        
         # Execute the order
         try:
             result = exchange.order(
