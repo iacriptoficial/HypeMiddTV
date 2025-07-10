@@ -6,7 +6,7 @@ from datetime import datetime
 import sys
 
 # Base URL from frontend/.env
-BASE_URL = "https://47af4de8-f4e6-4dea-9315-8292e5904188.preview.emergentagent.com/api"
+BASE_URL = "https://2862ac8e-57ac-4911-8d7a-896ae91802bf.preview.emergentagent.com/api"
 
 # Sample webhook payload for testing
 SAMPLE_WEBHOOK_PAYLOAD = {
