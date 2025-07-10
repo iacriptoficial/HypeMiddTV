@@ -116,6 +116,9 @@ backend:
         - working: true
           agent: "testing"
           comment: "Webhook endpoint successfully tested. It accepts TradingView webhook data and returns a proper response with webhook_id and simulated Hyperliquid response."
+        - working: true
+          agent: "testing"
+          comment: "Re-tested after backend fixes. Webhook endpoint working perfectly - accepts TradingView webhook data, processes it correctly, and returns proper response with webhook_id and simulated Hyperliquid response."
 
   - task: "Status endpoint"
     implemented: true
@@ -128,18 +131,24 @@ backend:
         - working: true
           agent: "testing"
           comment: "Status endpoint successfully tested. It returns server status, environment, uptime, webhook statistics, and Hyperliquid connection status."
+        - working: true
+          agent: "testing"
+          comment: "Re-tested after backend fixes. Status endpoint now correctly returns wallet_address field (0x92e9775a9dA3C2A5d5a940e4cee1650E9bdB9d36) and real balance from Hyperliquid testnet ($0.0). Environment correctly set to testnet. Hyperliquid connection working (rate limiting during rapid testing is expected behavior)."
 
   - task: "Logs endpoint"
     implemented: true
-    working: false
+    working: true
     file: "/app/backend/server.py"
-    stuck_count: 1
+    stuck_count: 0
     priority: "medium"
     needs_retesting: false
     status_history:
         - working: false
           agent: "testing"
           comment: "Logs endpoint returns a 500 Internal Server Error due to MongoDB ObjectId serialization issues. This is a common issue when returning MongoDB documents directly in FastAPI. The endpoint needs to be fixed to properly serialize MongoDB documents."
+        - working: true
+          agent: "testing"
+          comment: "FIXED! Logs endpoint now working correctly. MongoDB ObjectId serialization issues have been resolved. Successfully retrieved 24 logs with proper JSON serialization. All log entries include proper timestamps, levels, and messages."
 
   - task: "Environment switching"
     implemented: true
@@ -152,30 +161,39 @@ backend:
         - working: true
           agent: "testing"
           comment: "Environment switching endpoint successfully tested. It allows switching between testnet and mainnet environments and properly updates the global configuration."
+        - working: true
+          agent: "testing"
+          comment: "Re-tested after backend fixes. Environment switching working perfectly - successfully switches between testnet and mainnet, verifies the change, and switches back correctly."
 
   - task: "Webhooks retrieval endpoint"
     implemented: true
-    working: false
+    working: true
     file: "/app/backend/server.py"
-    stuck_count: 1
+    stuck_count: 0
     priority: "medium"
     needs_retesting: false
     status_history:
         - working: false
           agent: "testing"
           comment: "Webhooks retrieval endpoint returns a 500 Internal Server Error due to MongoDB ObjectId serialization issues. This is a common issue when returning MongoDB documents directly in FastAPI. The endpoint needs to be fixed to properly serialize MongoDB documents."
+        - working: true
+          agent: "testing"
+          comment: "FIXED! Webhooks retrieval endpoint now working correctly. MongoDB ObjectId serialization issues have been resolved. Successfully retrieved webhook data with proper JSON serialization including ID, timestamp, status, and source fields."
 
   - task: "Responses retrieval endpoint"
     implemented: true
-    working: false
+    working: true
     file: "/app/backend/server.py"
-    stuck_count: 1
+    stuck_count: 0
     priority: "medium"
     needs_retesting: false
     status_history:
         - working: false
           agent: "testing"
           comment: "Responses retrieval endpoint returns a 500 Internal Server Error due to MongoDB ObjectId serialization issues. This is a common issue when returning MongoDB documents directly in FastAPI. The endpoint needs to be fixed to properly serialize MongoDB documents."
+        - working: true
+          agent: "testing"
+          comment: "FIXED! Responses retrieval endpoint now working correctly. MongoDB ObjectId serialization issues have been resolved. Successfully retrieved Hyperliquid response data with proper JSON serialization including ID, webhook_id, status, and timestamp fields."
 
 frontend:
   - task: "Frontend implementation"
