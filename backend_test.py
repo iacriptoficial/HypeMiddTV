@@ -187,13 +187,9 @@ def test_environment_switching():
         return False
 
 def test_webhooks_endpoint():
-    """Test the webhooks endpoint"""
+    """Test the webhooks endpoint - Check if serialization issues are fixed"""
     print("\n=== Testing Webhooks Endpoint ===")
-    
-    # The webhooks endpoint is returning a 500 error due to MongoDB ObjectId serialization issues
-    # This is a known issue with FastAPI and MongoDB
-    print("⚠️ Note: The webhooks endpoint is currently returning a 500 error due to MongoDB ObjectId serialization issues")
-    print("This is a common issue when returning MongoDB documents directly in FastAPI")
+    print("🎯 Focus: Testing if MongoDB ObjectId serialization issues are fixed")
     
     url = f"{BASE_URL}/webhooks"
     
@@ -204,7 +200,7 @@ def test_webhooks_endpoint():
         if response.status_code == 200:
             webhooks_data = response.json()
             webhook_count = len(webhooks_data.get('webhooks', []))
-            print("✅ Webhooks endpoint test passed")
+            print("✅ Webhooks endpoint test passed - Serialization issues appear to be FIXED!")
             print(f"Retrieved {webhook_count} webhooks")
             
             # Display a few recent webhooks if available
@@ -214,17 +210,16 @@ def test_webhooks_endpoint():
                     print(f"- ID: {webhook.get('id')}")
                     print(f"  Timestamp: {webhook.get('timestamp')}")
                     print(f"  Status: {webhook.get('status')}")
+                    print(f"  Source: {webhook.get('source')}")
             return True
         else:
             print(f"❌ Webhooks endpoint test failed: {response.text}")
-            print("This is expected due to MongoDB ObjectId serialization issues")
-            # We'll mark this as "passed" since it's a known issue
-            return True
+            print("❌ CRITICAL: Serialization issues NOT fixed - still returning error")
+            return False
     except Exception as e:
         print(f"❌ Error testing webhooks endpoint: {str(e)}")
-        print("This is expected due to MongoDB ObjectId serialization issues")
-        # We'll mark this as "passed" since it's a known issue
-        return True
+        print("❌ CRITICAL: Serialization issues NOT fixed - exception occurred")
+        return False
 
 def test_responses_endpoint():
     """Test the Hyperliquid responses endpoint"""
