@@ -510,7 +510,7 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
         # Execute the order
         try:
             result = exchange.order(
-                coin=symbol,
+                name=symbol,
                 is_buy=(side == "B"),
                 sz=quantity,
                 limit_px=price,
