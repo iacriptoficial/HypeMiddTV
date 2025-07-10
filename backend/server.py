@@ -324,7 +324,21 @@ async def get_hyperliquid_responses(limit: int = 50):
     """Get recent Hyperliquid responses"""
     try:
         responses = await db.hyperliquid_responses.find().sort("timestamp", -1).limit(limit).to_list(limit)
-        return {"responses": responses}
+        
+        # Convert to JSON-serializable format
+        responses_data = []
+        for response in responses:
+            response_data = {
+                "id": response.get("id"),
+                "timestamp": response.get("timestamp"),
+                "webhook_id": response.get("webhook_id"),
+                "response_data": response.get("response_data"),
+                "status": response.get("status"),
+                "error": response.get("error")
+            }
+            responses_data.append(response_data)
+            
+        return {"responses": responses_data}
         
     except Exception as e:
         await log_message("ERROR", f"Failed to get responses: {str(e)}")
