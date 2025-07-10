@@ -102,7 +102,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Test the TradingView to Hyperliquid middleware backend comprehensively"
+user_problem_statement: "User reported that balance is showing as zero in the app preview, but they have balance in their Hyperliquid futures account. Need to fetch real data and display wallet address to verify connection."
 
 backend:
   - task: "Webhook endpoint"
