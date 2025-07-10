@@ -149,71 +149,107 @@ async def get_wallet_address():
         return None
 
 async def get_account_balance():
-    """Get account balance from Hyperliquid (both Spot and Perps)"""
+    """Get Hyperliquid exchange account balance (not wallet balance)"""
     try:
         if not hyperliquid_config.private_key:
             await log_message("WARNING", "No private key configured")
             return None
             
-        info = hyperliquid_config.get_info_client()
-        
-        # Get user address from private key
+        # Get user address from private key for connection
         from eth_account import Account
         account = Account.from_key(hyperliquid_config.private_key)
         user_address = account.address
         
-        await log_message("INFO", f"Fetching balance for address: {user_address}")
+        await log_message("INFO", f"Connecting with wallet address: {user_address}")
         
-        # Get user state with rate limiting handling
+        # Get exchange client (for authenticated calls)
         try:
-            # Get Perps (Futures) balance
+            exchange = hyperliquid_config.get_exchange_client()
+            info = hyperliquid_config.get_info_client()
+            
+            # Method 1: Try to get user's own trading account state
+            await log_message("INFO", "Attempting to get authenticated user state...")
+            
+            # Get the user state for the authenticated account 
             user_state = info.user_state(user_address)
-            await log_message("INFO", f"Perps user_state response: {user_state}")
+            await log_message("INFO", f"Authenticated user_state: {user_state}")
             
-            # Get Spot balance
+            # Method 2: Try to get all user states or specific account data
             try:
-                spot_balance_info = info.spot_user_state(user_address)
-                await log_message("INFO", f"Spot balance response: {spot_balance_info}")
-            except Exception as spot_error:
-                await log_message("WARNING", f"Could not get spot balance: {str(spot_error)}")
-                spot_balance_info = None
-            
-            total_balance = 0.0
-            perps_balance = 0.0
-            spot_balance = 0.0
-            
-            # Process Perps balance
-            if user_state and 'marginSummary' in user_state:
-                margin_summary = user_state['marginSummary']
-                if 'accountValue' in margin_summary:
-                    perps_balance = float(margin_summary['accountValue'])
-                    await log_message("INFO", f"Perps balance: ${perps_balance}")
-                    
-            # Process Spot balance
-            if spot_balance_info and 'balances' in spot_balance_info:
-                spot_balances = spot_balance_info['balances']
-                await log_message("INFO", f"Spot balances: {spot_balances}")
+                # Get all user states or clearinghouse state
+                await log_message("INFO", "Attempting to get all account data...")
                 
-                for balance_item in spot_balances:
-                    if 'hold' in balance_item:
-                        coin_balance = float(balance_item['hold'])
-                        coin = balance_item.get('coin', 'Unknown')
-                        await log_message("INFO", f"Spot {coin}: {coin_balance}")
-                        if coin == 'USDC':
-                            spot_balance += coin_balance
-                        
-            total_balance = perps_balance + spot_balance
+                # Try to get the margin summary which should contain the real balance
+                if user_state and 'marginSummary' in user_state:
+                    margin_summary = user_state['marginSummary'] 
+                    
+                    # Check all fields in margin summary
+                    await log_message("INFO", f"Full marginSummary: {margin_summary}")
+                    
+                    # Try different balance fields
+                    balance_fields = ['accountValue', 'totalRawUsd', 'withdrawable']
+                    for field in balance_fields:
+                        if field in margin_summary:
+                            balance = float(margin_summary[field])
+                            await log_message("INFO", f"Found balance in {field}: ${balance}")
+                            if balance > 0:
+                                return balance
+                
+                # Method 3: Check cross margin summary
+                if user_state and 'crossMarginSummary' in user_state:
+                    cross_summary = user_state['crossMarginSummary']
+                    await log_message("INFO", f"Cross margin summary: {cross_summary}")
+                    
+                    for field in ['accountValue', 'totalRawUsd']:
+                        if field in cross_summary:
+                            balance = float(cross_summary[field])
+                            await log_message("INFO", f"Found cross balance in {field}: ${balance}")
+                            if balance > 0:
+                                return balance
+                
+                # Method 4: Check asset positions for USDC
+                if user_state and 'assetPositions' in user_state:
+                    asset_positions = user_state['assetPositions']
+                    await log_message("INFO", f"Asset positions: {asset_positions}")
+                    
+                    total_assets = 0.0
+                    for position in asset_positions:
+                        if 'position' in position:
+                            pos_value = float(position['position']['szi'])
+                            coin = position['position'].get('coin', 'Unknown')
+                            await log_message("INFO", f"Asset {coin}: {pos_value}")
+                            if coin == 'USDC':
+                                total_assets += pos_value
+                    
+                    if total_assets > 0:
+                        await log_message("INFO", f"Found total assets: ${total_assets}")
+                        return total_assets
+                
+                # Method 5: Try spot balance for USDC
+                spot_state = info.spot_user_state(user_address)
+                await log_message("INFO", f"Spot state: {spot_state}")
+                
+                if spot_state and 'balances' in spot_state:
+                    for balance_info in spot_state['balances']:
+                        if balance_info.get('coin') == 'USDC':
+                            usdc_balance = float(balance_info.get('hold', 0))
+                            await log_message("INFO", f"Found USDC in spot: ${usdc_balance}")
+                            if usdc_balance > 0:
+                                return usdc_balance
+                
+            except Exception as method_error:
+                await log_message("ERROR", f"Error in advanced balance lookup: {str(method_error)}")
             
-            await log_message("INFO", f"Total balance - Perps: ${perps_balance}, Spot: ${spot_balance}, Total: ${total_balance}")
-            
-            return total_balance if total_balance > 0 else None
+            await log_message("WARNING", "No balance found in any account method")
+            return None
                 
         except Exception as api_error:
             if "429" in str(api_error):
                 await log_message("WARNING", f"Rate limited by Hyperliquid API: {str(api_error)}")
                 return None
             else:
-                raise api_error
+                await log_message("ERROR", f"API error: {str(api_error)}")
+                return None
             
     except Exception as e:
         await log_message("ERROR", f"Failed to get account balance: {str(e)}")
