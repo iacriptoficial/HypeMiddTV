@@ -60,8 +60,7 @@ class HyperliquidConfig:
         
         return Exchange(
             wallet=wallet,
-            base_url=self.base_url,
-            skip_ws=True
+            base_url=self.base_url
         )
 
 # Global config instance
