@@ -136,6 +136,67 @@ def test_logs_endpoint():
         print("❌ CRITICAL: Serialization issues NOT fixed - exception occurred")
         return False
 
+def test_hyperliquid_connection():
+    """Test Hyperliquid connection specifically with the provided testnet private key"""
+    print("\n=== Testing Hyperliquid Connection ===")
+    print("🎯 Focus: Verify connection to Hyperliquid testnet with provided private key")
+    print("Private Key: 0x978fafbb4b1bf1e197c3dff8dad11b2253fbf8fdbba01c4f5977d5ccaaa3ee54")
+    
+    # Test through status endpoint which includes connection test
+    url = f"{BASE_URL}/status"
+    
+    try:
+        response = requests.get(url)
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            status_data = response.json()
+            
+            # Check Hyperliquid connection status
+            hl_connected = status_data.get('hyperliquid_connected', False)
+            environment = status_data.get('environment')
+            balance = status_data.get('balance')
+            wallet_address = status_data.get('wallet_address')
+            
+            print(f"Environment: {environment}")
+            print(f"Hyperliquid Connected: {hl_connected}")
+            print(f"Wallet Address: {wallet_address}")
+            print(f"Balance: ${balance}" if balance is not None else "Balance: None")
+            
+            success = True
+            
+            if not hl_connected:
+                print("❌ CRITICAL: Hyperliquid connection failed")
+                success = False
+            else:
+                print("✅ Hyperliquid connection successful")
+                
+            if environment != 'testnet':
+                print(f"❌ CRITICAL: Should be connected to testnet, got {environment}")
+                success = False
+            else:
+                print("✅ Connected to testnet environment")
+                
+            if not wallet_address:
+                print("❌ CRITICAL: Wallet address not derived from private key")
+                success = False
+            else:
+                print(f"✅ Wallet address derived: {wallet_address}")
+                
+            if balance is None:
+                print("❌ CRITICAL: Balance not retrieved from Hyperliquid testnet")
+                success = False
+            else:
+                print(f"✅ Real balance retrieved from Hyperliquid testnet: ${balance}")
+                
+            return success
+        else:
+            print(f"❌ Failed to test Hyperliquid connection: {response.text}")
+            return False
+    except Exception as e:
+        print(f"❌ Error testing Hyperliquid connection: {str(e)}")
+        return False
+
 def test_environment_switching():
     """Test environment switching between testnet and mainnet"""
     print("\n=== Testing Environment Switching ===")
