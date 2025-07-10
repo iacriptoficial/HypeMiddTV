@@ -321,6 +321,7 @@ def run_all_tests():
     """Run all tests and report results"""
     print("=" * 80)
     print("TRADINGVIEW TO HYPERLIQUID MIDDLEWARE BACKEND TESTS")
+    print("FOCUS: Updated backend with fixed serialization and real Hyperliquid connection")
     print("=" * 80)
     print(f"Testing against: {BASE_URL}")
     print(f"Test started at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
@@ -329,29 +330,31 @@ def run_all_tests():
     # Track test results
     results = {}
     
-    # Test webhook endpoint
-    webhook_success, webhook_id = test_webhook_endpoint()
-    results["Webhook Endpoint"] = webhook_success
+    # Test Hyperliquid connection first (key focus area)
+    hl_connection_success = test_hyperliquid_connection()
+    results["Hyperliquid Connection"] = hl_connection_success
     
-    # Test status endpoint
+    # Test status endpoint (key focus area)
     status_success = test_status_endpoint()
     results["Status Endpoint"] = status_success
     
-    # Test logs endpoint
+    # Test webhook endpoint to generate some data
+    webhook_success, webhook_id = test_webhook_endpoint()
+    results["Webhook Endpoint"] = webhook_success
+    
+    # Test previously failing endpoints (key focus area)
     logs_success = test_logs_endpoint()
     results["Logs Endpoint"] = logs_success
+    
+    webhooks_success = test_webhooks_endpoint()
+    results["Webhooks Endpoint"] = webhooks_success
+    
+    responses_success = test_responses_endpoint()
+    results["Responses Endpoint"] = responses_success
     
     # Test environment switching
     env_success = test_environment_switching()
     results["Environment Switching"] = env_success
-    
-    # Test webhooks endpoint
-    webhooks_success = test_webhooks_endpoint()
-    results["Webhooks Endpoint"] = webhooks_success
-    
-    # Test responses endpoint
-    responses_success = test_responses_endpoint()
-    results["Responses Endpoint"] = responses_success
     
     # Print summary
     print("\n" + "=" * 80)
@@ -359,13 +362,23 @@ def run_all_tests():
     print("=" * 80)
     
     all_passed = True
+    critical_failures = []
+    
     for test_name, passed in results.items():
         status = "✅ PASSED" if passed else "❌ FAILED"
         print(f"{test_name}: {status}")
         if not passed:
             all_passed = False
+            # Mark critical failures
+            if test_name in ["Hyperliquid Connection", "Status Endpoint", "Logs Endpoint", "Webhooks Endpoint", "Responses Endpoint"]:
+                critical_failures.append(test_name)
     
-    print("\nOVERALL RESULT:", "✅ ALL TESTS PASSED" if all_passed else "❌ SOME TESTS FAILED")
+    print(f"\nOVERALL RESULT: {'✅ ALL TESTS PASSED' if all_passed else '❌ SOME TESTS FAILED'}")
+    
+    if critical_failures:
+        print(f"\n🚨 CRITICAL FAILURES: {', '.join(critical_failures)}")
+        print("These are the key areas mentioned in the review request that need attention.")
+    
     print("=" * 80)
     
     return all_passed
