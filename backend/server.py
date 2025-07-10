@@ -136,21 +136,105 @@ async def test_hyperliquid_connection():
         await log_message("ERROR", f"Hyperliquid connection failed: {str(e)}")
         return False
 
-async def get_wallet_address():
-    """Get wallet address from private key"""
+async def find_account_with_balance():
+    """Try to find the correct account address that has balance"""
     try:
         if not hyperliquid_config.private_key:
             return None
             
         from eth_account import Account
         account = Account.from_key(hyperliquid_config.private_key)
-        return account.address
+        wallet_address = account.address
+        
+        info = hyperliquid_config.get_info_client()
+        
+        await log_message("INFO", f"Searching for account with balance...")
+        await log_message("INFO", f"Primary wallet address: {wallet_address}")
+        
+        # List of addresses to try (wallet + potential patterns)
+        addresses_to_try = [wallet_address]
+        
+        # Check if we can determine other addresses
+        # The funds address from the transaction is: 0x050610e7abcf9f4efb310adbc6c777e10dbc843b
+        # Let's see if there's a pattern or if we can discover it
+        
+        # Method 1: Try to derive potential addresses or check for known patterns
+        # Since we know the correct address from the transactions, let's check if
+        # there's a way to derive it from the wallet address
+        
+        for address in addresses_to_try:
+            try:
+                await log_message("INFO", f"Checking address: {address}")
+                
+                # Check perps balance
+                user_state = info.user_state(address)
+                margin_balance = float(user_state.get('marginSummary', {}).get('accountValue', '0.0'))
+                
+                # Check spot balance  
+                spot_state = info.spot_user_state(address)
+                spot_balance = 0.0
+                if spot_state and 'balances' in spot_state:
+                    for balance_info in spot_state['balances']:
+                        if balance_info.get('coin') == 'USDC':
+                            spot_balance += float(balance_info.get('total', 0))
+                
+                total_balance = margin_balance + spot_balance
+                
+                await log_message("INFO", f"Address {address}: Perps=${margin_balance}, Spot=${spot_balance}, Total=${total_balance}")
+                
+                if total_balance > 0:
+                    await log_message("INFO", f"Found account with balance: {address}")
+                    return address, total_balance
+                    
+            except Exception as e:
+                await log_message("WARNING", f"Error checking address {address}: {str(e)}")
+                continue
+        
+        await log_message("WARNING", "No account with balance found")
+        return None, 0.0
+        
+    except Exception as e:
+        await log_message("ERROR", f"Error in find_account_with_balance: {str(e)}")
+        return None, 0.0
+
+async def get_account_balance():
+    """Get Hyperliquid exchange account balance by finding the correct address"""
+    try:
+        # First try to find the account with balance
+        account_address, balance = await find_account_with_balance()
+        
+        if account_address and balance > 0:
+            await log_message("INFO", f"Using account address: {account_address} with balance: ${balance}")
+            return balance
+        
+        # If no balance found, return None
+        await log_message("WARNING", "No balance found in any discoverable account")
+        return None
+                
+    except Exception as e:
+        await log_message("ERROR", f"Failed to get account balance: {str(e)}")
+        return None
+
+async def get_wallet_address():
+    """Get the correct wallet address (the one with funds)"""
+    try:
+        # Find the account with balance and return that address
+        account_address, balance = await find_account_with_balance()
+        
+        if account_address:
+            return account_address
+        
+        # Fallback to wallet address from private key
+        if hyperliquid_config.private_key:
+            from eth_account import Account
+            account = Account.from_key(hyperliquid_config.private_key)
+            return account.address
+            
+        return None
         
     except Exception as e:
         await log_message("ERROR", f"Failed to get wallet address: {str(e)}")
         return None
-
-async def get_account_balance():
     """Get Hyperliquid exchange account balance (trying different methods)"""
     try:
         if not hyperliquid_config.private_key:
