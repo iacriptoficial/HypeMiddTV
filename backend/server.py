@@ -91,6 +91,7 @@ class ServerStatus(BaseModel):
     failed_forwards: int
     hyperliquid_connected: bool
     balance: Optional[float] = None
+    wallet_address: Optional[str] = None
     
 class LogEntry(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
