@@ -54,8 +54,12 @@ class HyperliquidConfig:
     def get_exchange_client(self):
         if not self.private_key:
             raise ValueError(f"No private key configured for {self.environment}")
+        
+        from eth_account import Account
+        wallet = Account.from_key(self.private_key)
+        
         return Exchange(
-            private_key=self.private_key,
+            wallet=wallet,
             base_url=self.base_url,
             skip_ws=True
         )
