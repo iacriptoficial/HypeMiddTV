@@ -159,60 +159,36 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
-      {/* Header */}
-      <header className="bg-gray-800 border-b border-gray-700 p-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <h1 className="text-2xl font-bold">TradingView → Hyperliquid</h1>
-            <div className="flex items-center space-x-2">
-              <span className="text-sm text-gray-400">Environment:</span>
-              <div className="flex space-x-2">
-                <button
-                  onClick={() => switchEnvironment("testnet")}
-                  className={`px-3 py-1 rounded text-sm ${
-                    currentEnvironment === "testnet"
-                      ? "bg-blue-600 text-white"
-                      : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                  }`}
-                >
-                  Testnet
-                </button>
-                <button
-                  onClick={() => switchEnvironment("mainnet")}
-                  className={`px-3 py-1 rounded text-sm ${
-                    currentEnvironment === "mainnet"
-                      ? "bg-red-600 text-white"
-                      : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                  }`}
-                >
-                  Mainnet
-                </button>
-              </div>
+      {/* Fixed Header */}
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-gray-800 border-b border-gray-700 shadow-lg">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center space-x-4">
+              <h1 className="text-xl font-bold">TradingView → Hyperliquid</h1>
+              <span className="text-sm text-gray-400">
+                Environment: {currentEnvironment}
+              </span>
+            </div>
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={() => setCurrentEnvironment(currentEnvironment === "testnet" ? "mainnet" : "testnet")}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm transition-colors"
+              >
+                Switch to {currentEnvironment === "testnet" ? "Mainnet" : "Testnet"}
+              </button>
             </div>
           </div>
-          <div className="flex items-center space-x-4">
-            {status && (
-              <div className="flex items-center space-x-2">
-                <div className={`w-3 h-3 rounded-full ${status.hyperliquid_connected ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                <span className="text-sm">{status.hyperliquid_connected ? 'Connected' : 'Disconnected'}</span>
-              </div>
-            )}
-          </div>
-        </div>
-      </header>
-
-      {/* Navigation */}
-      <nav className="bg-gray-800 border-b border-gray-700">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="flex space-x-8">
+          
+          {/* Tab Navigation */}
+          <div className="flex space-x-1 pb-0 -mb-px">
             {["dashboard", "logs", "webhooks", "responses"].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`py-4 px-1 border-b-2 font-medium text-sm capitalize ${
+                className={`px-4 py-3 text-sm font-medium capitalize transition-colors border-b-2 ${
                   activeTab === tab
-                    ? "border-blue-500 text-blue-400"
-                    : "border-transparent text-gray-400 hover:text-gray-300"
+                    ? "text-blue-400 border-blue-400"
+                    : "text-gray-400 border-transparent hover:text-white hover:border-gray-600"
                 }`}
               >
                 {tab}
