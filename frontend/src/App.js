@@ -20,22 +20,38 @@ function App() {
     try {
       const response = await axios.get(`${API}/status`);
       setStatus(response.data);
+      setError(null); // Clear any previous errors
     } catch (err) {
       console.error("Error fetching status:", err);
-      setError("Failed to fetch server status");
+      // Add error to logs instead of showing in banner
+      const errorLog = {
+        timestamp: new Date().toISOString(),
+        level: "ERROR",
+        message: "Failed to fetch server status",
+        details: err.message
+      };
+      setLogs(prevLogs => [errorLog, ...prevLogs]);
     }
   };
 
-  const fetchLogs = async (limit = 100) => {
+  const fetchLogs = async (limit = 200) => {
     try {
       const response = await axios.get(`${API}/logs?limit=${limit}`);
       setLogs(response.data.logs);
     } catch (err) {
       console.error("Error fetching logs:", err);
+      // Add error to logs
+      const errorLog = {
+        timestamp: new Date().toISOString(),
+        level: "ERROR", 
+        message: "Failed to fetch logs",
+        details: err.message
+      };
+      setLogs(prevLogs => [errorLog, ...prevLogs]);
     }
   };
 
-  const fetchWebhooks = async (limit = 50) => {
+  const fetchWebhooks = async (limit = 100) => {
     try {
       const response = await axios.get(`${API}/webhooks?limit=${limit}`);
       setWebhooks(response.data.webhooks);
@@ -44,7 +60,7 @@ function App() {
     }
   };
 
-  const fetchResponses = async (limit = 50) => {
+  const fetchResponses = async (limit = 100) => {
     try {
       const response = await axios.get(`${API}/responses?limit=${limit}`);
       setResponses(response.data.responses);
