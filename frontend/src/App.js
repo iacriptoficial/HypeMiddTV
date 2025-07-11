@@ -222,17 +222,8 @@ function App() {
         </div>
       </nav>
 
-      {/* Error Message */}
-      {error && (
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="bg-red-900 border border-red-700 text-red-200 px-4 py-3 rounded">
-            {error}
-          </div>
-        </div>
-      )}
-
       {/* Content */}
-      <main className="max-w-7xl mx-auto px-4 py-8">
+      <main className="pt-20 px-4 py-8 max-w-7xl mx-auto">
         {activeTab === "dashboard" && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {/* Server Status */}
