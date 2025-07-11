@@ -285,7 +285,7 @@ function App() {
               <h3 className="text-lg font-semibold">Recent Logs</h3>
             </div>
             <div className="p-6">
-              <div className="space-y-3 max-h-96 overflow-y-auto">
+              <div className="space-y-3">
                 {logs.map((log, index) => (
                   <div key={index} className="flex items-start space-x-3 text-sm">
                     <span className="text-gray-500 w-32 flex-shrink-0">
