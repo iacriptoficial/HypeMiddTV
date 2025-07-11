@@ -336,23 +336,6 @@ function App() {
                       </button>
                     </div>
                   </div>
-                  
-                  <div className="bg-blue-900 border border-blue-700 rounded-lg p-4">
-                    <h4 className="font-medium text-blue-200 mb-2">📋 Como configurar no TradingView:</h4>
-                    <ol className="text-sm text-blue-100 space-y-1 list-decimal list-inside">
-                      <li>Abra seu alerta no TradingView</li>
-                      <li>Na seção "Webhook URL", cole o endereço acima</li>
-                      <li>Configure sua mensagem do webhook (JSON)</li>
-                      <li>Ative o alerta</li>
-                    </ol>
-                  </div>
-                  
-                  <div className="bg-yellow-900 border border-yellow-700 rounded-lg p-4">
-                    <h4 className="font-medium text-yellow-200 mb-2">⚠️ Formato da mensagem recomendado:</h4>
-                    <pre className="text-xs text-yellow-100 bg-yellow-800 p-2 rounded overflow-x-auto">
-{'{\n  "symbol": "{{ticker}}",\n  "action": "{{strategy.order.action}}",\n  "price": {{close}},\n  "time": "{{time}}",\n  "alert_name": "{{alert_name}}"\n}'}
-                    </pre>
-                  </div>
                 </div>
               </div>
             </div>
@@ -363,7 +346,7 @@ function App() {
                 <h3 className="text-lg font-semibold">Recent Webhooks</h3>
               </div>
               <div className="p-6">
-                <div className="space-y-4 max-h-96 overflow-y-auto">
+                <div className="space-y-4">
                 {webhooks.map((webhook, index) => (
                   <div key={index} className="bg-gray-700 rounded-lg p-4">
                     <div className="flex justify-between items-start mb-2">
