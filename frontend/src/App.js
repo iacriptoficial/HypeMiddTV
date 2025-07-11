@@ -179,6 +179,16 @@ function App() {
             </div>
           </div>
           
+          {/* Page Title */}
+          <div className="py-2 border-b border-gray-700">
+            <h2 className="text-lg font-semibold capitalize">
+              {activeTab === "dashboard" && "Dashboard"}
+              {activeTab === "logs" && "Recent Logs"}
+              {activeTab === "webhooks" && "Webhooks"}
+              {activeTab === "responses" && "Hyperliquid Responses"}
+            </h2>
+          </div>
+          
           {/* Tab Navigation */}
           <div className="flex space-x-1 pb-0 -mb-px">
             {["dashboard", "logs", "webhooks", "responses"].map((tab) => (
