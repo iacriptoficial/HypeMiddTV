@@ -378,9 +378,6 @@ function App() {
 
         {activeTab === "responses" && (
           <div className="bg-gray-800 border border-gray-700 rounded-lg">
-            <div className="px-6 py-4 border-b border-gray-700">
-              <h3 className="text-lg font-semibold">Hyperliquid Responses</h3>
-            </div>
             <div className="p-6">
               <div className="space-y-4">
                 {responses.map((response, index) => (
