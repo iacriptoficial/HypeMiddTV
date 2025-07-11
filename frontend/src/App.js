@@ -316,9 +316,6 @@ function App() {
           <div className="space-y-6">
             {/* Webhook Configuration */}
             <div className="bg-gray-800 border border-gray-700 rounded-lg">
-              <div className="px-6 py-4 border-b border-gray-700">
-                <h3 className="text-lg font-semibold">TradingView Webhook Configuration</h3>
-              </div>
               <div className="p-6">
                 <div className="space-y-4">
                   <div>
@@ -349,9 +346,6 @@ function App() {
             
             {/* Recent Webhooks */}
             <div className="bg-gray-800 border border-gray-700 rounded-lg">
-              <div className="px-6 py-4 border-b border-gray-700">
-                <h3 className="text-lg font-semibold">Recent Webhooks</h3>
-              </div>
               <div className="p-6">
                 <div className="space-y-4">
                 {webhooks.map((webhook, index) => (
