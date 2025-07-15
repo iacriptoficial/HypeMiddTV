@@ -77,7 +77,7 @@ hyperliquid_config = HyperliquidConfig()
 # Data Models
 class WebhookMessage(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: get_brazil_time())
     source: str = "tradingview"
     payload: Dict[str, Any]
     status: str = "received"
