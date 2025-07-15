@@ -672,7 +672,11 @@ def run_all_tests():
     status_success = test_status_endpoint()
     results["Status Endpoint"] = status_success
     
-    # NEW: Test real order execution (MAIN FOCUS OF REVIEW REQUEST)
+    # NEW: Test stop loss implementation (MAIN FOCUS OF REVIEW REQUEST)
+    stop_loss_success = test_stop_loss_implementation()
+    results["Stop Loss Implementation"] = stop_loss_success
+    
+    # Test real order execution (MAIN FOCUS OF REVIEW REQUEST)
     order_execution_success = test_real_order_execution()
     results["Real Order Execution"] = order_execution_success
     
