@@ -565,13 +565,16 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
         
         # Validate and format quantity based on symbol
         if symbol in ["SOL", "ETH", "BTC", "AVAX", "DOGE"]:
-            # For most crypto, round to 3 decimal places and ensure minimum size
-            quantity = round(raw_quantity, 3)
-            min_size = 0.001  # Minimum 0.001 for most crypto
+            # For most crypto, use simple rounding
+            if raw_quantity >= 1.0:
+                quantity = round(raw_quantity, 1)  # Round to 1 decimal place for quantities >= 1
+            else:
+                quantity = round(raw_quantity, 2)  # Round to 2 decimal places for smaller quantities
+            min_size = 0.01  # Minimum 0.01 for most crypto
         else:
-            # Default: round to 4 decimal places  
-            quantity = round(raw_quantity, 4)
-            min_size = 0.0001
+            # Default: round to 2 decimal places  
+            quantity = round(raw_quantity, 2)
+            min_size = 0.01
         
         # Ensure quantity meets minimum size
         if quantity < min_size:
