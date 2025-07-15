@@ -1069,7 +1069,7 @@ async def force_refresh_balance():
         result = {
             "wallet_address": wallet_address,
             "balance": balance,
-            "timestamp": datetime.utcnow(),
+            "timestamp": get_brazil_time(),
             "message": "Balance refreshed successfully"
         }
         
