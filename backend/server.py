@@ -803,6 +803,51 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
         if order_executed:
             await log_message("INFO", f"✅ Hyperliquid order executed successfully after {attempt + 1} attempts!")
             await log_message("INFO", f"📈 Order result: {result}")
+            main_order_result = result
+            
+            # Place stop loss order if stop_price is provided
+            stop_order_result = None
+            if stop_price:
+                await log_message("INFO", f"🛑 Setting up stop loss order at ${stop_price}")
+                try:
+                    # For stop loss: if we bought, sell at stop price; if we sold, buy at stop price
+                    stop_is_buy = not is_buy  # Opposite of main order
+                    
+                    # Format stop price similar to main order
+                    if symbol in ["SOL", "ETH", "AVAX"]:
+                        formatted_stop_price = round(stop_price * 2) / 2  # Round to nearest 0.50
+                    elif symbol in ["BTC"]:
+                        formatted_stop_price = round(stop_price, -1)  # Round to nearest 10
+                    else:
+                        formatted_stop_price = round(stop_price, 4)
+                    
+                    await log_message("INFO", f"🛑 Placing stop loss: {'BUY' if stop_is_buy else 'SELL'} {quantity} {symbol} at trigger ${formatted_stop_price}")
+                    
+                    # Place stop loss order using trigger order type
+                    stop_order_result = exchange.order(
+                        name=symbol,
+                        is_buy=stop_is_buy,
+                        sz=quantity,
+                        limit_px=formatted_stop_price,
+                        order_type={
+                            "trigger": {
+                                "trigger_px": formatted_stop_price,
+                                "is_market": True,
+                                "tpsl": "sl"  # Stop loss
+                            }
+                        },
+                        reduce_only=True  # Only reduce existing position
+                    )
+                    
+                    if stop_order_result and stop_order_result.get("status") == "ok":
+                        await log_message("INFO", f"✅ Stop loss order placed successfully!")
+                        await log_message("INFO", f"🛑 Stop loss result: {stop_order_result}")
+                    else:
+                        await log_message("ERROR", f"❌ Failed to place stop loss order: {stop_order_result}")
+                    
+                except Exception as stop_error:
+                    await log_message("ERROR", f"❌ Error placing stop loss order: {str(stop_error)}")
+                    stop_order_result = {"error": str(stop_error)}
             
             # Prepare successful response
             response_data = {
@@ -818,7 +863,8 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
                     "price": price,
                     "stop_price": stop_price,
                     "attempts": attempt + 1,
-                    "hyperliquid_response": result
+                    "hyperliquid_response": main_order_result,
+                    "stop_loss_response": stop_order_result
                 },
                 "original_payload": payload
             }
