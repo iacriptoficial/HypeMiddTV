@@ -472,7 +472,7 @@ function App() {
                         className="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white font-mono"
                       />
                       <button
-                        onClick={() => copyToClipboard(`${process.env.REACT_APP_BACKEND_URL || ''}/api/webhook/tradingview`)}
+                        onClick={copyWebhookUrl}
                         className={`px-3 py-2 rounded-lg text-sm transition-colors ${
                           copySuccess 
                             ? 'bg-green-600 hover:bg-green-700 text-white' 
