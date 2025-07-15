@@ -630,18 +630,12 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
         raw_price = float(payload.get("price", 0)) if payload.get("price") else None  # Price for limit orders
         stop_price = float(payload.get("stop", 0)) if payload.get("stop") else None  # Stop loss price
         
-        # Validate and format quantity based on symbol
-        if symbol in ["SOL", "ETH", "BTC", "AVAX", "DOGE"]:
-            # For most crypto, use simple rounding
-            if raw_quantity >= 1.0:
-                quantity = round(raw_quantity, 1)  # Round to 1 decimal place for quantities >= 1
-            else:
-                quantity = round(raw_quantity, 2)  # Round to 2 decimal places for smaller quantities
-            min_size = 0.01  # Minimum 0.01 for most crypto
-        else:
-            # Default: round to 2 decimal places  
-            quantity = round(raw_quantity, 2)
-            min_size = 0.01
+        # Get asset information from Hyperliquid
+        await log_message("INFO", f"🔍 Getting asset info for {symbol}")
+        sz_decimals = await get_asset_info(symbol)
+        
+        # Format quantity based on szDecimals
+        quantity = format_quantity(raw_quantity, sz_decimals)
         
         # Format price to avoid tick size issues
         if raw_price:
@@ -676,9 +670,10 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
         else:
             price = None
         
-        # Ensure quantity meets minimum size
+        # Ensure quantity meets minimum size (0.1 of the smallest unit)
+        min_size = 10 ** (-sz_decimals + 1) if sz_decimals > 1 else 0.1
         if quantity < min_size:
-            raise ValueError(f"Quantity {quantity} is below minimum size {min_size} for {symbol}")
+            raise ValueError(f"Quantity {quantity} is below minimum size {min_size} for {symbol} (szDecimals: {sz_decimals})")
         
         # Additional validation: ensure quantity is not too large
         if quantity > 1000:
@@ -688,9 +683,10 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
         await log_message("INFO", f"  Symbol: {symbol}")
         await log_message("INFO", f"  Side: {side}")
         await log_message("INFO", f"  Entry Type: {entry_type}")
-        await log_message("INFO", f"  Raw Quantity: {raw_quantity} → Formatted: {quantity}")
+        await log_message("INFO", f"  Raw Quantity: {raw_quantity} → Formatted: {quantity} (szDecimals: {sz_decimals})")
         await log_message("INFO", f"  Raw Price: {raw_price} → Formatted: {price}")
         await log_message("INFO", f"  Stop Price: {stop_price}")
+        await log_message("INFO", f"  Min Size: {min_size}")
         
         # Validate required fields
         if not symbol:
