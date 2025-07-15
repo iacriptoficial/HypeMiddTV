@@ -871,7 +871,7 @@ def run_all_tests():
     """Run all tests and report results"""
     print("=" * 80)
     print("TRADINGVIEW TO HYPERLIQUID MIDDLEWARE BACKEND TESTS")
-    print("FOCUS: Real order execution testing as requested in review")
+    print("FOCUS: Clear logs functionality and Brazilian timezone testing")
     print("=" * 80)
     print(f"Testing against: {BASE_URL}")
     print(f"Test started at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
@@ -888,22 +888,27 @@ def run_all_tests():
     status_success = test_status_endpoint()
     results["Status Endpoint"] = status_success
     
-    # NEW: Test stop loss implementation (MAIN FOCUS OF REVIEW REQUEST)
-    stop_loss_success = test_stop_loss_implementation()
-    results["Stop Loss Implementation"] = stop_loss_success
+    # NEW: Test clear logs functionality (MAIN FOCUS OF REVIEW REQUEST)
+    clear_logs_success = test_clear_logs_functionality()
+    results["Clear Logs Functionality"] = clear_logs_success
     
-    # Test real order execution (MAIN FOCUS OF REVIEW REQUEST)
-    order_execution_success = test_real_order_execution()
-    results["Real Order Execution"] = order_execution_success
-    
-    # Test webhook endpoint to generate some data
-    webhook_success, webhook_id = test_webhook_endpoint()
-    results["Webhook Endpoint"] = webhook_success
-    
-    # Test previously failing endpoints (key focus area)
+    # Test logs endpoint to ensure it works after clearing
     logs_success = test_logs_endpoint()
     results["Logs Endpoint"] = logs_success
     
+    # Test webhook endpoint to generate logs and verify Brazilian timezone
+    webhook_success, webhook_id = test_webhook_endpoint()
+    results["Webhook Endpoint"] = webhook_success
+    
+    # Test stop loss implementation
+    stop_loss_success = test_stop_loss_implementation()
+    results["Stop Loss Implementation"] = stop_loss_success
+    
+    # Test real order execution
+    order_execution_success = test_real_order_execution()
+    results["Real Order Execution"] = order_execution_success
+    
+    # Test previously failing endpoints
     webhooks_success = test_webhooks_endpoint()
     results["Webhooks Endpoint"] = webhooks_success
     
@@ -928,7 +933,7 @@ def run_all_tests():
         if not passed:
             all_passed = False
             # Mark critical failures
-            if test_name in ["Stop Loss Implementation", "Real Order Execution", "Hyperliquid Connection", "Status Endpoint", "Logs Endpoint", "Webhooks Endpoint", "Responses Endpoint"]:
+            if test_name in ["Clear Logs Functionality", "Logs Endpoint", "Webhook Endpoint", "Hyperliquid Connection", "Status Endpoint"]:
                 critical_failures.append(test_name)
     
     print(f"\nOVERALL RESULT: {'✅ ALL TESTS PASSED' if all_passed else '❌ SOME TESTS FAILED'}")
