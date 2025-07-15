@@ -432,38 +432,54 @@ async def handle_tradingview_webhook(request: Request):
         raw_body = await request.body()
         content_type = request.headers.get("content-type", "")
         
-        await log_message("INFO", "Webhook received", {
-            "content_type": content_type,
-            "body_length": len(raw_body),
-            "raw_body_preview": raw_body[:200].decode('utf-8', errors='replace')
-        })
+        # Log raw webhook data with better formatting
+        raw_body_str = raw_body.decode('utf-8', errors='replace')
+        
+        await log_message("INFO", "=== WEBHOOK RECEIVED ===")
+        await log_message("INFO", f"Content-Type: {content_type}")
+        await log_message("INFO", f"Body Length: {len(raw_body)} bytes")
+        await log_message("INFO", f"Raw Body (first 500 chars): {raw_body_str[:500]}")
+        await log_message("INFO", f"Raw Body (full): {raw_body_str}")
         
         # Try to parse JSON
         try:
             payload = await request.json()
-            await log_message("INFO", "JSON parsed successfully", {"payload": payload})
+            await log_message("INFO", "✅ JSON PARSING SUCCESS")
+            await log_message("INFO", f"Parsed Payload: {payload}")
         except Exception as json_error:
-            await log_message("ERROR", "JSON parsing failed", {
-                "error": str(json_error),
-                "raw_body": raw_body.decode('utf-8', errors='replace'),
-                "content_type": content_type
-            })
+            await log_message("ERROR", "❌ JSON PARSING FAILED")
+            await log_message("ERROR", f"JSON Error: {str(json_error)}")
+            await log_message("ERROR", f"Error Type: {type(json_error).__name__}")
+            await log_message("ERROR", f"Full Raw Body: '{raw_body_str}'")
+            await log_message("ERROR", f"Body as bytes: {list(raw_body)}")
+            await log_message("ERROR", f"Body hex: {raw_body.hex()}")
             
             # Try to handle common JSON issues
             try:
+                await log_message("INFO", "⚠️ ATTEMPTING JSON CLEANUP")
                 # Remove any potential BOM or invalid characters
                 cleaned_body = raw_body.decode('utf-8-sig', errors='replace').strip()
+                await log_message("INFO", f"Cleaned Body: '{cleaned_body}'")
+                
                 if cleaned_body:
                     import json
                     payload = json.loads(cleaned_body)
-                    await log_message("INFO", "JSON parsed after cleanup", {"payload": payload})
+                    await log_message("INFO", "✅ JSON CLEANUP SUCCESS")
+                    await log_message("INFO", f"Cleaned Payload: {payload}")
                 else:
-                    raise ValueError("Empty body")
+                    await log_message("ERROR", "❌ EMPTY BODY AFTER CLEANUP")
+                    raise ValueError("Empty body after cleanup")
             except Exception as cleanup_error:
-                await log_message("ERROR", "JSON cleanup failed", {
-                    "error": str(cleanup_error),
-                    "cleaned_body": cleaned_body if 'cleaned_body' in locals() else "N/A"
-                })
+                await log_message("ERROR", "❌ JSON CLEANUP FAILED")
+                await log_message("ERROR", f"Cleanup Error: {str(cleanup_error)}")
+                await log_message("ERROR", f"Cleanup Error Type: {type(cleanup_error).__name__}")
+                
+                # Try one more approach - character by character analysis
+                await log_message("INFO", "🔍 CHARACTER ANALYSIS")
+                if len(raw_body_str) > 0:
+                    for i, char in enumerate(raw_body_str[:100]):  # First 100 chars
+                        char_info = f"Index {i}: '{char}' (ord: {ord(char)}, hex: {hex(ord(char))})"
+                        await log_message("INFO", char_info)
                 
                 stats['failed_forwards'] += 1
                 raise HTTPException(
@@ -473,21 +489,31 @@ async def handle_tradingview_webhook(request: Request):
         
         # Validate payload structure
         if not isinstance(payload, dict):
-            await log_message("ERROR", "Payload is not a dictionary", {"payload_type": type(payload)})
+            await log_message("ERROR", "❌ PAYLOAD VALIDATION FAILED")
+            await log_message("ERROR", f"Payload Type: {type(payload)}")
+            await log_message("ERROR", f"Payload Value: {payload}")
             stats['failed_forwards'] += 1
             raise HTTPException(status_code=400, detail="Payload must be a JSON object")
+        
+        # Log successful webhook processing
+        await log_message("INFO", "✅ WEBHOOK VALIDATION SUCCESS")
+        await log_message("INFO", f"Final Payload: {payload}")
         
         # Log the incoming webhook
         webhook_msg = WebhookMessage(payload=payload)
         await db.webhooks.insert_one(webhook_msg.dict())
         stats['total_webhooks'] += 1
         
-        await log_message("INFO", "TradingView webhook processed", {"payload": payload})
+        await log_message("INFO", f"✅ WEBHOOK STORED: {webhook_msg.id}")
         
         # Forward to Hyperliquid
         try:
+            await log_message("INFO", "🚀 FORWARDING TO HYPERLIQUID")
             hyperliquid_response = await forward_to_hyperliquid(webhook_msg.id, payload)
             stats['successful_forwards'] += 1
+            
+            await log_message("INFO", "✅ HYPERLIQUID FORWARD SUCCESS")
+            await log_message("INFO", f"Hyperliquid Response: {hyperliquid_response}")
             
             return {
                 "status": "success",
@@ -497,11 +523,11 @@ async def handle_tradingview_webhook(request: Request):
             }
             
         except Exception as forward_error:
-            await log_message("ERROR", "Webhook forwarding failed", {
-                "webhook_id": webhook_msg.id,
-                "error": str(forward_error),
-                "payload": payload
-            })
+            await log_message("ERROR", "❌ HYPERLIQUID FORWARD FAILED")
+            await log_message("ERROR", f"Forward Error: {str(forward_error)}")
+            await log_message("ERROR", f"Forward Error Type: {type(forward_error).__name__}")
+            await log_message("ERROR", f"Webhook ID: {webhook_msg.id}")
+            await log_message("ERROR", f"Payload: {payload}")
             stats['failed_forwards'] += 1
             
             return {
@@ -514,10 +540,9 @@ async def handle_tradingview_webhook(request: Request):
     except HTTPException:
         raise
     except Exception as e:
-        await log_message("ERROR", "Webhook handler error", {
-            "error": str(e),
-            "error_type": type(e).__name__
-        })
+        await log_message("ERROR", "❌ WEBHOOK HANDLER FATAL ERROR")
+        await log_message("ERROR", f"Fatal Error: {str(e)}")
+        await log_message("ERROR", f"Fatal Error Type: {type(e).__name__}")
         stats['failed_forwards'] += 1
         raise HTTPException(
             status_code=500, 
