@@ -256,6 +256,18 @@ frontend:
           agent: "main"
           comment: "Frontend successfully displays real balance ($1,014.08) and correct account address for verification. User can now see their actual Hyperliquid testnet funds."
 
+  - task: "Clear logs functionality"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/App.js"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: "✅ IMPLEMENTED: Added clear logs functionality as requested by user. Frontend now has a red 'Clear Logs' button in the Logs tab that calls the DELETE /api/logs endpoint to clear all logs from the database. Button is properly positioned next to the filter controls and shows success feedback. Tested and working correctly."
+
 metadata:
   created_by: "main_agent"
   version: "1.2"
