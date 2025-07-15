@@ -10,6 +10,7 @@ function App() {
   const [logs, setLogs] = useState([]);
   const [webhooks, setWebhooks] = useState([]);
   const [responses, setResponses] = useState([]);
+  const [logFilter, setLogFilter] = useState('ERROR'); // Filter for logs (ERROR, INFO, ALL)
   const [currentEnvironment, setCurrentEnvironment] = useState("testnet");
   const [activeTab, setActiveTab] = useState("dashboard");
   const [loading, setLoading] = useState(true);
