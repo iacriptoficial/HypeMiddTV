@@ -85,7 +85,7 @@ class WebhookMessage(BaseModel):
 
 class HyperliquidResponse(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: get_brazil_time())
     webhook_id: str
     response_data: Dict[str, Any]
     status: str = "sent"
@@ -105,14 +105,14 @@ class ServerStatus(BaseModel):
     
 class LogEntry(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: get_brazil_time())
     level: str
     message: str
     details: Optional[Dict[str, Any]] = None
 
 # Global stats
 stats = defaultdict(int)
-server_start_time = datetime.utcnow()
+server_start_time = get_brazil_time()
 
 # Utility functions
 async def log_message(level: str, message: str, details: Optional[Dict[str, Any]] = None):
