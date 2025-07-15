@@ -862,7 +862,7 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
                 "status": "success",
                 "message": "Order executed successfully on Hyperliquid",
                 "environment": hyperliquid_config.environment,
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": get_brazil_time().isoformat(),
                 "order_details": {
                     "symbol": symbol,
                     "side": side,
