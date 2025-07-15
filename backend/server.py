@@ -549,6 +549,73 @@ async def handle_tradingview_webhook(request: Request):
             detail=f"Webhook processing failed: {str(e)}"
         )
 
+async def get_asset_info(symbol: str):
+    """Get asset metadata from Hyperliquid including szDecimals"""
+    try:
+        info = hyperliquid_config.get_info_client()
+        
+        # Get asset metadata
+        meta_data = info.post("/info", {"type": "meta"})
+        
+        await log_message("INFO", f"📊 Retrieved asset metadata for {symbol}")
+        
+        # Find asset in universe (perpetual contracts)
+        asset_info = None
+        if meta_data and "universe" in meta_data:
+            for asset in meta_data["universe"]:
+                if asset["name"] == symbol:
+                    asset_info = asset
+                    break
+        
+        # If not found in universe, check tokens
+        if not asset_info and meta_data and "tokens" in meta_data:
+            for token in meta_data["tokens"]:
+                if token["name"] == symbol:
+                    asset_info = token
+                    break
+        
+        if asset_info:
+            # For perpetual contracts, get szDecimals from tokens
+            if "tokens" in asset_info:
+                # This is a perpetual contract like "SOL/USDC"
+                token_index = asset_info["tokens"][0]  # First token is the base asset
+                if token_index < len(meta_data["tokens"]):
+                    token_info = meta_data["tokens"][token_index]
+                    sz_decimals = token_info.get("szDecimals", 3)
+                    await log_message("INFO", f"📏 {symbol} perpetual szDecimals: {sz_decimals}")
+                    return sz_decimals
+            else:
+                # This is a spot token
+                sz_decimals = asset_info.get("szDecimals", 3)
+                await log_message("INFO", f"📏 {symbol} spot szDecimals: {sz_decimals}")
+                return sz_decimals
+        
+        # Default fallback
+        await log_message("WARNING", f"⚠️ Asset {symbol} not found in metadata, using default szDecimals: 3")
+        return 3
+        
+    except Exception as e:
+        await log_message("ERROR", f"❌ Error getting asset info for {symbol}: {str(e)}")
+        return 3  # Default fallback
+
+def calculate_quantity_from_usd(usd_amount: float, price: float, sz_decimals: int) -> float:
+    """Calculate quantity from USD amount and round to szDecimals"""
+    try:
+        # Calculate raw quantity
+        raw_quantity = usd_amount / price
+        
+        # Round to szDecimals
+        quantity = round(raw_quantity, sz_decimals)
+        
+        return quantity
+        
+    except Exception as e:
+        return round(usd_amount / price, 3)  # Fallback
+
+def format_quantity(quantity: float, sz_decimals: int) -> float:
+    """Format quantity based on szDecimals"""
+    return round(quantity, sz_decimals)
+
 async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
     """Forward the webhook payload to Hyperliquid and execute real trades"""
     try:
