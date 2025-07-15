@@ -215,6 +215,9 @@ backend:
         - working: true
           agent: "main"
           comment: "✅ IMPLEMENTED: Added DELETE /api/logs endpoint to clear all logs from MongoDB database. Endpoint successfully tested and cleared 32,437 logs. Returns proper JSON response with success status and deleted count. Integrated with frontend clear logs button."
+        - working: true
+          agent: "testing"
+          comment: "✅ COMPREHENSIVE TESTING COMPLETED: Clear logs functionality working perfectly! DELETE /api/logs endpoint successfully clears logs from MongoDB (cleared 360 logs in test), returns proper JSON response with success status and deleted count. Verified log generation with Brazilian timezone (GMT-3) - all timestamps show '-03:00' offset. Log retrieval (GET /api/logs) working correctly with no serialization issues. Webhook processing and balance retrieval both generate appropriate logs with Brazilian timezone. All aspects of the logging system are functioning correctly."
 
   - task: "Stop loss order implementation"
     implemented: true
