@@ -110,7 +110,7 @@ class HyperliquidResponse(BaseModel):
 class ServerStatus(BaseModel):
     status: str
     environment: str
-    timestamp: datetime
+    timestamp: str
     uptime: str
     total_webhooks: int
     successful_forwards: int
