@@ -731,6 +731,7 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
         # Execute the order with automatic retry for different price formats
         order_executed = False
         last_error = None
+        main_order_result = None
         
         for attempt in range(5):  # Try up to 5 different price formats
             try:
