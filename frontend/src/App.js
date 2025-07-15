@@ -182,6 +182,36 @@ function App() {
     }
   };
 
+  // Clear logs function
+  const clearLogs = async () => {
+    try {
+      const response = await axios.delete(`${API}/logs`);
+      
+      // Clear the logs from the frontend state
+      setLogs([]);
+      
+      // Add success log
+      const successLog = {
+        timestamp: new Date().toISOString(),
+        level: "INFO",
+        message: "Logs cleared successfully",
+        details: `${response.data.deleted_count || 0} logs deleted`
+      };
+      setLogs([successLog]);
+      
+    } catch (err) {
+      console.error("Error clearing logs:", err);
+      // Add error to logs
+      const errorLog = {
+        timestamp: new Date().toISOString(),
+        level: "ERROR",
+        message: "Failed to clear logs",
+        details: err.message
+      };
+      setLogs(prevLogs => [errorLog, ...prevLogs]);
+    }
+  };
+
   // Auto-refresh data
   useEffect(() => {
     const loadData = async () => {
