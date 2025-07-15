@@ -612,7 +612,24 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
         
         # Execute the order
         try:
-            result = exchange.order(**order_params)
+            if entry_type == "market":
+                result = exchange.order(
+                    name=symbol,
+                    is_buy=is_buy,
+                    sz=quantity,
+                    order_type={"market": {}},
+                    reduce_only=False
+                )
+            else:  # limit
+                result = exchange.order(
+                    name=symbol,
+                    is_buy=is_buy,
+                    sz=quantity,
+                    limit_px=price,
+                    order_type={"limit": {"tif": "Gtc"}},
+                    reduce_only=False
+                )
+            
             await log_message("INFO", f"✅ Hyperliquid order executed successfully!")
             await log_message("INFO", f"📈 Order result: {result}")
             
