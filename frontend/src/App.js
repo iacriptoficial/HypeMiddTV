@@ -70,7 +70,6 @@ function App() {
     try {
       const response = await axios.get(`${API}/status`);
       setStatus(response.data);
-      setError(null); // Clear any previous errors
     } catch (err) {
       console.error("Error fetching status:", err);
       // Add error to logs instead of showing in banner
