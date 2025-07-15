@@ -110,7 +110,7 @@ def test_stop_loss_implementation():
         "symbol": "BTC",
         "side": "sell",
         "entry": "market",
-        "quantity": "0.001",
+        "quantity": "0.01",  # Increased to meet minimum size
         "price": "45000.00",
         "stop": "46000.00"
     }
