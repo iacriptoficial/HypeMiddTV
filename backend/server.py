@@ -552,44 +552,69 @@ async def handle_tradingview_webhook(request: Request):
 async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
     """Forward the webhook payload to Hyperliquid and execute real trades"""
     try:
-        await log_message("INFO", f"Processing webhook {webhook_id} for Hyperliquid execution", {"payload": payload})
+        await log_message("INFO", f"🚀 Processing TradingView webhook {webhook_id}")
+        await log_message("INFO", f"📊 Payload received: {payload}")
         
-        # Parse the TradingView payload
-        symbol = payload.get("symbol", "").replace("USDT", "").replace("USD", "")  # Convert BTCUSDT -> BTC
-        action = payload.get("action", "").lower()  # buy/sell
-        price = float(payload.get("price", 0))
-        quantity = float(payload.get("quantity", 0.01))  # Default small quantity if not provided
+        # Parse the TradingView payload - NEW FORMAT
+        symbol = payload.get("symbol", "").upper()  # SOL, BTC, ETH, etc.
+        side = payload.get("side", "").lower()  # buy/sell
+        entry_type = payload.get("entry", "market").lower()  # market/limit
+        quantity = float(payload.get("quantity", 0))  # Quantity to trade
+        price = float(payload.get("price", 0)) if payload.get("price") else None  # Price for limit orders
+        stop_price = float(payload.get("stop", 0)) if payload.get("stop") else None  # Stop loss price
+        
+        await log_message("INFO", f"📋 Parsed fields:")
+        await log_message("INFO", f"  Symbol: {symbol}")
+        await log_message("INFO", f"  Side: {side}")
+        await log_message("INFO", f"  Entry Type: {entry_type}")
+        await log_message("INFO", f"  Quantity: {quantity}")
+        await log_message("INFO", f"  Price: {price}")
+        await log_message("INFO", f"  Stop Price: {stop_price}")
         
         # Validate required fields
-        if not symbol or not action or not price:
-            raise ValueError(f"Missing required fields: symbol={symbol}, action={action}, price={price}")
+        if not symbol:
+            raise ValueError("Missing required field: symbol")
+        if not side or side not in ["buy", "sell"]:
+            raise ValueError(f"Invalid or missing side: {side}. Must be 'buy' or 'sell'")
+        if quantity <= 0:
+            raise ValueError(f"Invalid quantity: {quantity}. Must be > 0")
+        if entry_type not in ["market", "limit"]:
+            raise ValueError(f"Invalid entry type: {entry_type}. Must be 'market' or 'limit'")
+        if entry_type == "limit" and (not price or price <= 0):
+            raise ValueError(f"Limit order requires valid price. Got: {price}")
         
-        # Map TradingView action to Hyperliquid action
-        side = "A" if action in ["buy", "long"] else "B"  # A = Ask (sell), B = Bid (buy) - Note: this might be inverted
-        if action in ["buy", "long"]:
-            side = "B"  # Buy
-        elif action in ["sell", "short"]:
-            side = "A"  # Sell
-        else:
-            raise ValueError(f"Unknown action: {action}")
+        # Convert side to Hyperliquid format
+        is_buy = (side == "buy")
         
-        await log_message("INFO", f"Executing Hyperliquid order: {symbol} {action} {quantity} @ {price}")
+        await log_message("INFO", f"✅ Validation passed - Executing {entry_type} {side} order")
         
         # Get exchange client
         exchange = hyperliquid_config.get_exchange_client()
         
+        # Prepare order parameters
+        order_params = {
+            "name": symbol,
+            "is_buy": is_buy,
+            "sz": quantity,
+            "reduce_only": False
+        }
+        
+        # Set order type based on entry type
+        if entry_type == "market":
+            await log_message("INFO", f"🎯 Executing MARKET order: {side} {quantity} {symbol}")
+            order_params["order_type"] = {"market": {}}
+        else:  # limit
+            await log_message("INFO", f"🎯 Executing LIMIT order: {side} {quantity} {symbol} @ ${price}")
+            order_params["order_type"] = {"limit": {"tif": "Gtc"}}
+            order_params["limit_px"] = price
+        
+        await log_message("INFO", f"📤 Order parameters: {order_params}")
+        
         # Execute the order
         try:
-            result = exchange.order(
-                name=symbol,
-                is_buy=(side == "B"),
-                sz=quantity,
-                limit_px=price,
-                order_type={"limit": {"tif": "Gtc"}},
-                reduce_only=False
-            )
-            
-            await log_message("INFO", f"Hyperliquid order result: {result}")
+            result = exchange.order(**order_params)
+            await log_message("INFO", f"✅ Hyperliquid order executed successfully!")
+            await log_message("INFO", f"📈 Order result: {result}")
             
             # Prepare successful response
             response_data = {
@@ -599,16 +624,19 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
                 "timestamp": datetime.utcnow().isoformat(),
                 "order_details": {
                     "symbol": symbol,
-                    "side": action,
+                    "side": side,
+                    "entry_type": entry_type,
                     "quantity": quantity,
                     "price": price,
+                    "stop_price": stop_price,
                     "hyperliquid_response": result
                 },
                 "original_payload": payload
             }
             
         except Exception as order_error:
-            await log_message("ERROR", f"Hyperliquid order failed: {str(order_error)}")
+            await log_message("ERROR", f"❌ Hyperliquid order failed: {str(order_error)}")
+            await log_message("ERROR", f"❌ Order error type: {type(order_error).__name__}")
             
             # Prepare error response
             response_data = {
@@ -618,9 +646,11 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
                 "timestamp": datetime.utcnow().isoformat(),
                 "order_details": {
                     "symbol": symbol,
-                    "side": action,
+                    "side": side,
+                    "entry_type": entry_type,
                     "quantity": quantity,
-                    "price": price
+                    "price": price,
+                    "stop_price": stop_price
                 },
                 "error": str(order_error),
                 "original_payload": payload
@@ -633,11 +663,14 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
         )
         await db.hyperliquid_responses.insert_one(hl_response.dict())
         
+        await log_message("INFO", f"💾 Response stored with webhook_id: {webhook_id}")
+        
         return response_data
         
     except Exception as e:
         error_msg = f"Failed to process webhook for Hyperliquid: {str(e)}"
-        await log_message("ERROR", error_msg)
+        await log_message("ERROR", f"❌ Fatal error in forward_to_hyperliquid: {error_msg}")
+        await log_message("ERROR", f"❌ Error type: {type(e).__name__}")
         
         # Store error response
         error_response = {
