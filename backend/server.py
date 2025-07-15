@@ -613,7 +613,8 @@ def calculate_quantity_from_usd(usd_amount: float, price: float, sz_decimals: in
         return round(usd_amount / price, 3)  # Fallback
 
 def format_quantity(quantity: float, sz_decimals: int) -> float:
-    """Format quantity based on szDecimals"""
+    """Format quantity to use maximum allowed decimal places based on szDecimals"""
+    # Always use the maximum decimal places allowed by szDecimals
     return round(quantity, sz_decimals)
 
 async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
