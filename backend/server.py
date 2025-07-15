@@ -38,11 +38,27 @@ app = FastAPI(title="TradingView to Hyperliquid Middleware")
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
 
-# Configure logging
+# Custom formatter for Brazilian timezone
+class BrazilTimeFormatter(logging.Formatter):
+    def formatTime(self, record, datefmt=None):
+        ct = get_brazil_time()
+        if datefmt:
+            return ct.strftime(datefmt)
+        else:
+            return ct.strftime('%Y-%m-%d %H:%M:%S %Z')
+
+# Configure logging with Brazilian timezone
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler()
+    ]
 )
+
+# Apply custom formatter to all handlers
+for handler in logging.getLogger().handlers:
+    handler.setFormatter(BrazilTimeFormatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
 logger = logging.getLogger(__name__)
 
 # Hyperliquid Configuration
