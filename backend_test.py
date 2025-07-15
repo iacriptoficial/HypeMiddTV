@@ -276,9 +276,10 @@ def test_real_order_execution():
     print("\n--- Testing SELL Order ---")
     sell_payload = {
         "symbol": "ETH", 
-        "action": "sell",
-        "price": 3200,
-        "quantity": 0.01,
+        "side": "sell",
+        "entry": "market",
+        "quantity": "0.01",
+        "price": "3200",
         "timestamp": datetime.now().isoformat()
     }
     
