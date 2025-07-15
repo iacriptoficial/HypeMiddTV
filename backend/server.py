@@ -641,6 +641,95 @@ def format_quantity(quantity: float, sz_decimals: int) -> float:
     # Always use the maximum decimal places allowed by szDecimals
     return round(quantity, sz_decimals)
 
+async def get_open_positions(symbol: str):
+    """Get open positions for a specific symbol"""
+    try:
+        info = hyperliquid_config.get_info_client()
+        
+        # Get wallet address from cache
+        wallet_address = await get_wallet_address()
+        if not wallet_address:
+            await log_message("WARNING", f"No wallet address found for position check")
+            return []
+        
+        # Get user state to check positions
+        user_state = info.user_state(wallet_address)
+        
+        if not user_state or 'assetPositions' not in user_state:
+            await log_message("INFO", f"No positions found for {symbol}")
+            return []
+        
+        # Find positions for the specific symbol
+        positions = []
+        for position in user_state['assetPositions']:
+            if position.get('position', {}).get('coin') == symbol:
+                position_data = position.get('position', {})
+                size = float(position_data.get('szi', 0))
+                
+                if size != 0:  # Only include non-zero positions
+                    positions.append({
+                        'symbol': symbol,
+                        'size': size,
+                        'entry_px': position_data.get('entryPx'),
+                        'unrealized_pnl': position_data.get('unrealizedPnl'),
+                        'position_data': position_data
+                    })
+        
+        await log_message("INFO", f"Found {len(positions)} open positions for {symbol}")
+        for pos in positions:
+            await log_message("INFO", f"  Position: {pos['size']} {symbol} @ {pos['entry_px']}")
+        
+        return positions
+        
+    except Exception as e:
+        await log_message("ERROR", f"Error checking positions for {symbol}: {str(e)}")
+        return []
+
+async def close_existing_positions(symbol: str):
+    """Close all existing positions for a symbol"""
+    try:
+        positions = await get_open_positions(symbol)
+        
+        if not positions:
+            await log_message("INFO", f"No positions to close for {symbol}")
+            return True
+        
+        exchange = hyperliquid_config.get_exchange_client()
+        
+        for position in positions:
+            size = position['size']
+            
+            # Determine the side to close the position
+            # If position size is positive (long), we need to sell to close
+            # If position size is negative (short), we need to buy to close
+            is_buy = size < 0  # Buy to close short, sell to close long
+            close_quantity = abs(size)
+            
+            await log_message("INFO", f"🔄 Closing position: {size} {symbol} ({'BUY' if is_buy else 'SELL'} {close_quantity})")
+            
+            # Close position with market order and reduce_only=True
+            close_result = exchange.order(
+                name=symbol,
+                is_buy=is_buy,
+                sz=close_quantity,
+                limit_px=0,  # Market order
+                order_type={"market": {}},
+                reduce_only=True  # This ensures we only close existing positions
+            )
+            
+            if close_result and close_result.get("status") == "ok":
+                await log_message("INFO", f"✅ Position closed successfully for {symbol}")
+                await log_message("INFO", f"Close result: {close_result}")
+            else:
+                await log_message("ERROR", f"❌ Failed to close position for {symbol}: {close_result}")
+                return False
+        
+        return True
+        
+    except Exception as e:
+        await log_message("ERROR", f"Error closing positions for {symbol}: {str(e)}")
+        return False
+
 async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
     """Forward the webhook payload to Hyperliquid and execute real trades"""
     try:
