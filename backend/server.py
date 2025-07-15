@@ -121,7 +121,7 @@ class ServerStatus(BaseModel):
     
 class LogEntry(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    timestamp: datetime = Field(default_factory=lambda: get_brazil_time())
+    timestamp: str = Field(default_factory=lambda: get_brazil_time().isoformat())
     level: str
     message: str
     details: Optional[Dict[str, Any]] = None
