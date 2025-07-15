@@ -192,6 +192,18 @@ backend:
           agent: "testing"
           comment: "✅ VERIFIED: Webhook reception working perfectly. TradingView webhooks are properly received, processed, and stored in MongoDB with correct status tracking."
 
+  - task: "Stop loss order implementation"
+    implemented: true
+    working: false
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: false
+          agent: "main"
+          comment: "IMPLEMENTING: Added stop loss order functionality to execute stop loss orders when 'stop' price is provided in TradingView payload. Using Hyperliquid trigger order type with 'tpsl': 'sl' parameter. Stop loss order is placed as opposite direction of main order with reduce_only=True."
+
   - task: "Real Hyperliquid order execution"
     implemented: true
     working: true
