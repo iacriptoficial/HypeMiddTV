@@ -664,37 +664,79 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
         
         await log_message("INFO", f"📤 Order parameters: {order_params}")
         
-        # Execute the order
-        try:
-            if entry_type == "market":
-                # For market orders, use IOC (Immediate or Cancel) limit order
-                # Use a very high price for buy or very low price for sell to ensure immediate execution
-                if is_buy:
-                    # For buy orders, use a high price to ensure immediate execution
-                    market_price = price * 1.1 if price else 999999  # 10% above current price
-                else:
-                    # For sell orders, use a low price to ensure immediate execution
-                    market_price = price * 0.9 if price else 0.01  # 10% below current price
+        # Execute the order with automatic retry for different price formats
+        order_executed = False
+        last_error = None
+        
+        for attempt in range(5):  # Try up to 5 different price formats
+            try:
+                # Adjust price format for each attempt
+                if entry_type == "market":
+                    if attempt == 0:
+                        market_price = price * 1.02 if (price and is_buy) else price * 0.98 if price else 170  # 2% buffer
+                    elif attempt == 1:
+                        market_price = round(price * 2) / 2 if price else 170  # Round to 0.5
+                    elif attempt == 2:
+                        market_price = round(price) if price else 170  # Round to 1.0
+                    elif attempt == 3:
+                        market_price = round(price * 4) / 4 if price else 170  # Round to 0.25
+                    else:
+                        market_price = round(price * 10) / 10 if price else 170  # Round to 0.1
+                    
+                    await log_message("INFO", f"Attempt {attempt + 1}: Market price ${market_price}")
+                    
+                    result = exchange.order(
+                        name=symbol,
+                        is_buy=is_buy,
+                        sz=quantity,
+                        limit_px=market_price,
+                        order_type={"limit": {"tif": "Ioc"}},
+                        reduce_only=False
+                    )
+                else:  # limit
+                    # Try different price roundings for limit orders
+                    if attempt == 0:
+                        limit_price = round(price * 2) / 2  # Round to 0.5
+                    elif attempt == 1:
+                        limit_price = round(price)  # Round to 1.0
+                    elif attempt == 2:
+                        limit_price = round(price * 4) / 4  # Round to 0.25
+                    elif attempt == 3:
+                        limit_price = round(price * 10) / 10  # Round to 0.1
+                    else:
+                        limit_price = round(price * 20) / 20  # Round to 0.05
+                    
+                    await log_message("INFO", f"Attempt {attempt + 1}: Limit price ${limit_price}")
+                    
+                    result = exchange.order(
+                        name=symbol,
+                        is_buy=is_buy,
+                        sz=quantity,
+                        limit_px=limit_price,
+                        order_type={"limit": {"tif": "Gtc"}},
+                        reduce_only=False
+                    )
                 
-                result = exchange.order(
-                    name=symbol,
-                    is_buy=is_buy,
-                    sz=quantity,
-                    limit_px=market_price,
-                    order_type={"limit": {"tif": "Ioc"}},  # IOC = Immediate or Cancel (market-like)
-                    reduce_only=False
-                )
-            else:  # limit
-                result = exchange.order(
-                    name=symbol,
-                    is_buy=is_buy,
-                    sz=quantity,
-                    limit_px=price,
-                    order_type={"limit": {"tif": "Gtc"}},  # GTC = Good Till Cancel
-                    reduce_only=False
-                )
-            
-            await log_message("INFO", f"✅ Hyperliquid order executed successfully!")
+                # Check if order was successful
+                if result and result.get("status") == "ok":
+                    statuses = result.get("response", {}).get("data", {}).get("statuses", [])
+                    if statuses and not any("error" in status for status in statuses):
+                        await log_message("INFO", f"✅ Order executed successfully on attempt {attempt + 1}")
+                        order_executed = True
+                        break
+                    else:
+                        error_msg = statuses[0].get("error", "Unknown error") if statuses else "Unknown error"
+                        await log_message("WARNING", f"Attempt {attempt + 1} failed: {error_msg}")
+                        last_error = error_msg
+                        continue
+                
+            except Exception as order_error:
+                await log_message("WARNING", f"Attempt {attempt + 1} exception: {str(order_error)}")
+                last_error = str(order_error)
+                continue
+        
+        if order_executed:
+            await log_message("INFO", f"✅ Hyperliquid order executed successfully after {attempt + 1} attempts!")
             await log_message("INFO", f"📈 Order result: {result}")
             
             # Prepare successful response
@@ -710,19 +752,18 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
                     "quantity": quantity,
                     "price": price,
                     "stop_price": stop_price,
+                    "attempts": attempt + 1,
                     "hyperliquid_response": result
                 },
                 "original_payload": payload
             }
-            
-        except Exception as order_error:
-            await log_message("ERROR", f"❌ Hyperliquid order failed: {str(order_error)}")
-            await log_message("ERROR", f"❌ Order error type: {type(order_error).__name__}")
+        else:
+            await log_message("ERROR", f"❌ All attempts failed. Last error: {last_error}")
             
             # Prepare error response
             response_data = {
                 "status": "error",
-                "message": f"Order execution failed: {str(order_error)}",
+                "message": f"Order execution failed after 5 attempts: {last_error}",
                 "environment": hyperliquid_config.environment,
                 "timestamp": datetime.utcnow().isoformat(),
                 "order_details": {
@@ -731,9 +772,10 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
                     "entry_type": entry_type,
                     "quantity": quantity,
                     "price": price,
-                    "stop_price": stop_price
+                    "stop_price": stop_price,
+                    "attempts": 5
                 },
-                "error": str(order_error),
+                "error": last_error,
                 "original_payload": payload
             }
         
