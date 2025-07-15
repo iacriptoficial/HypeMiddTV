@@ -216,14 +216,21 @@ function App() {
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
-      await Promise.all([
-        fetchStatus(),
-        fetchLogs(),
-        fetchWebhooks(),
-        fetchResponses(),
-        fetchEnvironment()
-      ]);
-      setLoading(false);
+      
+      // Load data independently to avoid blocking on failures
+      try {
+        await Promise.allSettled([
+          fetchStatus(),
+          fetchLogs(),
+          fetchWebhooks(),
+          fetchResponses(),
+          fetchEnvironment()
+        ]);
+      } catch (error) {
+        console.error("Error loading data:", error);
+      } finally {
+        setLoading(false);
+      }
     };
 
     loadData();
