@@ -102,7 +102,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "User reported that balance is showing as zero in the app preview, but they have balance in their Hyperliquid futures account (1.014,07 USDC Perps + $50 USDC Spot). Need to fetch real data and display wallet address to verify connection. ISSUE RESOLVED: The private key provided was for an 'agent' wallet that is associated with the main trading account. The system now properly discovers the main account address via API and displays the correct balance."
+user_problem_statement: "User reported that balance is showing as zero in the app preview, but they have balance in their Hyperliquid futures account (1.014,07 USDC Perps + $50 USDC Spot). Need to fetch real data and display wallet address to verify connection. ISSUE RESOLVED: The private key provided was for an 'agent' wallet that is associated with the main trading account. The system now properly discovers the main account address via API and displays the correct balance. CURRENT ISSUE: User confirmed that normal orders are being executed successfully, but stop loss orders sent in the TradingView payload are not being processed/executed in the Hyperliquid position."
 
 backend:
   - task: "Hyperliquid agent wallet to main account discovery"
