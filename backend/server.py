@@ -613,10 +613,13 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
         # Execute the order
         try:
             if entry_type == "market":
+                # For market orders, we use the current market price or provided price as reference
+                market_price = price if price else 0  # Use 0 to let Hyperliquid determine market price
                 result = exchange.order(
                     name=symbol,
                     is_buy=is_buy,
                     sz=quantity,
+                    limit_px=market_price,
                     order_type={"market": {}},
                     reduce_only=False
                 )
