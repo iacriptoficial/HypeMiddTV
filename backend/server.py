@@ -559,7 +559,7 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
         symbol = payload.get("symbol", "").upper()  # SOL, BTC, ETH, etc.
         side = payload.get("side", "").lower()  # buy/sell
         entry_type = payload.get("entry", "market").lower()  # market/limit
-        quantity = float(payload.get("quantity", 0))  # Quantity to trade
+        quantity = round(float(payload.get("quantity", 0)), 6)  # Round to 6 decimal places to avoid rounding issues
         price = float(payload.get("price", 0)) if payload.get("price") else None  # Price for limit orders
         stop_price = float(payload.get("stop", 0)) if payload.get("stop") else None  # Stop loss price
         
