@@ -239,6 +239,25 @@ function App() {
     }
   };
 
+  // Filter logs based on selected filter
+  const filteredLogs = logs.filter(log => {
+    if (logFilter === 'ALL') return true;
+    return log.level === logFilter;
+  });
+
+  // Simple copy function for webhook URL
+  const copyWebhookUrl = () => {
+    const url = `${process.env.REACT_APP_BACKEND_URL || ''}/api/webhook/tradingview`;
+    const textArea = document.createElement('textarea');
+    textArea.value = url;
+    document.body.appendChild(textArea);
+    textArea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textArea);
+    setCopySuccess(true);
+    setTimeout(() => setCopySuccess(false), 2000);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
