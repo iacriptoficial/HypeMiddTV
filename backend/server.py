@@ -560,7 +560,7 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
         side = payload.get("side", "").lower()  # buy/sell
         entry_type = payload.get("entry", "market").lower()  # market/limit
         raw_quantity = float(payload.get("quantity", 0))
-        price = float(payload.get("price", 0)) if payload.get("price") else None  # Price for limit orders
+        raw_price = float(payload.get("price", 0)) if payload.get("price") else None  # Price for limit orders
         stop_price = float(payload.get("stop", 0)) if payload.get("stop") else None  # Stop loss price
         
         # Validate and format quantity based on symbol
@@ -576,6 +576,20 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
             quantity = round(raw_quantity, 2)
             min_size = 0.01
         
+        # Format price to avoid tick size issues
+        if raw_price:
+            if symbol in ["SOL", "ETH", "AVAX"]:
+                # For higher value tokens, round to 2 decimal places
+                price = round(raw_price, 2)
+            elif symbol in ["BTC"]:
+                # For BTC, round to nearest dollar
+                price = round(raw_price, 0)
+            else:
+                # For other tokens, round to 4 decimal places
+                price = round(raw_price, 4)
+        else:
+            price = None
+        
         # Ensure quantity meets minimum size
         if quantity < min_size:
             raise ValueError(f"Quantity {quantity} is below minimum size {min_size} for {symbol}")
@@ -588,9 +602,8 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
         await log_message("INFO", f"  Symbol: {symbol}")
         await log_message("INFO", f"  Side: {side}")
         await log_message("INFO", f"  Entry Type: {entry_type}")
-        await log_message("INFO", f"  Raw Quantity: {raw_quantity}")
-        await log_message("INFO", f"  Formatted Quantity: {quantity}")
-        await log_message("INFO", f"  Price: {price}")
+        await log_message("INFO", f"  Raw Quantity: {raw_quantity} → Formatted: {quantity}")
+        await log_message("INFO", f"  Raw Price: {raw_price} → Formatted: {price}")
         await log_message("INFO", f"  Stop Price: {stop_price}")
         
         # Validate required fields
