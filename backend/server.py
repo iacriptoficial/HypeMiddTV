@@ -663,6 +663,44 @@ async def get_webhooks(limit: int = 50):
         await log_message("ERROR", f"Failed to get webhooks: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@api_router.post("/restart")
+async def restart_server():
+    """Restart the server"""
+    try:
+        await log_message("INFO", "Server restart requested via API")
+        
+        # Add restart log
+        restart_log = {
+            "timestamp": datetime.utcnow().isoformat(),
+            "level": "INFO",
+            "message": "Server restarting...",
+            "details": "Restart requested via web interface"
+        }
+        
+        # Store restart log in database
+        await db.logs.insert_one(restart_log)
+        
+        import os
+        import signal
+        
+        # Send restart signal to supervisor
+        os.system("sudo supervisorctl restart backend")
+        
+        return {"status": "success", "message": "Server restart initiated"}
+        
+    except Exception as e:
+        await log_message("ERROR", f"Failed to restart server: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Add startup log
+@app.on_event("startup")
+async def startup_event():
+    """Log server startup"""
+    await log_message("INFO", "TradingView to Hyperliquid middleware server started")
+    await log_message("INFO", f"Server environment: {hyperliquid_config.environment}")
+    await log_message("INFO", f"Server start time: {server_start_time}")
+    await log_message("INFO", "Webhook endpoint available at /api/webhook/tradingview")
+
 @api_router.get("/refresh-balance")
 async def force_refresh_balance():
     """Force refresh account balance"""
