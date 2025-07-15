@@ -192,6 +192,18 @@ backend:
           agent: "testing"
           comment: "✅ VERIFIED: Webhook reception working perfectly. TradingView webhooks are properly received, processed, and stored in MongoDB with correct status tracking."
 
+  - task: "Brazilian timezone implementation (GMT-3)"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: "✅ COMPLETED: Successfully implemented Brazilian timezone (GMT-3) throughout the system. All timestamps in logs, webhooks, responses, and database entries now use America/Sao_Paulo timezone. Custom logging formatter added to display Brazilian time in console logs. Verified working with sample webhook test showing timestamp '2025-07-15T16:52:41.722894-03:00'."
+
   - task: "Stop loss order implementation"
     implemented: true
     working: true
