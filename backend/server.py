@@ -712,7 +712,7 @@ async def close_existing_positions(symbol: str):
                 name=symbol,
                 is_buy=is_buy,
                 sz=close_quantity,
-                limit_px=0,  # Market order
+                limit_px=0,  # Will be ignored for market orders
                 order_type={"market": {}},
                 reduce_only=True  # This ensures we only close existing positions
             )
