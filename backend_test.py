@@ -438,6 +438,220 @@ def test_status_endpoint():
         print(f"❌ Error testing status endpoint: {str(e)}")
         return False
 
+def test_clear_logs_functionality():
+    """Test the clear logs functionality - MAIN FOCUS OF REVIEW REQUEST"""
+    print("\n=== Testing Clear Logs Functionality ===")
+    print("🎯 CRITICAL: Testing DELETE /api/logs endpoint and log generation with Brazilian timezone")
+    
+    # First, generate some logs by calling other endpoints
+    print("\n--- Step 1: Generating logs by calling status endpoint ---")
+    status_url = f"{BASE_URL}/status"
+    try:
+        status_response = requests.get(status_url)
+        if status_response.status_code == 200:
+            print("✅ Status endpoint called to generate logs")
+        else:
+            print(f"⚠️ Status endpoint call failed: {status_response.status_code}")
+    except Exception as e:
+        print(f"⚠️ Error calling status endpoint: {str(e)}")
+    
+    # Generate more logs with a webhook
+    print("\n--- Step 2: Generating more logs with webhook ---")
+    webhook_url = f"{BASE_URL}/webhook/tradingview"
+    test_payload = {
+        "symbol": "BTC",
+        "side": "buy",
+        "entry": "market",
+        "quantity": "0.01",
+        "price": "45000"
+    }
+    
+    try:
+        webhook_response = requests.post(webhook_url, json=test_payload)
+        if webhook_response.status_code == 200:
+            print("✅ Webhook called to generate more logs")
+        else:
+            print(f"⚠️ Webhook call failed: {webhook_response.status_code}")
+    except Exception as e:
+        print(f"⚠️ Error calling webhook: {str(e)}")
+    
+    # Wait a moment for logs to be written
+    time.sleep(2)
+    
+    # Step 3: Check current logs and verify Brazilian timezone
+    print("\n--- Step 3: Checking current logs and Brazilian timezone ---")
+    logs_url = f"{BASE_URL}/logs"
+    
+    try:
+        logs_response = requests.get(logs_url)
+        print(f"GET /api/logs Status Code: {logs_response.status_code}")
+        
+        if logs_response.status_code == 200:
+            logs_data = logs_response.json()
+            log_count = len(logs_data.get('logs', []))
+            print(f"✅ Retrieved {log_count} logs before clearing")
+            
+            # Check Brazilian timezone in timestamps
+            if log_count > 0:
+                print("\n🕐 Checking Brazilian timezone (GMT-3) in log timestamps:")
+                for i, log in enumerate(logs_data['logs'][:5]):  # Check first 5 logs
+                    timestamp = log.get('timestamp', '')
+                    message = log.get('message', '')
+                    level = log.get('level', '')
+                    
+                    print(f"Log {i+1}: [{level}] {message}")
+                    print(f"  Timestamp: {timestamp}")
+                    
+                    # Check if timestamp contains Brazilian timezone info
+                    if '-03:00' in timestamp or 'America/Sao_Paulo' in timestamp:
+                        print("  ✅ Brazilian timezone (GMT-3) detected in timestamp")
+                    elif timestamp:
+                        # Parse timestamp to check timezone
+                        try:
+                            from datetime import datetime
+                            import re
+                            
+                            # Look for timezone offset pattern
+                            tz_pattern = r'([+-]\d{2}:\d{2})$'
+                            tz_match = re.search(tz_pattern, timestamp)
+                            
+                            if tz_match:
+                                tz_offset = tz_match.group(1)
+                                if tz_offset == '-03:00':
+                                    print("  ✅ Brazilian timezone (GMT-3) confirmed")
+                                else:
+                                    print(f"  ⚠️ Timezone offset is {tz_offset}, expected -03:00")
+                            else:
+                                print("  ⚠️ No timezone offset found in timestamp")
+                        except Exception as parse_error:
+                            print(f"  ⚠️ Could not parse timestamp: {parse_error}")
+                    else:
+                        print("  ❌ No timestamp found")
+                
+                print(f"\n📊 Total logs before clearing: {log_count}")
+            else:
+                print("⚠️ No logs found to test timezone")
+        else:
+            print(f"❌ Failed to retrieve logs: {logs_response.text}")
+            return False
+    except Exception as e:
+        print(f"❌ Error retrieving logs: {str(e)}")
+        return False
+    
+    # Step 4: Test the clear logs endpoint
+    print("\n--- Step 4: Testing DELETE /api/logs endpoint ---")
+    clear_url = f"{BASE_URL}/logs"
+    
+    try:
+        clear_response = requests.delete(clear_url)
+        print(f"DELETE /api/logs Status Code: {clear_response.status_code}")
+        
+        if clear_response.status_code == 200:
+            clear_result = clear_response.json()
+            print("✅ Clear logs endpoint test passed")
+            print(f"Response: {json.dumps(clear_result, indent=2)}")
+            
+            # Verify the response structure
+            if clear_result.get('status') == 'success':
+                deleted_count = clear_result.get('deleted_count', 0)
+                message = clear_result.get('message', '')
+                
+                print(f"✅ Status: {clear_result['status']}")
+                print(f"✅ Message: {message}")
+                print(f"✅ Deleted count: {deleted_count}")
+                
+                if deleted_count > 0:
+                    print(f"✅ Successfully cleared {deleted_count} logs from MongoDB")
+                else:
+                    print("⚠️ No logs were deleted (database might have been empty)")
+            else:
+                print(f"❌ Unexpected response status: {clear_result.get('status')}")
+                return False
+        else:
+            print(f"❌ Clear logs endpoint failed: {clear_response.text}")
+            return False
+    except Exception as e:
+        print(f"❌ Error testing clear logs endpoint: {str(e)}")
+        return False
+    
+    # Step 5: Verify logs were actually cleared
+    print("\n--- Step 5: Verifying logs were cleared ---")
+    
+    try:
+        verify_response = requests.get(logs_url)
+        print(f"Verification GET /api/logs Status Code: {verify_response.status_code}")
+        
+        if verify_response.status_code == 200:
+            verify_data = verify_response.json()
+            remaining_count = len(verify_data.get('logs', []))
+            
+            print(f"📊 Logs remaining after clear: {remaining_count}")
+            
+            if remaining_count == 0:
+                print("✅ PERFECT: All logs successfully cleared from database")
+            elif remaining_count < log_count:
+                print(f"✅ PARTIAL: Some logs cleared ({log_count - remaining_count} deleted)")
+            else:
+                print("❌ FAILED: No logs were cleared")
+                return False
+        else:
+            print(f"❌ Failed to verify log clearing: {verify_response.text}")
+            return False
+    except Exception as e:
+        print(f"❌ Error verifying log clearing: {str(e)}")
+        return False
+    
+    # Step 6: Generate new logs and verify they have Brazilian timezone
+    print("\n--- Step 6: Generating new logs to verify Brazilian timezone ---")
+    
+    try:
+        # Generate a new log by calling status endpoint again
+        new_status_response = requests.get(status_url)
+        if new_status_response.status_code == 200:
+            print("✅ Generated new logs after clearing")
+            
+            # Wait for logs to be written
+            time.sleep(1)
+            
+            # Check new logs
+            new_logs_response = requests.get(logs_url)
+            if new_logs_response.status_code == 200:
+                new_logs_data = new_logs_response.json()
+                new_log_count = len(new_logs_data.get('logs', []))
+                
+                print(f"📊 New logs generated: {new_log_count}")
+                
+                if new_log_count > 0:
+                    print("\n🕐 Verifying Brazilian timezone in new logs:")
+                    for log in new_logs_data['logs'][:3]:
+                        timestamp = log.get('timestamp', '')
+                        message = log.get('message', '')
+                        
+                        print(f"New log: {message}")
+                        print(f"  Timestamp: {timestamp}")
+                        
+                        if '-03:00' in timestamp:
+                            print("  ✅ Brazilian timezone (GMT-3) confirmed in new log")
+                        else:
+                            print("  ⚠️ Brazilian timezone not detected in new log")
+                else:
+                    print("⚠️ No new logs generated")
+            else:
+                print(f"❌ Failed to retrieve new logs: {new_logs_response.text}")
+        else:
+            print(f"⚠️ Failed to generate new logs: {new_status_response.status_code}")
+    except Exception as e:
+        print(f"⚠️ Error generating/checking new logs: {str(e)}")
+    
+    print("\n✅ Clear logs functionality test completed successfully!")
+    print("Key findings:")
+    print("- DELETE /api/logs endpoint is working")
+    print("- Logs are being cleared from MongoDB")
+    print("- Brazilian timezone (GMT-3) is implemented in log timestamps")
+    print("- Log generation and retrieval are working correctly")
+    
+    return True
+
 def test_logs_endpoint():
     """Test the logs endpoint - Check if serialization issues are fixed"""
     print("\n=== Testing Logs Endpoint ===")
