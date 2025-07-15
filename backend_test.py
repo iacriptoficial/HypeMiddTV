@@ -712,7 +712,7 @@ def run_all_tests():
         if not passed:
             all_passed = False
             # Mark critical failures
-            if test_name in ["Real Order Execution", "Hyperliquid Connection", "Status Endpoint", "Logs Endpoint", "Webhooks Endpoint", "Responses Endpoint"]:
+            if test_name in ["Stop Loss Implementation", "Real Order Execution", "Hyperliquid Connection", "Status Endpoint", "Logs Endpoint", "Webhooks Endpoint", "Responses Endpoint"]:
                 critical_failures.append(test_name)
     
     print(f"\nOVERALL RESULT: {'✅ ALL TESTS PASSED' if all_passed else '❌ SOME TESTS FAILED'}")
