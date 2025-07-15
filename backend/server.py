@@ -1029,7 +1029,7 @@ async def restart_server():
         
         # Add restart log
         restart_log = {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": get_brazil_time().isoformat(),
             "level": "INFO",
             "message": "Server restarting...",
             "details": "Restart requested via web interface"
