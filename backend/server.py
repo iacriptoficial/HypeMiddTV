@@ -946,13 +946,13 @@ async def get_server_status():
         wallet_address = await get_wallet_address()
         
         # Calculate uptime
-        uptime = datetime.utcnow() - server_start_time
+        uptime = get_brazil_time() - server_start_time
         uptime_str = f"{uptime.days}d {uptime.seconds//3600}h {(uptime.seconds//60)%60}m"
         
         status = ServerStatus(
             status="running",
             environment=hyperliquid_config.environment,
-            timestamp=datetime.utcnow(),
+            timestamp=get_brazil_time(),
             uptime=uptime_str,
             total_webhooks=stats['total_webhooks'],
             successful_forwards=stats['successful_forwards'],
