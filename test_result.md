@@ -194,15 +194,18 @@ backend:
 
   - task: "Stop loss order implementation"
     implemented: true
-    working: false
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: false
           agent: "main"
           comment: "IMPLEMENTING: Added stop loss order functionality to execute stop loss orders when 'stop' price is provided in TradingView payload. Using Hyperliquid trigger order type with 'tpsl': 'sl' parameter. Stop loss order is placed as opposite direction of main order with reduce_only=True."
+        - working: true
+          agent: "testing"
+          comment: "✅ FIXED AND VERIFIED: Stop loss implementation now working correctly! Fixed parameter naming issues in trigger order format ('is_market' -> 'isMarket', 'trigger_px' -> 'triggerPx'). Successfully tested: Main order executed (Order ID: 35521576692) and stop loss order placed (Order ID: 35521580540). Both main order and stop loss responses are properly included in webhook response structure."
 
   - task: "Real Hyperliquid order execution"
     implemented: true
