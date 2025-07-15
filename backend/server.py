@@ -9,12 +9,20 @@ from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
 import uuid
 from datetime import datetime
+import pytz
 from hyperliquid.info import Info
 from hyperliquid.exchange import Exchange
 from hyperliquid.utils import constants
 import json
 import asyncio
 from collections import defaultdict
+
+# Configure Brazilian timezone
+BRAZIL_TZ = pytz.timezone('America/Sao_Paulo')
+
+def get_brazil_time():
+    """Get current time in Brazilian timezone (GMT-3)"""
+    return datetime.now(BRAZIL_TZ)
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
