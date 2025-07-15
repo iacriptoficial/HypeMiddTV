@@ -137,7 +137,14 @@ function App() {
       fetchStatus();
     } catch (err) {
       console.error("Error switching environment:", err);
-      setError("Failed to switch environment");
+      // Add error to logs instead of showing in banner
+      const errorLog = {
+        timestamp: new Date().toISOString(),
+        level: "ERROR",
+        message: "Failed to switch environment",
+        details: err.message
+      };
+      setLogs(prevLogs => [errorLog, ...prevLogs]);
     }
   };
 
