@@ -1145,6 +1145,24 @@ async def get_environment():
     """Get current environment"""
     return {"environment": hyperliquid_config.environment}
 
+@api_router.delete("/logs")
+async def clear_logs():
+    """Clear all logs from the database"""
+    try:
+        result = await db.logs.delete_many({})
+        
+        await log_message("INFO", f"Logs cleared via API - {result.deleted_count} logs deleted")
+        
+        return {
+            "status": "success", 
+            "message": f"Successfully cleared {result.deleted_count} logs",
+            "deleted_count": result.deleted_count
+        }
+        
+    except Exception as e:
+        await log_message("ERROR", f"Failed to clear logs: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 # Include the router in the main app
 app.include_router(api_router)
 
