@@ -14,7 +14,7 @@ SAMPLE_WEBHOOK_PAYLOAD = {
     "side": "buy",    # Backend expects "side", not "action"
     "entry": "market", # Backend expects "entry" field
     "price": "45000",
-    "quantity": "0.001",  # Smaller quantity for testing
+    "quantity": "0.01",  # Increased to meet minimum size
     "timestamp": "2025-07-09T16:00:00Z"
 }
 
