@@ -217,20 +217,28 @@ function App() {
     const loadData = async () => {
       setLoading(true);
       
-      // Load data independently to avoid blocking on failures
-      try {
-        await Promise.allSettled([
-          fetchStatus(),
-          fetchLogs(),
-          fetchWebhooks(),
-          fetchResponses(),
-          fetchEnvironment()
-        ]);
-      } catch (error) {
-        console.error("Error loading data:", error);
-      } finally {
-        setLoading(false);
-      }
+      // Load each endpoint independently with timeout
+      const loadWithTimeout = async (fetchFunc, name) => {
+        try {
+          const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error(`${name} timeout`)), 10000)
+          );
+          await Promise.race([fetchFunc(), timeoutPromise]);
+        } catch (error) {
+          console.error(`Error loading ${name}:`, error);
+        }
+      };
+      
+      // Load data independently
+      await Promise.allSettled([
+        loadWithTimeout(fetchStatus, 'status'),
+        loadWithTimeout(fetchLogs, 'logs'),
+        loadWithTimeout(fetchWebhooks, 'webhooks'),
+        loadWithTimeout(fetchResponses, 'responses'),
+        loadWithTimeout(fetchEnvironment, 'environment')
+      ]);
+      
+      setLoading(false);
     };
 
     loadData();
