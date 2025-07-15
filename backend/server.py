@@ -275,7 +275,7 @@ async def get_cached_balance():
     """Get balance from cache or fetch if expired"""
     global balance_cache
     
-    current_time = datetime.utcnow().timestamp()
+    current_time = get_brazil_time().timestamp()
     
     # Check if cache is valid
     if (balance_cache["timestamp"] and 
