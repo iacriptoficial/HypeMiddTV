@@ -288,7 +288,8 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Stop loss implementation verified and working correctly"
+    - "Clear logs functionality implemented and working"
+    - "Brazilian timezone working correctly in all timestamps"
     - "All backend tasks verified and working correctly"
     - "Real order execution confirmed with actual Hyperliquid order IDs"
   stuck_tasks: []
@@ -302,6 +303,8 @@ agent_communication:
       message: "✅ COMPREHENSIVE TESTING COMPLETED! All backend functionality verified working correctly. Key findings: 1) Real order execution CONFIRMED - BUY/SELL orders successfully placed on Hyperliquid testnet with real order IDs (35117127566, 35117130249, 35117132763), 2) Webhook reception working perfectly, 3) Response logging captures all order details, 4) Balance retrieval and wallet address display working, 5) All serialization issues fixed. System is production-ready for TradingView to Hyperliquid integration."
     - agent: "testing"
       message: "🎯 STOP LOSS IMPLEMENTATION FIXED AND VERIFIED! The user's reported issue has been resolved. Fixed parameter naming in trigger order format: 'is_market' -> 'isMarket' and 'trigger_px' -> 'triggerPx'. Successfully tested stop loss functionality: Main order (SOL BUY, Order ID: 35521576692) executed and stop loss order (Order ID: 35521580540) placed correctly. Both responses properly included in webhook response structure. Stop loss orders are now being applied to positions as expected."
+    - agent: "main"
+      message: "✅ CLEAR LOGS FUNCTIONALITY ADDED! Successfully implemented user-requested feature to clear logs from the Logs tab. Added DELETE /api/logs endpoint in backend that clears all logs from MongoDB and returns success response with deleted count. Added red 'Clear Logs' button in frontend Logs tab that calls the API and updates the UI. Feature tested and working correctly - cleared 32,437 logs successfully. User can now clean up logs as requested."
 
 Technical_Details:
     issue_root_cause: "Private key was for an 'agent' wallet (API wallet) associated with main trading account, not the trading account itself"
