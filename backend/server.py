@@ -579,11 +579,30 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
         # Format price to avoid tick size issues
         if raw_price:
             if symbol in ["SOL", "ETH", "AVAX"]:
-                # For higher value tokens, round to 2 decimal places
-                price = round(raw_price, 2)
+                # For SOL/ETH/AVAX, round to nearest 0.05 or 0.1
+                # Test different rounding strategies
+                price_rounded_05 = round(raw_price * 20) / 20  # Round to nearest 0.05
+                price_rounded_10 = round(raw_price * 10) / 10  # Round to nearest 0.10
+                price_rounded_25 = round(raw_price * 4) / 4    # Round to nearest 0.25
+                price_rounded_50 = round(raw_price * 2) / 2    # Round to nearest 0.50
+                price_rounded_100 = round(raw_price)           # Round to nearest 1.00
+                
+                # Try different rounding methods, start with most precise
+                possible_prices = [price_rounded_05, price_rounded_10, price_rounded_25, price_rounded_50, price_rounded_100]
+                price = possible_prices[0]  # Start with 0.05 rounding
+                
+                await log_message("INFO", f"Price formatting options for {symbol}:")
+                await log_message("INFO", f"  Original: {raw_price}")
+                await log_message("INFO", f"  Rounded to 0.05: {price_rounded_05}")
+                await log_message("INFO", f"  Rounded to 0.10: {price_rounded_10}")
+                await log_message("INFO", f"  Rounded to 0.25: {price_rounded_25}")
+                await log_message("INFO", f"  Rounded to 0.50: {price_rounded_50}")
+                await log_message("INFO", f"  Rounded to 1.00: {price_rounded_100}")
+                await log_message("INFO", f"  Selected: {price}")
+                
             elif symbol in ["BTC"]:
-                # For BTC, round to nearest dollar
-                price = round(raw_price, 0)
+                # For BTC, round to nearest 10 or 100
+                price = round(raw_price, -1)  # Round to nearest 10
             else:
                 # For other tokens, round to 4 decimal places
                 price = round(raw_price, 4)
