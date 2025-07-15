@@ -589,7 +589,7 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
                 
                 # Try different rounding methods, start with most precise
                 possible_prices = [price_rounded_05, price_rounded_10, price_rounded_25, price_rounded_50, price_rounded_100]
-                price = possible_prices[0]  # Start with 0.05 rounding
+                price = possible_prices[3]  # Try 0.50 rounding
                 
                 await log_message("INFO", f"Price formatting options for {symbol}:")
                 await log_message("INFO", f"  Original: {raw_price}")
