@@ -1101,7 +1101,8 @@ async def force_refresh_balance():
 async def get_hyperliquid_responses(limit: int = 50):
     """Get recent Hyperliquid responses"""
     try:
-        responses = await db.hyperliquid_responses.find().sort("timestamp", -1).limit(limit).to_list(limit)
+        # Use _id for sorting to ensure proper chronological order
+        responses = await db.hyperliquid_responses.find().sort("_id", -1).limit(limit).to_list(limit)
         
         # Convert to JSON-serializable format
         responses_data = []
