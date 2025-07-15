@@ -613,14 +613,21 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
         # Execute the order
         try:
             if entry_type == "market":
-                # For market orders, we use the current market price or provided price as reference
-                market_price = price if price else 0  # Use 0 to let Hyperliquid determine market price
+                # For market orders, use IOC (Immediate or Cancel) limit order
+                # Use a very high price for buy or very low price for sell to ensure immediate execution
+                if is_buy:
+                    # For buy orders, use a high price to ensure immediate execution
+                    market_price = price * 1.1 if price else 999999  # 10% above current price
+                else:
+                    # For sell orders, use a low price to ensure immediate execution
+                    market_price = price * 0.9 if price else 0.01  # 10% below current price
+                
                 result = exchange.order(
                     name=symbol,
                     is_buy=is_buy,
                     sz=quantity,
                     limit_px=market_price,
-                    order_type={"market": {}},
+                    order_type={"limit": {"tif": "Ioc"}},  # IOC = Immediate or Cancel (market-like)
                     reduce_only=False
                 )
             else:  # limit
@@ -629,7 +636,7 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
                     is_buy=is_buy,
                     sz=quantity,
                     limit_px=price,
-                    order_type={"limit": {"tif": "Gtc"}},
+                    order_type={"limit": {"tif": "Gtc"}},  # GTC = Good Till Cancel
                     reduce_only=False
                 )
             
