@@ -252,6 +252,7 @@ metadata:
 
 test_plan:
   current_focus:
+    - "Stop loss implementation verified and working correctly"
     - "All backend tasks verified and working correctly"
     - "Real order execution confirmed with actual Hyperliquid order IDs"
   stuck_tasks: []
