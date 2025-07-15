@@ -708,13 +708,16 @@ async def close_existing_positions(symbol: str):
             await log_message("INFO", f"🔄 Closing position: {size} {symbol} ({'BUY' if is_buy else 'SELL'} {close_quantity})")
             
             # Close position with market order (using limit with IOC) and reduce_only=True
-            # Use a price that's likely to fill immediately
+            # Use a price that's close to market but likely to fill immediately
             if is_buy:
-                # For buying (closing short), use a higher price
-                close_price = 999999  # Very high price to ensure fill
+                # For buying (closing short), use a slightly higher price than market
+                close_price = position.get('entry_px', 160) * 1.1  # 10% above entry price
             else:
-                # For selling (closing long), use a very low price
-                close_price = 0.01  # Very low price to ensure fill
+                # For selling (closing long), use a slightly lower price than market
+                close_price = position.get('entry_px', 160) * 0.9  # 10% below entry price
+            
+            # Ensure price is properly formatted
+            close_price = round(close_price, 2)
             
             close_result = exchange.order(
                 name=symbol,
