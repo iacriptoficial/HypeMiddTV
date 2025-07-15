@@ -919,7 +919,7 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
             "status": "error",
             "message": error_msg,
             "environment": hyperliquid_config.environment,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": get_brazil_time().isoformat(),
             "error": str(e),
             "original_payload": payload
         }
