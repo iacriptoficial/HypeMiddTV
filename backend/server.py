@@ -968,7 +968,7 @@ async def get_server_status():
         status = ServerStatus(
             status="running",
             environment=hyperliquid_config.environment,
-            timestamp=get_brazil_time(),
+            timestamp=get_brazil_time().isoformat(),
             uptime=uptime_str,
             total_webhooks=stats['total_webhooks'],
             successful_forwards=stats['successful_forwards'],
