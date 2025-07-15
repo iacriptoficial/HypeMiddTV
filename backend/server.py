@@ -559,15 +559,34 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
         symbol = payload.get("symbol", "").upper()  # SOL, BTC, ETH, etc.
         side = payload.get("side", "").lower()  # buy/sell
         entry_type = payload.get("entry", "market").lower()  # market/limit
-        quantity = round(float(payload.get("quantity", 0)), 6)  # Round to 6 decimal places to avoid rounding issues
+        raw_quantity = float(payload.get("quantity", 0))
         price = float(payload.get("price", 0)) if payload.get("price") else None  # Price for limit orders
         stop_price = float(payload.get("stop", 0)) if payload.get("stop") else None  # Stop loss price
         
-        await log_message("INFO", f"📋 Parsed fields:")
+        # Validate and format quantity based on symbol
+        if symbol in ["SOL", "ETH", "BTC", "AVAX", "DOGE"]:
+            # For most crypto, round to 3 decimal places and ensure minimum size
+            quantity = round(raw_quantity, 3)
+            min_size = 0.001  # Minimum 0.001 for most crypto
+        else:
+            # Default: round to 4 decimal places  
+            quantity = round(raw_quantity, 4)
+            min_size = 0.0001
+        
+        # Ensure quantity meets minimum size
+        if quantity < min_size:
+            raise ValueError(f"Quantity {quantity} is below minimum size {min_size} for {symbol}")
+        
+        # Additional validation: ensure quantity is not too large
+        if quantity > 1000:
+            raise ValueError(f"Quantity {quantity} is too large. Maximum allowed: 1000")
+        
+        await log_message("INFO", f"📋 Parsed and validated fields:")
         await log_message("INFO", f"  Symbol: {symbol}")
         await log_message("INFO", f"  Side: {side}")
         await log_message("INFO", f"  Entry Type: {entry_type}")
-        await log_message("INFO", f"  Quantity: {quantity}")
+        await log_message("INFO", f"  Raw Quantity: {raw_quantity}")
+        await log_message("INFO", f"  Formatted Quantity: {quantity}")
         await log_message("INFO", f"  Price: {price}")
         await log_message("INFO", f"  Stop Price: {stop_price}")
         
