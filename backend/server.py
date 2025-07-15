@@ -428,15 +428,61 @@ async def get_wallet_address():
 async def handle_tradingview_webhook(request: Request):
     """Handle incoming TradingView webhook"""
     try:
-        # Get the payload
-        payload = await request.json()
+        # Get raw body first for debugging
+        raw_body = await request.body()
+        content_type = request.headers.get("content-type", "")
+        
+        await log_message("INFO", "Webhook received", {
+            "content_type": content_type,
+            "body_length": len(raw_body),
+            "raw_body_preview": raw_body[:200].decode('utf-8', errors='replace')
+        })
+        
+        # Try to parse JSON
+        try:
+            payload = await request.json()
+            await log_message("INFO", "JSON parsed successfully", {"payload": payload})
+        except Exception as json_error:
+            await log_message("ERROR", "JSON parsing failed", {
+                "error": str(json_error),
+                "raw_body": raw_body.decode('utf-8', errors='replace'),
+                "content_type": content_type
+            })
+            
+            # Try to handle common JSON issues
+            try:
+                # Remove any potential BOM or invalid characters
+                cleaned_body = raw_body.decode('utf-8-sig', errors='replace').strip()
+                if cleaned_body:
+                    import json
+                    payload = json.loads(cleaned_body)
+                    await log_message("INFO", "JSON parsed after cleanup", {"payload": payload})
+                else:
+                    raise ValueError("Empty body")
+            except Exception as cleanup_error:
+                await log_message("ERROR", "JSON cleanup failed", {
+                    "error": str(cleanup_error),
+                    "cleaned_body": cleaned_body if 'cleaned_body' in locals() else "N/A"
+                })
+                
+                stats['failed_forwards'] += 1
+                raise HTTPException(
+                    status_code=400, 
+                    detail=f"Invalid JSON format: {str(json_error)}"
+                )
+        
+        # Validate payload structure
+        if not isinstance(payload, dict):
+            await log_message("ERROR", "Payload is not a dictionary", {"payload_type": type(payload)})
+            stats['failed_forwards'] += 1
+            raise HTTPException(status_code=400, detail="Payload must be a JSON object")
         
         # Log the incoming webhook
         webhook_msg = WebhookMessage(payload=payload)
         await db.webhooks.insert_one(webhook_msg.dict())
         stats['total_webhooks'] += 1
         
-        await log_message("INFO", "TradingView webhook received", {"payload": payload})
+        await log_message("INFO", "TradingView webhook processed", {"payload": payload})
         
         # Forward to Hyperliquid
         try:
@@ -450,21 +496,33 @@ async def handle_tradingview_webhook(request: Request):
                 "hyperliquid_response": hyperliquid_response
             }
             
-        except Exception as e:
+        except Exception as forward_error:
+            await log_message("ERROR", "Webhook forwarding failed", {
+                "webhook_id": webhook_msg.id,
+                "error": str(forward_error),
+                "payload": payload
+            })
             stats['failed_forwards'] += 1
-            await log_message("ERROR", f"Failed to forward to Hyperliquid: {str(e)}")
             
-            # Update webhook status
-            await db.webhooks.update_one(
-                {"id": webhook_msg.id},
-                {"$set": {"status": "failed", "error": str(e)}}
-            )
+            return {
+                "status": "error",
+                "webhook_id": webhook_msg.id,
+                "message": f"Webhook processing failed: {str(forward_error)}",
+                "error": str(forward_error)
+            }
             
-            raise HTTPException(status_code=500, detail=f"Failed to forward to Hyperliquid: {str(e)}")
-            
+    except HTTPException:
+        raise
     except Exception as e:
-        await log_message("ERROR", f"Webhook processing failed: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        await log_message("ERROR", "Webhook handler error", {
+            "error": str(e),
+            "error_type": type(e).__name__
+        })
+        stats['failed_forwards'] += 1
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Webhook processing failed: {str(e)}"
+        )
 
 async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
     """Forward the webhook payload to Hyperliquid and execute real trades"""
