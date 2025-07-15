@@ -817,7 +817,22 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
         # Convert side to Hyperliquid format
         is_buy = (side == "buy")
         
-        await log_message("INFO", f"✅ Validation passed - Executing {entry_type} {side} order")
+        await log_message("INFO", f"✅ Validation passed - Processing {entry_type} {side} order")
+        
+        # STEP 1: Close existing positions for this symbol
+        await log_message("INFO", f"🔄 Checking for existing positions to close for {symbol}")
+        close_success = await close_existing_positions(symbol)
+        
+        if not close_success:
+            await log_message("WARNING", f"⚠️ Failed to close some positions for {symbol}, continuing with new order")
+        else:
+            await log_message("INFO", f"✅ Successfully closed existing positions for {symbol}")
+        
+        # Wait a moment for the close orders to process
+        await asyncio.sleep(1)
+        
+        # STEP 2: Execute the new order
+        await log_message("INFO", f"🚀 Executing new {entry_type} {side} order")
         
         # Get exchange client
         exchange = hyperliquid_config.get_exchange_client()
