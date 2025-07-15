@@ -11,18 +11,20 @@ BASE_URL = "https://b4242a76-a40f-4310-ac11-8515b3eed6df.preview.emergentagent.c
 # Sample webhook payload for testing - Updated to match backend expectations
 SAMPLE_WEBHOOK_PAYLOAD = {
     "symbol": "BTC",  # Backend expects "symbol", not "ticker"
-    "action": "buy",
-    "price": 45000,
-    "quantity": 0.001,  # Smaller quantity for testing
+    "side": "buy",    # Backend expects "side", not "action"
+    "entry": "market", # Backend expects "entry" field
+    "price": "45000",
+    "quantity": "0.001",  # Smaller quantity for testing
     "timestamp": "2025-07-09T16:00:00Z"
 }
 
 # Additional test payloads for comprehensive testing
 SAMPLE_SELL_PAYLOAD = {
     "symbol": "ETH",
-    "action": "sell", 
-    "price": 3200,
-    "quantity": 0.01,
+    "side": "sell", 
+    "entry": "market",
+    "price": "3200",
+    "quantity": "0.01",
     "timestamp": "2025-07-09T16:00:00Z"
 }
 
