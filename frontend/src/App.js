@@ -426,13 +426,14 @@ function App() {
                         className="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white font-mono"
                       />
                       <button
-                        onClick={() => {
-                          navigator.clipboard.writeText(`${process.env.REACT_APP_BACKEND_URL || ''}/api/webhook/tradingview`);
-                          // You can add a toast notification here if needed
-                        }}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm transition-colors"
+                        onClick={() => copyToClipboard(`${process.env.REACT_APP_BACKEND_URL || ''}/api/webhook/tradingview`)}
+                        className={`px-3 py-2 rounded-lg text-sm transition-colors ${
+                          copySuccess 
+                            ? 'bg-green-600 hover:bg-green-700 text-white' 
+                            : 'bg-blue-600 hover:bg-blue-700 text-white'
+                        }`}
                       >
-                        Copiar
+                        {copySuccess ? '✓ Copiado!' : 'Copiar'}
                       </button>
                     </div>
                   </div>
