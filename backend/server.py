@@ -101,7 +101,7 @@ class WebhookMessage(BaseModel):
 
 class HyperliquidResponse(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    timestamp: datetime = Field(default_factory=lambda: get_brazil_time())
+    timestamp: str = Field(default_factory=lambda: get_brazil_time().isoformat())
     webhook_id: str
     response_data: Dict[str, Any]
     status: str = "sent"
