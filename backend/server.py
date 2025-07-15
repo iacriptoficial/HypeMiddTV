@@ -1016,7 +1016,9 @@ async def get_logs(limit: int = 100, level: Optional[str] = None):
 async def get_webhooks(limit: int = 50):
     """Get recent webhooks"""
     try:
-        webhooks = await db.webhooks.find().sort("timestamp", -1).limit(limit).to_list(limit)
+        # Use _id for sorting to ensure proper chronological order
+        # _id contains timestamp information and is always in chronological order
+        webhooks = await db.webhooks.find().sort("_id", -1).limit(limit).to_list(limit)
         
         # Convert to JSON-serializable format
         webhooks_data = []
