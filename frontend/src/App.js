@@ -408,8 +408,32 @@ function App() {
         {activeTab === "logs" && (
           <div className="bg-gray-800 border border-gray-700 rounded-lg">
             <div className="p-6">
+              {/* Log Filter */}
+              <div className="mb-4 flex items-center space-x-4">
+                <label className="text-sm font-medium text-gray-300">Filter by level:</label>
+                <div className="flex space-x-2">
+                  {['ERROR', 'INFO', 'ALL'].map((level) => (
+                    <button
+                      key={level}
+                      onClick={() => setLogFilter(level)}
+                      className={`px-3 py-1 rounded text-sm transition-colors ${
+                        logFilter === level
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                      }`}
+                    >
+                      {level}
+                    </button>
+                  ))}
+                </div>
+                <span className="text-sm text-gray-400">
+                  ({filteredLogs.length} of {logs.length} logs)
+                </span>
+              </div>
+              
+              {/* Logs Display */}
               <div className="space-y-3">
-                {logs.map((log, index) => (
+                {filteredLogs.map((log, index) => (
                   <div key={index} className="flex items-start space-x-3 text-sm">
                     <span className="text-gray-500 w-32 flex-shrink-0">
                       {formatTimestamp(log.timestamp)}
@@ -420,8 +444,10 @@ function App() {
                     <span className="text-gray-300 flex-1">{log.message}</span>
                   </div>
                 ))}
-                {logs.length === 0 && (
-                  <div className="text-center text-gray-500 py-8">No logs available</div>
+                {filteredLogs.length === 0 && (
+                  <div className="text-center text-gray-500 py-8">
+                    No logs available for selected filter
+                  </div>
                 )}
               </div>
             </div>
