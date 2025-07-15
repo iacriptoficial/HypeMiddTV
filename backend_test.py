@@ -221,7 +221,7 @@ def test_real_order_execution():
         "symbol": "BTC",
         "side": "buy",
         "entry": "market",
-        "quantity": "0.001",
+        "quantity": "0.01",  # Increased to meet minimum size
         "price": "45000",
         "timestamp": datetime.now().isoformat()
     }
