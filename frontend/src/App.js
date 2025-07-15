@@ -265,6 +265,13 @@ function App() {
               >
                 Switch to {currentEnvironment === "testnet" ? "Mainnet" : "Testnet"}
               </button>
+              <button
+                onClick={restartServer}
+                className="bg-orange-600 hover:bg-orange-700 text-white px-3 py-1 rounded text-sm transition-colors"
+                title="Restart server to fix webhook issues"
+              >
+                🔄 Restart Server
+              </button>
             </div>
           </div>
           
