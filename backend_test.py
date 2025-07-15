@@ -26,6 +26,187 @@ SAMPLE_SELL_PAYLOAD = {
     "timestamp": "2025-07-09T16:00:00Z"
 }
 
+def test_stop_loss_implementation():
+    """Test stop loss order implementation - MAIN FOCUS OF REVIEW REQUEST"""
+    print("\n=== Testing Stop Loss Implementation ===")
+    print("🎯 CRITICAL: Testing stop loss orders with TradingView webhook")
+    print("User reported: Normal orders work but stop loss is not being applied to position")
+    
+    # Test 1: BUY order with stop loss
+    print("\n--- Test 1: BUY Order with Stop Loss ---")
+    buy_with_stop_payload = {
+        "symbol": "SOL",
+        "side": "buy",
+        "entry": "market",
+        "quantity": "0.1",
+        "price": "160.00",
+        "stop": "158.00"
+    }
+    
+    url = f"{BASE_URL}/webhook/tradingview"
+    
+    try:
+        response = requests.post(url, json=buy_with_stop_payload)
+        print(f"BUY with Stop Loss Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            result = response.json()
+            print("✅ BUY with stop loss webhook received successfully")
+            print(f"Response: {json.dumps(result, indent=2)}")
+            
+            # Check if both main order and stop loss order were processed
+            hl_response = result.get('hyperliquid_response', {})
+            
+            if hl_response.get('status') == 'success':
+                order_details = hl_response.get('order_details', {})
+                main_order = order_details.get('hyperliquid_response')
+                stop_loss_response = order_details.get('stop_loss_response')
+                
+                print(f"\n📊 Main Order Response: {main_order}")
+                print(f"🛑 Stop Loss Response: {stop_loss_response}")
+                
+                # Validate main order
+                if main_order and main_order.get('status') == 'ok':
+                    print("✅ Main BUY order executed successfully")
+                else:
+                    print("❌ Main BUY order failed")
+                    return False
+                
+                # Validate stop loss order
+                if stop_loss_response:
+                    if stop_loss_response.get('status') == 'ok':
+                        print("✅ Stop loss order placed successfully")
+                        print("🎯 CRITICAL SUCCESS: Stop loss functionality is working!")
+                    elif 'error' in stop_loss_response:
+                        print(f"❌ Stop loss order failed: {stop_loss_response['error']}")
+                        print("🚨 CRITICAL ISSUE: Stop loss not working as reported by user")
+                        return False
+                    else:
+                        print(f"⚠️ Stop loss response unclear: {stop_loss_response}")
+                        return False
+                else:
+                    print("❌ CRITICAL: No stop loss response found")
+                    print("🚨 This confirms user's report - stop loss not being processed")
+                    return False
+            else:
+                print(f"❌ Order execution failed: {hl_response}")
+                return False
+        else:
+            print(f"❌ BUY with stop loss webhook failed: {response.text}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ Error testing BUY with stop loss: {str(e)}")
+        return False
+    
+    # Wait before next test
+    time.sleep(3)
+    
+    # Test 2: SELL order with stop loss
+    print("\n--- Test 2: SELL Order with Stop Loss ---")
+    sell_with_stop_payload = {
+        "symbol": "BTC",
+        "side": "sell",
+        "entry": "market",
+        "quantity": "0.001",
+        "price": "45000.00",
+        "stop": "46000.00"
+    }
+    
+    try:
+        response = requests.post(url, json=sell_with_stop_payload)
+        print(f"SELL with Stop Loss Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            result = response.json()
+            print("✅ SELL with stop loss webhook received successfully")
+            
+            # Check if both main order and stop loss order were processed
+            hl_response = result.get('hyperliquid_response', {})
+            
+            if hl_response.get('status') == 'success':
+                order_details = hl_response.get('order_details', {})
+                main_order = order_details.get('hyperliquid_response')
+                stop_loss_response = order_details.get('stop_loss_response')
+                
+                print(f"\n📊 Main Order Response: {main_order}")
+                print(f"🛑 Stop Loss Response: {stop_loss_response}")
+                
+                # Validate main order
+                if main_order and main_order.get('status') == 'ok':
+                    print("✅ Main SELL order executed successfully")
+                else:
+                    print("❌ Main SELL order failed")
+                    return False
+                
+                # Validate stop loss order
+                if stop_loss_response:
+                    if stop_loss_response.get('status') == 'ok':
+                        print("✅ Stop loss order placed successfully")
+                    elif 'error' in stop_loss_response:
+                        print(f"❌ Stop loss order failed: {stop_loss_response['error']}")
+                        return False
+                    else:
+                        print(f"⚠️ Stop loss response unclear: {stop_loss_response}")
+                        return False
+                else:
+                    print("❌ CRITICAL: No stop loss response found for SELL order")
+                    return False
+            else:
+                print(f"❌ SELL order execution failed: {hl_response}")
+                return False
+        else:
+            print(f"❌ SELL with stop loss webhook failed: {response.text}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ Error testing SELL with stop loss: {str(e)}")
+        return False
+    
+    # Test 3: Different symbols with stop loss
+    print("\n--- Test 3: ETH with Stop Loss ---")
+    eth_with_stop_payload = {
+        "symbol": "ETH",
+        "side": "buy",
+        "entry": "limit",
+        "quantity": "0.01",
+        "price": "3200.00",
+        "stop": "3150.00"
+    }
+    
+    try:
+        response = requests.post(url, json=eth_with_stop_payload)
+        print(f"ETH with Stop Loss Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            result = response.json()
+            print("✅ ETH with stop loss webhook received successfully")
+            
+            hl_response = result.get('hyperliquid_response', {})
+            if hl_response.get('status') == 'success':
+                order_details = hl_response.get('order_details', {})
+                stop_loss_response = order_details.get('stop_loss_response')
+                
+                if stop_loss_response and stop_loss_response.get('status') == 'ok':
+                    print("✅ ETH stop loss order placed successfully")
+                else:
+                    print(f"❌ ETH stop loss failed: {stop_loss_response}")
+                    return False
+            else:
+                print(f"❌ ETH order failed: {hl_response}")
+                return False
+        else:
+            print(f"❌ ETH webhook failed: {response.text}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ Error testing ETH with stop loss: {str(e)}")
+        return False
+    
+    print("\n✅ Stop loss implementation test completed successfully!")
+    print("All stop loss orders were processed and sent to Hyperliquid testnet")
+    return True
+
 def test_real_order_execution():
     """Test real order execution on Hyperliquid testnet - KEY FOCUS AREA"""
     print("\n=== Testing Real Order Execution ===")
@@ -36,9 +217,10 @@ def test_real_order_execution():
     print("\n--- Testing BUY Order ---")
     buy_payload = {
         "symbol": "BTC",
-        "action": "buy",
-        "price": 45000,
-        "quantity": 0.001,
+        "side": "buy",
+        "entry": "market",
+        "quantity": "0.001",
+        "price": "45000",
         "timestamp": datetime.now().isoformat()
     }
     
