@@ -438,27 +438,38 @@ function App() {
         {activeTab === "logs" && (
           <div className="bg-gray-800 border border-gray-700 rounded-lg">
             <div className="p-6">
-              {/* Log Filter */}
-              <div className="mb-4 flex items-center space-x-4">
-                <label className="text-sm font-medium text-gray-300">Filter by level:</label>
-                <div className="flex space-x-2">
-                  {['ERROR', 'INFO', 'ALL'].map((level) => (
-                    <button
-                      key={level}
-                      onClick={() => setLogFilter(level)}
-                      className={`px-3 py-1 rounded text-sm transition-colors ${
-                        logFilter === level
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                      }`}
-                    >
-                      {level}
-                    </button>
-                  ))}
+              {/* Log Filter and Clear Button */}
+              <div className="mb-4 flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <label className="text-sm font-medium text-gray-300">Filter by level:</label>
+                  <div className="flex space-x-2">
+                    {['ERROR', 'INFO', 'ALL'].map((level) => (
+                      <button
+                        key={level}
+                        onClick={() => setLogFilter(level)}
+                        className={`px-3 py-1 rounded text-sm transition-colors ${
+                          logFilter === level
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                        }`}
+                      >
+                        {level}
+                      </button>
+                    ))}
+                  </div>
+                  <span className="text-sm text-gray-400">
+                    ({filteredLogs.length} of {logs.length} logs)
+                  </span>
                 </div>
-                <span className="text-sm text-gray-400">
-                  ({filteredLogs.length} of {logs.length} logs)
-                </span>
+                
+                {/* Clear Logs Button */}
+                <button
+                  onClick={clearLogs}
+                  className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm transition-colors"
+                  title="Clear all logs from database"
+                >
+                  🗑️ Clear Logs
+                </button>
               </div>
               
               {/* Logs Display */}
