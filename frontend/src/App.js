@@ -148,6 +148,39 @@ function App() {
     }
   };
 
+  // Restart server function
+  const restartServer = async () => {
+    try {
+      const response = await axios.post(`${API}/restart`);
+      
+      // Add success log
+      const successLog = {
+        timestamp: new Date().toISOString(),
+        level: "INFO",
+        message: "Server restart initiated",
+        details: "Restart requested successfully"
+      };
+      setLogs(prevLogs => [successLog, ...prevLogs]);
+      
+      // Refresh data after a delay
+      setTimeout(() => {
+        fetchStatus();
+        fetchLogs();
+      }, 3000);
+      
+    } catch (err) {
+      console.error("Error restarting server:", err);
+      // Add error to logs
+      const errorLog = {
+        timestamp: new Date().toISOString(),
+        level: "ERROR",
+        message: "Failed to restart server",
+        details: err.message
+      };
+      setLogs(prevLogs => [errorLog, ...prevLogs]);
+    }
+  };
+
   // Auto-refresh data
   useEffect(() => {
     const loadData = async () => {
