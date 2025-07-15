@@ -13,7 +13,57 @@ function App() {
   const [currentEnvironment, setCurrentEnvironment] = useState("testnet");
   const [activeTab, setActiveTab] = useState("dashboard");
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [copySuccess, setCopySuccess] = useState(false);
+
+  const copyToClipboard = async (text) => {
+    try {
+      // Método 1: Tentar usar a API moderna do Clipboard
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+        setCopySuccess(true);
+        setTimeout(() => setCopySuccess(false), 2000);
+        return;
+      }
+      
+      // Método 2: Fallback para document.execCommand (legacy)
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-999999px';
+      textArea.style.top = '-999999px';
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      
+      const successful = document.execCommand('copy');
+      document.body.removeChild(textArea);
+      
+      if (successful) {
+        setCopySuccess(true);
+        setTimeout(() => setCopySuccess(false), 2000);
+      } else {
+        throw new Error('Copy command failed');
+      }
+      
+    } catch (err) {
+      console.error('Failed to copy text: ', err);
+      // Método 3: Fallback final - selecionar o texto para cópia manual
+      const input = document.querySelector('input[readonly]');
+      if (input) {
+        input.focus();
+        input.select();
+      }
+      
+      // Adicionar mensagem de erro nos logs
+      const errorLog = {
+        timestamp: new Date().toISOString(),
+        level: "WARNING",
+        message: "Clipboard API blocked - text selected for manual copy",
+        details: err.message
+      };
+      setLogs(prevLogs => [errorLog, ...prevLogs]);
+    }
+  };
 
   // Fetch data functions
   const fetchStatus = async () => {
