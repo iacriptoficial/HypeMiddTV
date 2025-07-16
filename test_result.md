@@ -246,17 +246,17 @@ backend:
           agent: "main"
           comment: "✅ FIXED: Successfully implemented exchange.market_close() method for closing positions. The method now uses correct parameter 'coin' instead of 'name' and properly closes positions using market execution. Position inversion works correctly - closes existing positions before opening new ones."
 
-  - task: "Order history and verification endpoints"
+  - task: "Take profit implementation (TP1 and TP2)"
     implemented: true
     working: true
     file: "/app/backend/server.py"
     stuck_count: 0
-    priority: "medium"
+    priority: "high"
     needs_retesting: false
     status_history:
         - working: true
           agent: "main"
-          comment: "✅ IMPLEMENTED: Added /api/orders/history and /api/orders/open endpoints to verify order execution on Hyperliquid exchange. These endpoints allow verification that market orders are executed as true market orders (crossed: true, filled immediately) versus limit orders (resting orders)."
+          comment: "✅ IMPLEMENTED: Successfully added take profit functionality. Supports both tp1_price/tp2_price (absolute prices) and tp1_perc/tp2_perc (percentage from entry price). Orders are placed as trigger orders with reduce_only=True. Testing confirmed: TP1 order placed at $180 (Order ID: 35602558979), TP2 order calculated at 10% from entry price (Order ID: 35602560269)."
 
 frontend:
   - task: "Display real Hyperliquid balance and account address"
