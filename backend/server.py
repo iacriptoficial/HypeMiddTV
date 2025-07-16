@@ -1892,37 +1892,25 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
                         else:
                             raise ValueError("Could not determine entry price for TP percentage calculation")
                     
-                    # For TP4, use the total remaining position size to ensure complete exit
-                    # Calculate remaining size after TP1, TP2, TP3
-                    remaining_size = quantity
+                    # For TP4, we want to ensure COMPLETE EXIT of the position
+                    # Option 1: Use the original tp4_perc value if provided
+                    # Option 2: Calculate remaining size
+                    # Option 3: Use the total quantity to ensure complete exit
                     
-                    # Subtract TP1 size if it exists
-                    if tp1_perc:
-                        tp1_actual_size = round(float(tp1_perc), sz_decimals)
-                        if tp1_actual_size > 0:
-                            remaining_size -= tp1_actual_size
-                    
-                    # Subtract TP2 size if it exists
-                    if tp2_perc:
-                        tp2_actual_size = round(float(tp2_perc), sz_decimals)
-                        if tp2_actual_size > 0:
-                            remaining_size -= tp2_actual_size
-                    
-                    # Subtract TP3 size if it exists
-                    if tp3_perc:
-                        tp3_actual_size = round(float(tp3_perc), sz_decimals)
-                        if tp3_actual_size > 0:
-                            remaining_size -= tp3_actual_size
-                    
-                    # Round the remaining size
-                    tp4_size = round(remaining_size, sz_decimals)
-                    
-                    # If remaining size is too small, skip TP4
-                    if tp4_size <= 0:
-                        await log_message("INFO", f"🎯 Skipping TP4 - remaining size {tp4_size} is too small")
-                        raise ValueError("TP4 remaining size is too small - skipping")
-                    
-                    await log_message("INFO", f"🎯 Using calculated remaining size for TP4: {tp4_size} (ensures complete exit)")
+                    if tp4_perc:
+                        # First try to use the provided tp4_perc value
+                        tp4_size = float(tp4_perc)
+                        tp4_size = round(tp4_size, sz_decimals)
+                        await log_message("INFO", f"🎯 Using provided tp4_perc as size: {tp4_size}")
+                        
+                        # If the provided size is too small after formatting, use total quantity
+                        if tp4_size <= 0:
+                            await log_message("INFO", f"🎯 Provided tp4_perc {tp4_perc} rounds to {tp4_size}, using total quantity for complete exit")
+                            tp4_size = quantity  # Use total quantity to ensure complete exit
+                    else:
+                        # If no tp4_perc provided, use total quantity for complete exit
+                        tp4_size = quantity
+                        await log_message("INFO", f"🎯 No tp4_perc provided, using total quantity for complete exit: {tp4_size}")
                     
                     # For take profit: if we bought, sell at TP price; if we sold, buy at TP price
                     tp_is_buy = not is_buy  # Opposite of main order
