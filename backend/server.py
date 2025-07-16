@@ -861,12 +861,14 @@ async def clear_symbol_orders_and_positions(symbol: str, webhook_id: str):
             user_state = info.user_state(wallet_address)
             
             if user_state and 'assetPositions' in user_state:
+                positions_found = False
                 for position in user_state['assetPositions']:
                     if position.get('position', {}).get('coin') == symbol:
                         position_data = position.get('position', {})
                         size = float(position_data.get('szi', 0))
                         
                         if size != 0:  # Only close non-zero positions
+                            positions_found = True
                             # Determine the side to close the position
                             is_buy = size < 0  # Buy to close short, sell to close long
                             close_quantity = abs(size)
@@ -935,12 +937,70 @@ async def clear_symbol_orders_and_positions(symbol: str, webhook_id: str):
                                     response_data=error_response_data
                                 )
                                 await db.hyperliquid_responses.insert_one(error_hl_response.dict())
-                                
+                
+                if not positions_found:
+                    await log_message("INFO", f"No positions found for {symbol}")
+                    
+                    # Store response indicating no positions to close
+                    no_positions_response_data = {
+                        "status": "info",
+                        "message": f"No positions found for {symbol}",
+                        "operation": "close_position",
+                        "environment": hyperliquid_config.environment,
+                        "timestamp": get_brazil_time().isoformat(),
+                        "position_details": {
+                            "symbol": symbol,
+                            "positions_found": 0
+                        }
+                    }
+                    
+                    no_positions_hl_response = HyperliquidResponse(
+                        webhook_id=webhook_id,
+                        response_data=no_positions_response_data
+                    )
+                    await db.hyperliquid_responses.insert_one(no_positions_hl_response.dict())
+                    
             else:
                 await log_message("INFO", f"No positions found for {symbol}")
                 
+                # Store response indicating no positions to close
+                no_positions_response_data = {
+                    "status": "info",
+                    "message": f"No positions found for {symbol}",
+                    "operation": "close_position",
+                    "environment": hyperliquid_config.environment,
+                    "timestamp": get_brazil_time().isoformat(),
+                    "position_details": {
+                        "symbol": symbol,
+                        "positions_found": 0
+                    }
+                }
+                
+                no_positions_hl_response = HyperliquidResponse(
+                    webhook_id=webhook_id,
+                    response_data=no_positions_response_data
+                )
+                await db.hyperliquid_responses.insert_one(no_positions_hl_response.dict())
+                
         except Exception as e:
             await log_message("ERROR", f"Error checking/closing positions for {symbol}: {str(e)}")
+            
+            # Store error response
+            error_response_data = {
+                "status": "error",
+                "message": f"Error checking positions for {symbol}",
+                "operation": "close_position",
+                "environment": hyperliquid_config.environment,
+                "timestamp": get_brazil_time().isoformat(),
+                "error": str(e),
+                "symbol": symbol
+            }
+            
+            error_hl_response = HyperliquidResponse(
+                webhook_id=webhook_id,
+                response_data=error_response_data
+            )
+            await db.hyperliquid_responses.insert_one(error_hl_response.dict())
         
         return True
         
