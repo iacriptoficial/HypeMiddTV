@@ -1336,13 +1336,25 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
             try:
                 # Adjust price format for each attempt
                 if entry_type == "market":
-                    await log_message("INFO", f"Attempt {attempt + 1}: Market order (using IOC limit at market price)")
+                    # For market orders, use aggressive pricing to ensure fill
+                    if attempt == 0:
+                        market_price = price * 1.05 if (price and is_buy) else price * 0.95 if price else 170  # 5% buffer
+                    elif attempt == 1:
+                        market_price = price * 1.10 if (price and is_buy) else price * 0.90 if price else 170  # 10% buffer
+                    elif attempt == 2:
+                        market_price = round(price) if price else 170  # Round to 1.0
+                    elif attempt == 3:
+                        market_price = round(price * 2) / 2 if price else 170  # Round to 0.5
+                    else:
+                        market_price = round(price * 10) / 10 if price else 170  # Round to 0.1
+                    
+                    await log_message("INFO", f"Attempt {attempt + 1}: Market order using aggressive price ${market_price}")
                     
                     result = exchange.order(
                         name=symbol,
                         is_buy=is_buy,
                         sz=quantity,
-                        limit_px=0,  # Market price
+                        limit_px=market_price,  # Use aggressive price for market-like execution
                         order_type={"limit": {"tif": "Ioc"}},  # IOC acts like market order
                         reduce_only=False
                     )
