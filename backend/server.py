@@ -1681,6 +1681,12 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
                         tp1_size = float(tp1_perc)  # Ensure it's a float
                         # Apply szDecimals formatting to TP size
                         tp1_size = round(tp1_size, sz_decimals)
+                        
+                        # If size becomes 0 after rounding, skip this TP
+                        if tp1_size <= 0:
+                            await log_message("INFO", f"🎯 Skipping TP1 - size {tp1_perc} rounds to 0 with szDecimals: {sz_decimals}")
+                            raise ValueError("TP1 size is 0 after rounding - skipping")
+                        
                         await log_message("INFO", f"🎯 Using tp1_perc as size: {tp1_size} (formatted with szDecimals: {sz_decimals})")
                     else:
                         tp1_size = quantity * 0.25  # Default 25% if no size specified
