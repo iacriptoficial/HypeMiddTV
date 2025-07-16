@@ -960,9 +960,30 @@ async def clear_symbol_orders_and_positions(symbol: str, webhook_id: str):
                     try:
                         cancel_result = exchange.cancel(symbol, order_id)
                         
-                        # Store the REAL Hyperliquid response
+                        # Check if the cancellation was actually successful
+                        is_successful = False
+                        error_message = None
+                        
+                        if cancel_result and cancel_result.get("status") == "ok":
+                            # Check the actual cancellation status in the response
+                            response_data = cancel_result.get("response", {})
+                            if response_data.get("type") == "cancel":
+                                statuses = response_data.get("data", {}).get("statuses", [])
+                                
+                                for status in statuses:
+                                    if status == "success":
+                                        is_successful = True
+                                        break
+                                    elif isinstance(status, dict) and "error" in status:
+                                        error_message = status["error"]
+                                        break
+                                    elif status != "success":
+                                        error_message = str(status)
+                                        break
+                        
+                        # Store the REAL Hyperliquid response with correct success/error
                         cancel_response_data = {
-                            "status": "success" if cancel_result and cancel_result.get("status") == "ok" else "error",
+                            "status": "success" if is_successful else "error",
                             "message": f"Cancel order response for {symbol} order {order_id}",
                             "operation": "cancel_order",
                             "environment": hyperliquid_config.environment,
@@ -974,7 +995,8 @@ async def clear_symbol_orders_and_positions(symbol: str, webhook_id: str):
                                 "size": size,
                                 "price": price
                             },
-                            "hyperliquid_response": cancel_result  # REAL response from Hyperliquid
+                            "hyperliquid_response": cancel_result,  # REAL response from Hyperliquid
+                            "error": error_message if error_message else None
                         }
                         
                         cancel_hl_response = HyperliquidResponse(
@@ -983,10 +1005,10 @@ async def clear_symbol_orders_and_positions(symbol: str, webhook_id: str):
                         )
                         await db.hyperliquid_responses.insert_one(cancel_hl_response.dict())
                         
-                        if cancel_result and cancel_result.get("status") == "ok":
+                        if is_successful:
                             await log_message("INFO", f"✅ Order canceled: {order_id}")
                         else:
-                            await log_message("ERROR", f"❌ Failed to cancel order {order_id}: {cancel_result}")
+                            await log_message("ERROR", f"❌ Failed to cancel order {order_id}: {error_message or 'Unknown error'}")
                             
                     except Exception as e:
                         await log_message("ERROR", f"❌ Exception canceling order {order_id}: {str(e)}")
