@@ -1346,14 +1346,14 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
                     else:
                         market_price = round(price * 10) / 10 if price else 170  # Round to 0.1
                     
-                    await log_message("INFO", f"Attempt {attempt + 1}: Market price ${market_price}")
+                    await log_message("INFO", f"Attempt {attempt + 1}: Market order with market price ${market_price}")
                     
                     result = exchange.order(
                         name=symbol,
                         is_buy=is_buy,
                         sz=quantity,
                         limit_px=market_price,
-                        order_type={"limit": {"tif": "Ioc"}},
+                        order_type={"market": {}},  # Use REAL market order type
                         reduce_only=False
                     )
                 else:  # limit
