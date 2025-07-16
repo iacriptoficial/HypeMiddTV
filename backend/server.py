@@ -744,6 +744,9 @@ async def clear_symbol_orders_and_positions(symbol: str, webhook_id: str):
         
         await log_message("INFO", f"🧹 Clearing all orders and positions for {symbol}")
         
+        # Add delay to avoid rate limiting
+        await asyncio.sleep(1)
+        
         # STEP 1: Cancel all open orders for this symbol
         try:
             open_orders = info.open_orders(wallet_address)
