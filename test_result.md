@@ -222,7 +222,7 @@ backend:
           agent: "testing"
           comment: "✅ COMPREHENSIVE TESTING COMPLETED: Clear logs functionality working perfectly! DELETE /api/logs endpoint successfully clears logs from MongoDB (cleared 360 logs in test), returns proper JSON response with success status and deleted count. Verified log generation with Brazilian timezone (GMT-3) - all timestamps show '-03:00' offset. Log retrieval (GET /api/logs) working correctly with no serialization issues. Webhook processing and balance retrieval both generate appropriate logs with Brazilian timezone. All aspects of the logging system are functioning correctly."
 
-  - task: "Stop loss order implementation"
+  - task: "Market order execution using exchange.market_open() method"
     implemented: true
     working: true
     file: "/app/backend/server.py"
@@ -232,10 +232,7 @@ backend:
     status_history:
         - working: true
           agent: "main"
-          comment: "✅ COMPLETED: Stop loss orders are now working correctly. Fixed parameter naming issues ('is_market' -> 'isMarket', 'trigger_px' -> 'triggerPx'). Stop loss orders are placed alongside main orders with proper trigger prices, reduce_only=True, and opposite direction. Verified with real order execution - Main Order ID: 35523151636, Stop Loss ID: 35523153882."
-        - working: true
-          agent: "testing"
-          comment: "✅ FIXED AND VERIFIED: Stop loss implementation now working correctly! Fixed parameter naming issues in trigger order format ('is_market' -> 'isMarket', 'trigger_px' -> 'triggerPx'). Successfully tested: Main order executed (Order ID: 35521576692) and stop loss order placed (Order ID: 35521580540). Both main order and stop loss responses are properly included in webhook response structure."
+          comment: "✅ FIXED: Successfully implemented exchange.market_open() method for true market orders. When entry='market' in webhook, orders are now executed as TRUE market orders (filled immediately) instead of limit orders. Testing confirmed: Market orders return 'filled' status, while limit orders return 'resting' status. Market orders: Order ID 35602289415 filled at 174.96, Order ID 35602206634 filled at 174.81."
 
   - task: "Real Hyperliquid order execution"
     implemented: true
