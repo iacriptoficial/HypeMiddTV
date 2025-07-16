@@ -1052,7 +1052,7 @@ async def clear_symbol_orders_and_positions(symbol: str, webhook_id: str):
             )
             await db.hyperliquid_responses.insert_one(error_hl_response.dict())
         
-        return True
+        return overall_success
         
     except Exception as e:
         await log_message("ERROR", f"Error clearing symbol {symbol}: {str(e)}")
