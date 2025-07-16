@@ -861,6 +861,9 @@ async def clear_symbol_orders_and_positions(symbol: str, webhook_id: str):
             )
             await db.hyperliquid_responses.insert_one(error_hl_response.dict())
         
+        # Add delay between canceling orders and closing positions
+        await asyncio.sleep(2)
+        
         # STEP 2: Close all positions for this symbol
         try:
             user_state = info.user_state(wallet_address)
