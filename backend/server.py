@@ -1752,6 +1752,8 @@ async def get_open_orders():
     except Exception as e:
         await log_message("ERROR", f"Failed to get open orders: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/status")
 async def get_server_status():
     """Get server status and statistics"""
     try:
