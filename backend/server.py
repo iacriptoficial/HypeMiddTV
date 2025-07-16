@@ -1315,52 +1315,50 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
             "reduce_only": False
         }
         
-        # Set order type based on entry type
-        if entry_type == "market":
-            await log_message("INFO", f"🎯 Executing MARKET order: {side} {quantity} {symbol}")
-            # Market orders use aggressive pricing with IOC
-            aggressive_price = price * 1.05 if (price and is_buy) else price * 0.95 if price else 170
-            order_params["order_type"] = {"limit": {"tif": "Ioc"}}  # IOC acts like market
-            order_params["limit_px"] = aggressive_price
-        else:  # limit
-            await log_message("INFO", f"🎯 Executing LIMIT order: {side} {quantity} {symbol} @ ${price}")
-            order_params["order_type"] = {"limit": {"tif": "Gtc"}}
-            order_params["limit_px"] = price
-        
-        await log_message("INFO", f"📤 Order parameters: {order_params}")
-        
-        # Execute the order with automatic retry for different price formats
+        # Execute the order using the appropriate method based on entry type
         order_executed = False
         last_error = None
         main_order_result = None
         
-        for attempt in range(5):  # Try up to 5 different price formats
+        if entry_type == "market":
+            await log_message("INFO", f"🎯 Executing TRUE MARKET order: {side} {quantity} {symbol}")
+            
+            # Use the dedicated market_open method for true market execution
             try:
-                # Adjust price format for each attempt
-                if entry_type == "market":
-                    # For market orders, use aggressive pricing to ensure fill
-                    if attempt == 0:
-                        market_price = price * 1.05 if (price and is_buy) else price * 0.95 if price else 170  # 5% buffer
-                    elif attempt == 1:
-                        market_price = price * 1.10 if (price and is_buy) else price * 0.90 if price else 170  # 10% buffer
-                    elif attempt == 2:
-                        market_price = round(price) if price else 170  # Round to 1.0
-                    elif attempt == 3:
-                        market_price = round(price * 2) / 2 if price else 170  # Round to 0.5
+                result = exchange.market_open(
+                    coin=symbol,
+                    is_buy=is_buy,
+                    sz=quantity,
+                    px=None,  # Let it use current market price
+                    slippage=0.05,  # 5% slippage tolerance
+                    cloid=None
+                )
+                
+                # Check if order was successful
+                if result and result.get("status") == "ok":
+                    statuses = result.get("response", {}).get("data", {}).get("statuses", [])
+                    if statuses and not any("error" in status for status in statuses):
+                        await log_message("INFO", f"✅ Market order executed successfully using market_open")
+                        order_executed = True
+                        main_order_result = result
                     else:
-                        market_price = round(price * 10) / 10 if price else 170  # Round to 0.1
+                        error_msg = statuses[0].get("error", "Unknown error") if statuses else "Unknown error"
+                        await log_message("ERROR", f"Market order failed: {error_msg}")
+                        last_error = error_msg
+                else:
+                    await log_message("ERROR", f"Market order failed: {result}")
+                    last_error = "Market order failed"
                     
-                    await log_message("INFO", f"Attempt {attempt + 1}: Market order using aggressive price ${market_price}")
-                    
-                    result = exchange.order(
-                        name=symbol,
-                        is_buy=is_buy,
-                        sz=quantity,
-                        limit_px=market_price,  # Use aggressive price for market-like execution
-                        order_type={"limit": {"tif": "Ioc"}},  # IOC acts like market order
-                        reduce_only=False
-                    )
-                else:  # limit
+            except Exception as market_error:
+                await log_message("ERROR", f"Exception in market_open: {str(market_error)}")
+                last_error = str(market_error)
+                
+        else:  # limit orders
+            await log_message("INFO", f"🎯 Executing LIMIT order: {side} {quantity} {symbol} @ ${price}")
+            
+            # For limit orders, use the traditional exchange.order method with retry logic
+            for attempt in range(5):  # Try up to 5 different price formats
+                try:
                     # Try different price roundings for limit orders
                     if attempt == 0:
                         limit_price = round(price * 2) / 2  # Round to 0.5
@@ -1383,24 +1381,25 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
                         order_type={"limit": {"tif": "Gtc"}},
                         reduce_only=False
                     )
-                
-                # Check if order was successful
-                if result and result.get("status") == "ok":
-                    statuses = result.get("response", {}).get("data", {}).get("statuses", [])
-                    if statuses and not any("error" in status for status in statuses):
-                        await log_message("INFO", f"✅ Order executed successfully on attempt {attempt + 1}")
-                        order_executed = True
-                        break
-                    else:
-                        error_msg = statuses[0].get("error", "Unknown error") if statuses else "Unknown error"
-                        await log_message("WARNING", f"Attempt {attempt + 1} failed: {error_msg}")
-                        last_error = error_msg
-                        continue
-                
-            except Exception as order_error:
-                await log_message("WARNING", f"Attempt {attempt + 1} exception: {str(order_error)}")
-                last_error = str(order_error)
-                continue
+                    
+                    # Check if order was successful
+                    if result and result.get("status") == "ok":
+                        statuses = result.get("response", {}).get("data", {}).get("statuses", [])
+                        if statuses and not any("error" in status for status in statuses):
+                            await log_message("INFO", f"✅ Limit order executed successfully on attempt {attempt + 1}")
+                            order_executed = True
+                            main_order_result = result
+                            break
+                        else:
+                            error_msg = statuses[0].get("error", "Unknown error") if statuses else "Unknown error"
+                            await log_message("WARNING", f"Limit order attempt {attempt + 1} failed: {error_msg}")
+                            last_error = error_msg
+                            continue
+                    
+                except Exception as order_error:
+                    await log_message("WARNING", f"Limit order attempt {attempt + 1} exception: {str(order_error)}")
+                    last_error = str(order_error)
+                    continue
         
         if order_executed:
             await log_message("INFO", f"✅ Hyperliquid order executed successfully after {attempt + 1} attempts!")
