@@ -1307,14 +1307,6 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
         # Get exchange client
         exchange = hyperliquid_config.get_exchange_client()
         
-        # Prepare order parameters
-        order_params = {
-            "name": symbol,
-            "is_buy": is_buy,
-            "sz": quantity,
-            "reduce_only": False
-        }
-        
         # Execute the order using the appropriate method based on entry type
         order_executed = False
         last_error = None
