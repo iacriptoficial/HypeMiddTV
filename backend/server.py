@@ -761,51 +761,19 @@ async def clear_symbol_orders_and_positions(symbol: str, webhook_id: str):
                             is_buy = size < 0  # Buy to close short, sell to close long
                             close_quantity = abs(size)
                             
-                            await log_message("INFO", f"🔄 Closing position: {size} {symbol} ({'BUY' if is_buy else 'SELL'} {close_quantity})")
+                            await log_message("INFO", f"🔄 Closing position: {size} {symbol} using market_close")
                             
                             try:
-                                # Get current market price for proper order pricing
-                                info_client = hyperliquid_config.get_info_client()
-                                market_data = info_client.meta()
-                                
-                                # Find the asset info for proper pricing
-                                asset_info = None
-                                for asset in market_data.get('universe', []):
-                                    if asset.get('name') == symbol:
-                                        asset_info = asset
-                                        break
-                                
-                                if asset_info:
-                                    # Get current mark price from meta
-                                    mark_px = float(asset_info.get('markPx', 160))
-                                    
-                                    # Set aggressive price to ensure execution
-                                    if is_buy:
-                                        # For buying (closing short), use price above mark
-                                        close_price = mark_px * 1.05  # 5% above mark
-                                    else:
-                                        # For selling (closing long), use price below mark
-                                        close_price = mark_px * 0.95  # 5% below mark
-                                    
-                                    # Round to 2 decimal places
-                                    close_price = round(close_price, 2)
-                                else:
-                                    # Fallback pricing if meta data not available
-                                    close_price = 160.0 if is_buy else 150.0
-                                
-                                await log_message("INFO", f"Closing position at price: ${close_price}")
-                                
-                                # Close position with IOC limit order (acts like market)
-                                close_result = exchange.order(
-                                    name=symbol,
-                                    is_buy=is_buy,
-                                    sz=close_quantity,
-                                    limit_px=close_price,  # Use proper price
-                                    order_type={"limit": {"tif": "Ioc"}},
-                                    reduce_only=True
+                                # Use market_close method which automatically handles position sizing
+                                close_result = exchange.market_close(
+                                    coin=symbol,
+                                    sz=None,  # Let it close the entire position automatically
+                                    px=None,  # Let it use market price
+                                    slippage=0.05,  # 5% slippage tolerance
+                                    cloid=None
                                 )
                                 
-                                # Check if the order was actually successful
+                                # Check if the close was actually successful
                                 is_successful = False
                                 error_message = None
                                 
@@ -826,16 +794,15 @@ async def clear_symbol_orders_and_positions(symbol: str, webhook_id: str):
                                 # Store the REAL Hyperliquid response with correct success/error
                                 close_response_data = {
                                     "status": "success" if is_successful else "error",
-                                    "message": f"Close position response for {symbol}",
+                                    "message": f"Market close response for {symbol}",
                                     "operation": "close_position",
                                     "environment": hyperliquid_config.environment,
                                     "timestamp": get_brazil_time().isoformat(),
                                     "position_details": {
                                         "symbol": symbol,
                                         "original_size": size,
-                                        "close_side": "buy" if is_buy else "sell",
-                                        "close_quantity": close_quantity,
-                                        "close_price": close_price
+                                        "close_method": "market_close",
+                                        "slippage": 0.05
                                     },
                                     "hyperliquid_response": close_result,  # REAL response from Hyperliquid
                                     "error": error_message if error_message else None
@@ -848,7 +815,7 @@ async def clear_symbol_orders_and_positions(symbol: str, webhook_id: str):
                                 await db.hyperliquid_responses.insert_one(close_hl_response.dict())
                                 
                                 if is_successful:
-                                    await log_message("INFO", f"✅ Position closed: {size} {symbol}")
+                                    await log_message("INFO", f"✅ Position closed with market_close: {size} {symbol}")
                                 else:
                                     await log_message("ERROR", f"❌ Failed to close position {size} {symbol}: {error_message or 'Unknown error'}")
                                     
@@ -866,8 +833,7 @@ async def clear_symbol_orders_and_positions(symbol: str, webhook_id: str):
                                     "position_details": {
                                         "symbol": symbol,
                                         "original_size": size,
-                                        "close_side": "buy" if is_buy else "sell",
-                                        "close_quantity": close_quantity
+                                        "close_method": "market_close"
                                     }
                                 }
                                 
