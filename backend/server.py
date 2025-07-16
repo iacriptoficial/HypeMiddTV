@@ -1318,8 +1318,10 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
         # Set order type based on entry type
         if entry_type == "market":
             await log_message("INFO", f"🎯 Executing MARKET order: {side} {quantity} {symbol}")
+            # Market orders use aggressive pricing with IOC
+            aggressive_price = price * 1.05 if (price and is_buy) else price * 0.95 if price else 170
             order_params["order_type"] = {"limit": {"tif": "Ioc"}}  # IOC acts like market
-            order_params["limit_px"] = 0  # Market price
+            order_params["limit_px"] = aggressive_price
         else:  # limit
             await log_message("INFO", f"🎯 Executing LIMIT order: {side} {quantity} {symbol} @ ${price}")
             order_params["order_type"] = {"limit": {"tif": "Gtc"}}
