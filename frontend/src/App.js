@@ -275,15 +275,21 @@ function App() {
 
     loadData();
 
-    // Auto-refresh every 5 seconds
-    const interval = setInterval(() => {
-      fetchStatus();
+    // Auto-refresh with different intervals for different data types
+    const statusInterval = setInterval(() => {
+      fetchStatus();  // Status less frequently
+    }, 30000);  // Every 30 seconds instead of 5
+    
+    const dataInterval = setInterval(() => {
       fetchLogs();
       fetchWebhooks();
       fetchResponses();
-    }, 5000);
+    }, 5000);  // Keep logs/webhooks/responses at 5 seconds
 
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(statusInterval);
+      clearInterval(dataInterval);
+    };
   }, []);
 
   const formatTimestamp = (timestamp) => {
