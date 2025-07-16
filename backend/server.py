@@ -915,7 +915,7 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
         
         # STEP 1: Close existing positions for this symbol
         await log_message("INFO", f"🔄 Checking for existing positions to close for {symbol}")
-        close_success = await close_existing_positions(symbol)
+        close_success = await close_existing_positions(symbol, webhook_id)
         
         if not close_success:
             await log_message("WARNING", f"⚠️ Failed to close some positions for {symbol}, continuing with new order")
