@@ -1214,6 +1214,12 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
         raw_price = float(payload.get("price", 0)) if payload.get("price") else None  # Price for limit orders
         stop_price = float(payload.get("stop", 0)) if payload.get("stop") else None  # Stop loss price
         
+        # Parse take profit levels
+        tp1_price = float(payload.get("tp1_price", 0)) if payload.get("tp1_price") else None
+        tp1_perc = float(payload.get("tp1_perc", 0)) if payload.get("tp1_perc") else None
+        tp2_price = float(payload.get("tp2_price", 0)) if payload.get("tp2_price") else None
+        tp2_perc = float(payload.get("tp2_perc", 0)) if payload.get("tp2_perc") else None
+        
         # Get asset information from Hyperliquid
         await log_message("INFO", f"🔍 Getting asset info for {symbol}")
         sz_decimals = await get_asset_info(symbol)
