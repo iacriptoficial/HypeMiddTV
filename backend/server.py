@@ -740,7 +740,7 @@ async def get_open_positions(symbol: str):
 async def close_existing_positions(symbol: str, webhook_id: str):
     """Close all existing positions for a symbol"""
     try:
-        positions = await get_open_positions(symbol)
+        positions = await get_open_positions_internal(symbol)
         
         if not positions:
             await log_message("INFO", f"No positions to close for {symbol}")
