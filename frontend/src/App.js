@@ -182,33 +182,39 @@ function App() {
     }
   };
 
-  // Clear logs function
-  const clearLogs = async () => {
+  // Re-execute webhook function
+  const reExecuteWebhook = async (webhookData) => {
     try {
-      const response = await axios.delete(`${API}/logs`);
-      
-      // Clear the logs from the frontend state
-      setLogs([]);
+      const response = await axios.post(`${API}/webhook/re-execute`, webhookData);
       
       // Add success log
       const successLog = {
         timestamp: new Date().toISOString(),
         level: "INFO",
-        message: "Logs cleared successfully",
-        details: `${response.data.deleted_count || 0} logs deleted`
+        message: `Webhook re-executed successfully`,
+        details: `Webhook ID: ${response.data.webhook_id}`
       };
-      setLogs([successLog]);
+      setLogs(prevLogs => [successLog, ...prevLogs]);
+      
+      // Refresh data
+      fetchWebhooks();
+      fetchResponses();
+      
+      alert(`Webhook re-executed successfully!\nWebhook ID: ${response.data.webhook_id}`);
       
     } catch (err) {
-      console.error("Error clearing logs:", err);
+      console.error("Error re-executing webhook:", err);
+      
       // Add error to logs
       const errorLog = {
         timestamp: new Date().toISOString(),
         level: "ERROR",
-        message: "Failed to clear logs",
-        details: err.message
+        message: "Failed to re-execute webhook",
+        details: err.response?.data?.detail || err.message
       };
       setLogs(prevLogs => [errorLog, ...prevLogs]);
+      
+      alert(`Failed to re-execute webhook: ${err.response?.data?.detail || err.message}`);
     }
   };
 
