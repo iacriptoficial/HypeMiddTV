@@ -667,10 +667,14 @@ async def get_open_positions(symbol: str):
                 size = float(position_data.get('szi', 0))
                 
                 if size != 0:  # Only include non-zero positions
+                    # Debug logging to understand data types
+                    entry_px = position_data.get('entryPx')
+                    await log_message("INFO", f"Debug: entry_px type: {type(entry_px)}, value: {entry_px}")
+                    
                     positions.append({
                         'symbol': symbol,
                         'size': size,
-                        'entry_px': position_data.get('entryPx'),
+                        'entry_px': entry_px,
                         'unrealized_pnl': position_data.get('unrealizedPnl'),
                         'position_data': position_data
                     })
