@@ -841,7 +841,7 @@ async def clear_symbol_orders_and_positions(symbol: str, webhook_id: str):
                                     "position_details": {
                                         "symbol": symbol,
                                         "original_size": size,
-                                        "close_method": "market_close"
+                                        "close_method": "reduce_only_order"
                                     }
                                 }
                                 
