@@ -821,12 +821,14 @@ async def clear_symbol_orders_and_positions(symbol: str, webhook_id: str):
                                 await db.hyperliquid_responses.insert_one(close_hl_response.dict())
                                 
                                 if is_successful:
-                                    await log_message("INFO", f"✅ Position closed with market_close: {size} {symbol}")
+                                    await log_message("INFO", f"✅ Position closed successfully: {size} {symbol}")
                                 else:
                                     await log_message("ERROR", f"❌ Failed to close position {size} {symbol}: {error_message or 'Unknown error'}")
+                                    overall_success = False  # Mark as failed
                                     
                             except Exception as e:
                                 await log_message("ERROR", f"❌ Exception closing position {size} {symbol}: {str(e)}")
+                                overall_success = False  # Mark as failed
                                 
                                 # Store the error response
                                 error_response_data = {
