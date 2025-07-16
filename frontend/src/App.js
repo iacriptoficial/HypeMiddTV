@@ -230,8 +230,6 @@ function App() {
       fetchWebhooks();
       fetchResponses();
       
-      alert(`Webhook re-executed successfully!\nWebhook ID: ${response.data.webhook_id}`);
-      
     } catch (err) {
       console.error("Error re-executing webhook:", err);
       
@@ -243,8 +241,6 @@ function App() {
         details: err.response?.data?.detail || err.message
       };
       setLogs(prevLogs => [errorLog, ...prevLogs]);
-      
-      alert(`Failed to re-execute webhook: ${err.response?.data?.detail || err.message}`);
     }
   };
 
