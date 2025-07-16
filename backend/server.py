@@ -1298,8 +1298,8 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
         else:
             await log_message("INFO", f"✅ Successfully cleared all orders and positions for {symbol}")
         
-        # Wait only for clearing to complete, no artificial delays
-        await asyncio.sleep(1)
+        # Wait for clearing to complete before opening new position
+        await asyncio.sleep(2)  # Give time for positions to close completely
         
         # STEP 2: Execute the new order
         await log_message("INFO", f"🚀 Executing new {entry_type} {side} order")
