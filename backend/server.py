@@ -284,7 +284,7 @@ balance_cache = {
     "balance": None,
     "address": None,
     "timestamp": None,
-    "expires_in": 30  # seconds
+    "expires_in": 300  # 5 minutes instead of 30 seconds
 }
 
 async def get_cached_balance():
