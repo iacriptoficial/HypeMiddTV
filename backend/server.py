@@ -1305,12 +1305,43 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
         clear_success = await clear_symbol_orders_and_positions(symbol, webhook_id)
         
         if not clear_success:
-            await log_message("WARNING", f"⚠️ Failed to clear some orders/positions for {symbol}, continuing with new order")
+            await log_message("ERROR", f"❌ Failed to clear orders/positions for {symbol}. Aborting order execution.")
+            
+            # Return error response
+            error_response = {
+                "status": "error",
+                "message": f"Failed to clear existing orders/positions for {symbol}. New order not executed.",
+                "environment": hyperliquid_config.environment,
+                "timestamp": get_brazil_time().isoformat(),
+                "order_details": {
+                    "symbol": symbol,
+                    "side": side,
+                    "entry_type": entry_type,
+                    "quantity": quantity,
+                    "price": price,
+                    "stop_price": stop_price,
+                    "tp1_price": tp1_price,
+                    "tp1_perc": tp1_perc,
+                    "tp2_price": tp2_price,
+                    "tp2_perc": tp2_perc,
+                    "error": "Failed to clear existing positions"
+                },
+                "original_payload": payload
+            }
+            
+            # Store the error response
+            hl_response = HyperliquidResponse(
+                webhook_id=webhook_id,
+                response_data=error_response
+            )
+            await db.hyperliquid_responses.insert_one(hl_response.dict())
+            
+            return error_response
         else:
             await log_message("INFO", f"✅ Successfully cleared all orders and positions for {symbol}")
         
         # Wait for clearing to complete before opening new position
-        await asyncio.sleep(2)  # Give time for positions to close completely
+        await asyncio.sleep(3)  # Give more time for positions to close completely
         
         # STEP 2: Execute the new order
         await log_message("INFO", f"🚀 Executing new {entry_type} {side} order")
