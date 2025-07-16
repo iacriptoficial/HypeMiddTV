@@ -740,9 +740,12 @@ async def clear_symbol_orders_and_positions(symbol: str, webhook_id: str):
         wallet_address = await get_wallet_address()
         if not wallet_address:
             await log_message("WARNING", f"No wallet address found for clearing {symbol}")
-            return True
+            return False
         
         await log_message("INFO", f"🧹 Clearing all orders and positions for {symbol}")
+        
+        # Track overall success
+        overall_success = True
         
         # STEP 1: Close all positions FIRST (this removes stop orders automatically)
         try:
