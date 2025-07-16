@@ -1658,9 +1658,6 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
             # Place take profit orders if specified
             tp_order_results = []
             
-            # Calculate TP sizes based on percentages of total position
-            total_tp_size = 0
-            
             # Handle TP1
             if tp1_price or tp1_perc:
                 await log_message("INFO", f"🎯 Setting up take profit 1 order")
@@ -1679,13 +1676,11 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
                         else:
                             raise ValueError("Could not determine entry price for TP percentage calculation")
                     
-                    # Calculate TP1 size based on percentage of total position
+                    # Use tp1_perc directly as size (it's not a percentage, but the actual size)
                     if tp1_perc:
-                        tp1_size = quantity * (tp1_perc / 100)
-                        total_tp_size += tp1_size
+                        tp1_size = tp1_perc
                     else:
-                        tp1_size = quantity * 0.25  # Default 25% if no percentage specified
-                        total_tp_size += tp1_size
+                        tp1_size = quantity * 0.25  # Default 25% if no size specified
                     
                     # For take profit: if we bought, sell at TP price; if we sold, buy at TP price
                     tp_is_buy = not is_buy  # Opposite of main order
@@ -1698,7 +1693,7 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
                     else:
                         formatted_tp_price = round(tp1_target, 4)
                     
-                    await log_message("INFO", f"🎯 Placing TP1: {'BUY' if tp_is_buy else 'SELL'} {tp1_size} {symbol} at ${formatted_tp_price} ({tp1_perc}% of position)")
+                    await log_message("INFO", f"🎯 Placing TP1: {'BUY' if tp_is_buy else 'SELL'} {tp1_size} {symbol} at ${formatted_tp_price}")
                     
                     # Place TP1 order using trigger order type
                     tp1_order_result = exchange.order(
@@ -1746,13 +1741,11 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
                         else:
                             raise ValueError("Could not determine entry price for TP percentage calculation")
                     
-                    # Calculate TP2 size based on percentage of total position
+                    # Use tp2_perc directly as size (it's not a percentage, but the actual size)
                     if tp2_perc:
-                        tp2_size = quantity * (tp2_perc / 100)
-                        total_tp_size += tp2_size
+                        tp2_size = tp2_perc
                     else:
-                        tp2_size = quantity * 0.25  # Default 25% if no percentage specified
-                        total_tp_size += tp2_size
+                        tp2_size = quantity * 0.25  # Default 25% if no size specified
                     
                     # For take profit: if we bought, sell at TP price; if we sold, buy at TP price
                     tp_is_buy = not is_buy  # Opposite of main order
@@ -1765,7 +1758,7 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
                     else:
                         formatted_tp_price = round(tp2_target, 4)
                     
-                    await log_message("INFO", f"🎯 Placing TP2: {'BUY' if tp_is_buy else 'SELL'} {tp2_size} {symbol} at ${formatted_tp_price} ({tp2_perc}% of position)")
+                    await log_message("INFO", f"🎯 Placing TP2: {'BUY' if tp_is_buy else 'SELL'} {tp2_size} {symbol} at ${formatted_tp_price}")
                     
                     # Place TP2 order using trigger order type
                     tp2_order_result = exchange.order(
@@ -1813,13 +1806,11 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
                         else:
                             raise ValueError("Could not determine entry price for TP percentage calculation")
                     
-                    # Calculate TP3 size based on percentage of total position
+                    # Use tp3_perc directly as size (it's not a percentage, but the actual size)
                     if tp3_perc:
-                        tp3_size = quantity * (tp3_perc / 100)
-                        total_tp_size += tp3_size
+                        tp3_size = tp3_perc
                     else:
-                        tp3_size = quantity * 0.25  # Default 25% if no percentage specified
-                        total_tp_size += tp3_size
+                        tp3_size = quantity * 0.25  # Default 25% if no size specified
                     
                     # For take profit: if we bought, sell at TP price; if we sold, buy at TP price
                     tp_is_buy = not is_buy  # Opposite of main order
@@ -1832,7 +1823,7 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
                     else:
                         formatted_tp_price = round(tp3_target, 4)
                     
-                    await log_message("INFO", f"🎯 Placing TP3: {'BUY' if tp_is_buy else 'SELL'} {tp3_size} {symbol} at ${formatted_tp_price} ({tp3_perc}% of position)")
+                    await log_message("INFO", f"🎯 Placing TP3: {'BUY' if tp_is_buy else 'SELL'} {tp3_size} {symbol} at ${formatted_tp_price}")
                     
                     # Place TP3 order using trigger order type
                     tp3_order_result = exchange.order(
@@ -1862,9 +1853,9 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
                     await log_message("ERROR", f"❌ Error placing TP3 order: {str(tp_error)}")
                     tp_order_results.append({"tp3": {"error": str(tp_error)}})
             
-            # Handle TP4 - This should close the remaining position to ensure complete exit
+            # Handle TP4
             if tp4_price or tp4_perc:
-                await log_message("INFO", f"🎯 Setting up take profit 4 order (final exit)")
+                await log_message("INFO", f"🎯 Setting up take profit 4 order")
                 try:
                     # Calculate TP4 price
                     if tp4_price:
@@ -1880,17 +1871,11 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
                         else:
                             raise ValueError("Could not determine entry price for TP percentage calculation")
                     
-                    # Calculate TP4 size - this should be the remainder to ensure complete exit
+                    # Use tp4_perc directly as size (it's not a percentage, but the actual size)
                     if tp4_perc:
-                        tp4_size = quantity * (tp4_perc / 100)
+                        tp4_size = tp4_perc
                     else:
-                        tp4_size = quantity * 0.25  # Default 25% if no percentage specified
-                    
-                    # Ensure TP4 closes the remaining position (adjust for rounding errors)
-                    remaining_size = quantity - total_tp_size
-                    if remaining_size > 0:
-                        tp4_size = remaining_size
-                        await log_message("INFO", f"🎯 Adjusting TP4 size to {tp4_size} to ensure complete exit")
+                        tp4_size = quantity * 0.25  # Default 25% if no size specified
                     
                     # For take profit: if we bought, sell at TP price; if we sold, buy at TP price
                     tp_is_buy = not is_buy  # Opposite of main order
@@ -1903,7 +1888,7 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
                     else:
                         formatted_tp_price = round(tp4_target, 4)
                     
-                    await log_message("INFO", f"🎯 Placing TP4: {'BUY' if tp_is_buy else 'SELL'} {tp4_size} {symbol} at ${formatted_tp_price} (FINAL EXIT)")
+                    await log_message("INFO", f"🎯 Placing TP4: {'BUY' if tp_is_buy else 'SELL'} {tp4_size} {symbol} at ${formatted_tp_price}")
                     
                     # Place TP4 order using trigger order type
                     tp4_order_result = exchange.order(
