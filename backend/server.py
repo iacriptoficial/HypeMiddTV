@@ -1525,7 +1525,105 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
         
         return error_response
 
-@api_router.get("/status")
+@api_router.get("/orders/history")
+async def get_orders_history(limit: int = 20):
+    """Get recent orders history from Hyperliquid"""
+    try:
+        # Get wallet address
+        wallet_address = await get_wallet_address()
+        if not wallet_address:
+            raise HTTPException(status_code=500, detail="No wallet address found")
+        
+        # Get info client
+        info = hyperliquid_config.get_info_client()
+        
+        # Get user fills (order history) 
+        user_fills = info.user_fills(wallet_address)
+        
+        # Get recent orders (last 20 by default)
+        recent_orders = user_fills[-limit:] if len(user_fills) > limit else user_fills
+        
+        # Format orders for display
+        formatted_orders = []
+        for order in recent_orders:
+            formatted_order = {
+                "time": order.get("time", ""),
+                "coin": order.get("coin", ""),
+                "side": order.get("side", ""),
+                "sz": order.get("sz", ""),
+                "px": order.get("px", ""),
+                "fee": order.get("fee", ""),
+                "order_id": order.get("oid", ""),
+                "order_type": order.get("orderType", "Unknown"),  # This will show if it's Market or Limit
+                "liquidation": order.get("liquidation", False),
+                "dir": order.get("dir", ""),
+                "hash": order.get("hash", ""),
+                "crossed": order.get("crossed", False),
+                "start_position": order.get("startPosition", ""),
+                "closed_pnl": order.get("closedPnl", "")
+            }
+            formatted_orders.append(formatted_order)
+        
+        await log_message("INFO", f"📊 Retrieved {len(formatted_orders)} recent orders from Hyperliquid")
+        
+        return {
+            "status": "success",
+            "wallet_address": wallet_address,
+            "total_orders": len(formatted_orders),
+            "orders": formatted_orders
+        }
+        
+    except Exception as e:
+        await log_message("ERROR", f"Failed to get orders history: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/orders/open")
+async def get_open_orders():
+    """Get current open orders from Hyperliquid"""
+    try:
+        # Get wallet address
+        wallet_address = await get_wallet_address()
+        if not wallet_address:
+            raise HTTPException(status_code=500, detail="No wallet address found")
+        
+        # Get info client
+        info = hyperliquid_config.get_info_client()
+        
+        # Get open orders
+        open_orders = info.open_orders(wallet_address)
+        
+        # Format orders for display
+        formatted_orders = []
+        for order in open_orders:
+            formatted_order = {
+                "coin": order.get("coin", ""),
+                "side": order.get("side", ""),
+                "sz": order.get("sz", ""),
+                "limit_px": order.get("limitPx", ""),
+                "order_id": order.get("oid", ""),
+                "timestamp": order.get("timestamp", ""),
+                "order_type": order.get("orderType", "Unknown"),  # This will show if it's Market or Limit
+                "trigger_condition": order.get("triggerCondition", ""),
+                "trigger_px": order.get("triggerPx", ""),
+                "is_positional": order.get("isPositional", False),
+                "reduce_only": order.get("reduceOnly", False),
+                "original_sz": order.get("origSz", ""),
+                "cloid": order.get("cloid", "")
+            }
+            formatted_orders.append(formatted_order)
+        
+        await log_message("INFO", f"📊 Retrieved {len(formatted_orders)} open orders from Hyperliquid")
+        
+        return {
+            "status": "success",
+            "wallet_address": wallet_address,
+            "total_orders": len(formatted_orders),
+            "orders": formatted_orders
+        }
+        
+    except Exception as e:
+        await log_message("ERROR", f"Failed to get open orders: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 async def get_server_status():
     """Get server status and statistics"""
     try:
