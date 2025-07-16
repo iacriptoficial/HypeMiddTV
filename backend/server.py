@@ -1079,17 +1079,17 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
         
         await log_message("INFO", f"✅ Validation passed - Processing {entry_type} {side} order")
         
-        # STEP 1: Close existing positions for this symbol
-        await log_message("INFO", f"🔄 Checking for existing positions to close for {symbol}")
-        close_success = await close_existing_positions(symbol, webhook_id)
+        # STEP 1: Clear all orders and positions for this symbol
+        await log_message("INFO", f"🧹 Clearing all orders and positions for {symbol}")
+        clear_success = await clear_symbol_orders_and_positions(symbol, webhook_id)
         
-        if not close_success:
-            await log_message("WARNING", f"⚠️ Failed to close some positions for {symbol}, continuing with new order")
+        if not clear_success:
+            await log_message("WARNING", f"⚠️ Failed to clear some orders/positions for {symbol}, continuing with new order")
         else:
-            await log_message("INFO", f"✅ Successfully closed existing positions for {symbol}")
+            await log_message("INFO", f"✅ Successfully cleared all orders and positions for {symbol}")
         
-        # Wait a moment for the close orders to process
-        await asyncio.sleep(1)
+        # Wait a moment for the clearing to process
+        await asyncio.sleep(2)
         
         # STEP 2: Execute the new order
         await log_message("INFO", f"🚀 Executing new {entry_type} {side} order")
