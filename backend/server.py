@@ -685,7 +685,7 @@ async def get_open_positions(symbol: str):
         await log_message("ERROR", f"Error checking positions for {symbol}: {str(e)}")
         return []
 
-async def close_existing_positions(symbol: str):
+async def close_existing_positions(symbol: str, webhook_id: str):
     """Close all existing positions for a symbol"""
     try:
         positions = await get_open_positions(symbol)
@@ -698,6 +698,7 @@ async def close_existing_positions(symbol: str):
         
         for position in positions:
             size = position['size']
+            entry_px = position['entry_px']
             
             # Determine the side to close the position
             # If position size is positive (long), we need to sell to close
@@ -709,15 +710,24 @@ async def close_existing_positions(symbol: str):
             
             # Close position with market order (using limit with IOC) and reduce_only=True
             # Use a price that's close to market but likely to fill immediately
+            # Convert entry_px to float to avoid type errors
+            try:
+                entry_price = float(entry_px) if entry_px else 160.0
+            except (ValueError, TypeError):
+                entry_price = 160.0
+                await log_message("WARNING", f"Invalid entry_px for {symbol}: {entry_px}, using default 160.0")
+            
             if is_buy:
-                # For buying (closing short), use a slightly higher price than market
-                close_price = position.get('entry_px', 160) * 1.1  # 10% above entry price
+                # For buying (closing short), use a slightly higher price than entry
+                close_price = entry_price * 1.1  # 10% above entry price
             else:
-                # For selling (closing long), use a slightly lower price than market
-                close_price = position.get('entry_px', 160) * 0.9  # 10% below entry price
+                # For selling (closing long), use a slightly lower price than entry
+                close_price = entry_price * 0.9  # 10% below entry price
             
             # Ensure price is properly formatted
             close_price = round(close_price, 2)
+            
+            await log_message("INFO", f"Close order: {symbol} {'BUY' if is_buy else 'SELL'} {close_quantity} @ ${close_price}")
             
             close_result = exchange.order(
                 name=symbol,
@@ -728,17 +738,90 @@ async def close_existing_positions(symbol: str):
                 reduce_only=True  # This ensures we only close existing positions
             )
             
+            # Create response data for the close operation
             if close_result and close_result.get("status") == "ok":
                 await log_message("INFO", f"✅ Position closed successfully for {symbol}")
                 await log_message("INFO", f"Close result: {close_result}")
+                
+                # Store the close response in the database
+                close_response_data = {
+                    "status": "success",
+                    "message": f"Position closed successfully for {symbol}",
+                    "operation": "close_position",
+                    "environment": hyperliquid_config.environment,
+                    "timestamp": get_brazil_time().isoformat(),
+                    "close_details": {
+                        "symbol": symbol,
+                        "side": "buy" if is_buy else "sell",
+                        "quantity": close_quantity,
+                        "price": close_price,
+                        "original_position_size": size,
+                        "entry_price": entry_price,
+                        "hyperliquid_response": close_result
+                    }
+                }
+                
+                # Store close response
+                close_hl_response = HyperliquidResponse(
+                    webhook_id=webhook_id,
+                    response_data=close_response_data
+                )
+                await db.hyperliquid_responses.insert_one(close_hl_response.dict())
+                
             else:
                 await log_message("ERROR", f"❌ Failed to close position for {symbol}: {close_result}")
+                
+                # Store the failed close response
+                error_response_data = {
+                    "status": "error",
+                    "message": f"Failed to close position for {symbol}",
+                    "operation": "close_position",
+                    "environment": hyperliquid_config.environment,
+                    "timestamp": get_brazil_time().isoformat(),
+                    "close_details": {
+                        "symbol": symbol,
+                        "side": "buy" if is_buy else "sell",
+                        "quantity": close_quantity,
+                        "price": close_price,
+                        "original_position_size": size,
+                        "entry_price": entry_price
+                    },
+                    "error": str(close_result),
+                    "hyperliquid_response": close_result
+                }
+                
+                # Store error response
+                error_hl_response = HyperliquidResponse(
+                    webhook_id=webhook_id,
+                    response_data=error_response_data
+                )
+                await db.hyperliquid_responses.insert_one(error_hl_response.dict())
+                
                 return False
         
         return True
         
     except Exception as e:
         await log_message("ERROR", f"Error closing positions for {symbol}: {str(e)}")
+        
+        # Store the exception response
+        exception_response_data = {
+            "status": "error",
+            "message": f"Exception while closing positions for {symbol}",
+            "operation": "close_position",
+            "environment": hyperliquid_config.environment,
+            "timestamp": get_brazil_time().isoformat(),
+            "error": str(e),
+            "symbol": symbol
+        }
+        
+        # Store exception response
+        exception_hl_response = HyperliquidResponse(
+            webhook_id=webhook_id,
+            response_data=exception_response_data
+        )
+        await db.hyperliquid_responses.insert_one(exception_hl_response.dict())
+        
         return False
 
 async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
