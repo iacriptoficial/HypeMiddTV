@@ -586,16 +586,25 @@ function App() {
                 {webhooks.map((webhook, index) => (
                   <div key={index} className="bg-gray-700 rounded-lg p-4">
                     <div className="flex justify-between items-start mb-2">
-                      <span className="text-sm text-gray-400">
-                        {formatTimestamp(webhook.timestamp)}
-                      </span>
-                      <span className={`px-2 py-1 rounded text-xs ${
-                        webhook.status === 'received' ? 'bg-green-700 text-green-200' :
-                        webhook.status === 'failed' ? 'bg-red-700 text-red-200' :
-                        'bg-gray-600 text-gray-200'
-                      }`}>
-                        {webhook.status}
-                      </span>
+                      <div className="flex items-center space-x-3">
+                        <span className="text-sm text-gray-400">
+                          {formatTimestamp(webhook.timestamp)}
+                        </span>
+                        <span className={`px-2 py-1 rounded text-xs ${
+                          webhook.status === 'received' ? 'bg-green-700 text-green-200' :
+                          webhook.status === 'failed' ? 'bg-red-700 text-red-200' :
+                          'bg-gray-600 text-gray-200'
+                        }`}>
+                          {webhook.status}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => reExecuteWebhook(webhook)}
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm transition-colors"
+                        title="Re-execute this webhook"
+                      >
+                        ▶️ Execute
+                      </button>
                     </div>
                     <pre className="text-sm text-gray-300 bg-gray-800 p-3 rounded overflow-x-auto">
                       {JSON.stringify(webhook.payload, null, 2)}
