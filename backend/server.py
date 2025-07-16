@@ -704,7 +704,6 @@ async def clear_symbol_orders_and_positions(symbol: str, webhook_id: str):
         await log_message("INFO", f"🧹 Clearing all orders and positions for {symbol}")
         
         # STEP 1: Cancel all open orders for this symbol
-        canceled_orders = []
         try:
             open_orders = info.open_orders(wallet_address)
             symbol_orders = [order for order in open_orders if order.get('coin') == symbol]
@@ -722,19 +721,60 @@ async def clear_symbol_orders_and_positions(symbol: str, webhook_id: str):
                     
                     try:
                         cancel_result = exchange.cancel(symbol, order_id)
+                        
+                        # Store the REAL Hyperliquid response
+                        cancel_response_data = {
+                            "status": "success" if cancel_result and cancel_result.get("status") == "ok" else "error",
+                            "message": f"Cancel order response for {symbol} order {order_id}",
+                            "operation": "cancel_order",
+                            "environment": hyperliquid_config.environment,
+                            "timestamp": get_brazil_time().isoformat(),
+                            "order_details": {
+                                "symbol": symbol,
+                                "order_id": order_id,
+                                "side": side,
+                                "size": size,
+                                "price": price
+                            },
+                            "hyperliquid_response": cancel_result  # REAL response from Hyperliquid
+                        }
+                        
+                        cancel_hl_response = HyperliquidResponse(
+                            webhook_id=webhook_id,
+                            response_data=cancel_response_data
+                        )
+                        await db.hyperliquid_responses.insert_one(cancel_hl_response.dict())
+                        
                         if cancel_result and cancel_result.get("status") == "ok":
                             await log_message("INFO", f"✅ Order canceled: {order_id}")
-                            canceled_orders.append({
-                                'order_id': order_id,
-                                'symbol': symbol,
-                                'side': side,
-                                'size': size,
-                                'price': price
-                            })
                         else:
                             await log_message("ERROR", f"❌ Failed to cancel order {order_id}: {cancel_result}")
+                            
                     except Exception as e:
                         await log_message("ERROR", f"❌ Exception canceling order {order_id}: {str(e)}")
+                        
+                        # Store the error response
+                        error_response_data = {
+                            "status": "error",
+                            "message": f"Exception canceling order {order_id}",
+                            "operation": "cancel_order",
+                            "environment": hyperliquid_config.environment,
+                            "timestamp": get_brazil_time().isoformat(),
+                            "error": str(e),
+                            "order_details": {
+                                "symbol": symbol,
+                                "order_id": order_id,
+                                "side": side,
+                                "size": size,
+                                "price": price
+                            }
+                        }
+                        
+                        error_hl_response = HyperliquidResponse(
+                            webhook_id=webhook_id,
+                            response_data=error_response_data
+                        )
+                        await db.hyperliquid_responses.insert_one(error_hl_response.dict())
             else:
                 await log_message("INFO", f"No open orders found for {symbol}")
                 
@@ -742,7 +782,6 @@ async def clear_symbol_orders_and_positions(symbol: str, webhook_id: str):
             await log_message("ERROR", f"Error checking/canceling orders for {symbol}: {str(e)}")
         
         # STEP 2: Close all positions for this symbol
-        closed_positions = []
         try:
             user_state = info.user_state(wallet_address)
             
@@ -770,19 +809,57 @@ async def clear_symbol_orders_and_positions(symbol: str, webhook_id: str):
                                     reduce_only=True
                                 )
                                 
+                                # Store the REAL Hyperliquid response
+                                close_response_data = {
+                                    "status": "success" if close_result and close_result.get("status") == "ok" else "error",
+                                    "message": f"Close position response for {symbol}",
+                                    "operation": "close_position",
+                                    "environment": hyperliquid_config.environment,
+                                    "timestamp": get_brazil_time().isoformat(),
+                                    "position_details": {
+                                        "symbol": symbol,
+                                        "original_size": size,
+                                        "close_side": "buy" if is_buy else "sell",
+                                        "close_quantity": close_quantity
+                                    },
+                                    "hyperliquid_response": close_result  # REAL response from Hyperliquid
+                                }
+                                
+                                close_hl_response = HyperliquidResponse(
+                                    webhook_id=webhook_id,
+                                    response_data=close_response_data
+                                )
+                                await db.hyperliquid_responses.insert_one(close_hl_response.dict())
+                                
                                 if close_result and close_result.get("status") == "ok":
                                     await log_message("INFO", f"✅ Position closed: {size} {symbol}")
-                                    closed_positions.append({
-                                        'symbol': symbol,
-                                        'size': size,
-                                        'side': 'buy' if is_buy else 'sell',
-                                        'quantity': close_quantity
-                                    })
                                 else:
                                     await log_message("ERROR", f"❌ Failed to close position {size} {symbol}: {close_result}")
                                     
                             except Exception as e:
                                 await log_message("ERROR", f"❌ Exception closing position {size} {symbol}: {str(e)}")
+                                
+                                # Store the error response
+                                error_response_data = {
+                                    "status": "error",
+                                    "message": f"Exception closing position {size} {symbol}",
+                                    "operation": "close_position",
+                                    "environment": hyperliquid_config.environment,
+                                    "timestamp": get_brazil_time().isoformat(),
+                                    "error": str(e),
+                                    "position_details": {
+                                        "symbol": symbol,
+                                        "original_size": size,
+                                        "close_side": "buy" if is_buy else "sell",
+                                        "close_quantity": close_quantity
+                                    }
+                                }
+                                
+                                error_hl_response = HyperliquidResponse(
+                                    webhook_id=webhook_id,
+                                    response_data=error_response_data
+                                )
+                                await db.hyperliquid_responses.insert_one(error_hl_response.dict())
                                 
             else:
                 await log_message("INFO", f"No positions found for {symbol}")
@@ -790,53 +867,10 @@ async def clear_symbol_orders_and_positions(symbol: str, webhook_id: str):
         except Exception as e:
             await log_message("ERROR", f"Error checking/closing positions for {symbol}: {str(e)}")
         
-        # Store summary response
-        summary_response = {
-            "status": "success",
-            "message": f"Cleared {len(canceled_orders)} orders and {len(closed_positions)} positions for {symbol}",
-            "operation": "clear_symbol",
-            "environment": hyperliquid_config.environment,
-            "timestamp": get_brazil_time().isoformat(),
-            "clear_details": {
-                "symbol": symbol,
-                "canceled_orders": len(canceled_orders),
-                "closed_positions": len(closed_positions),
-                "orders_details": canceled_orders,
-                "positions_details": closed_positions
-            }
-        }
-        
-        # Store response
-        clear_hl_response = HyperliquidResponse(
-            webhook_id=webhook_id,
-            response_data=summary_response
-        )
-        await db.hyperliquid_responses.insert_one(clear_hl_response.dict())
-        
-        await log_message("INFO", f"✅ Successfully cleared {symbol}: {len(canceled_orders)} orders + {len(closed_positions)} positions")
-        
         return True
         
     except Exception as e:
         await log_message("ERROR", f"Error clearing symbol {symbol}: {str(e)}")
-        
-        # Store error response
-        error_response = {
-            "status": "error",
-            "message": f"Failed to clear {symbol}",
-            "operation": "clear_symbol",
-            "environment": hyperliquid_config.environment,
-            "timestamp": get_brazil_time().isoformat(),
-            "error": str(e),
-            "symbol": symbol
-        }
-        
-        error_hl_response = HyperliquidResponse(
-            webhook_id=webhook_id,
-            response_data=error_response
-        )
-        await db.hyperliquid_responses.insert_one(error_hl_response.dict())
-        
         return False
 
 async def close_existing_positions(symbol: str, webhook_id: str):
