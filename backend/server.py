@@ -715,11 +715,23 @@ async def close_existing_positions(symbol: str, webhook_id: str):
             # Close position with market order (using limit with IOC) and reduce_only=True
             # Use a price that's close to market but likely to fill immediately
             # Convert entry_px to float to avoid type errors
+            # Handle different possible formats: string, float, or None
+            entry_px_raw = position['entry_px']
             try:
-                entry_price = float(entry_px) if entry_px else 160.0
-            except (ValueError, TypeError):
+                if entry_px_raw is None:
+                    entry_price = 160.0
+                elif isinstance(entry_px_raw, str):
+                    entry_price = float(entry_px_raw)
+                elif isinstance(entry_px_raw, (int, float)):
+                    entry_price = float(entry_px_raw)
+                else:
+                    # If it's some other type, try to convert to string first then float
+                    entry_price = float(str(entry_px_raw))
+            except (ValueError, TypeError) as e:
                 entry_price = 160.0
-                await log_message("WARNING", f"Invalid entry_px for {symbol}: {entry_px}, using default 160.0")
+                await log_message("WARNING", f"Invalid entry_px for {symbol}: {entry_px_raw} (type: {type(entry_px_raw)}), using default 160.0. Error: {e}")
+            
+            await log_message("INFO", f"Entry price converted: {entry_px_raw} -> {entry_price}")
             
             if is_buy:
                 # For buying (closing short), use a slightly higher price than entry
