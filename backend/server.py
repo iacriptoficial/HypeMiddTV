@@ -897,6 +897,7 @@ async def clear_symbol_orders_and_positions(symbol: str, webhook_id: str):
                 
         except Exception as e:
             await log_message("ERROR", f"Error checking/closing positions for {symbol}: {str(e)}")
+            overall_success = False  # Mark as failed
             
             # Store error response
             error_response_data = {
