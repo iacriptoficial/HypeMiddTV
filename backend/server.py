@@ -1276,6 +1276,8 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
         await log_message("INFO", f"  Raw Quantity: {raw_quantity} → Formatted: {quantity} (szDecimals: {sz_decimals})")
         await log_message("INFO", f"  Raw Price: {raw_price} → Formatted: {price}")
         await log_message("INFO", f"  Stop Price: {stop_price}")
+        await log_message("INFO", f"  TP1 Price: {tp1_price}, TP1 Percentage: {tp1_perc}")
+        await log_message("INFO", f"  TP2 Price: {tp2_price}, TP2 Percentage: {tp2_perc}")
         await log_message("INFO", f"  Min Size: {min_size}")
         
         # Validate required fields
