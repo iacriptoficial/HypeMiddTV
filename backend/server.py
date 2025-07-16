@@ -1402,7 +1402,7 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
                     continue
         
         if order_executed:
-            await log_message("INFO", f"✅ Hyperliquid order executed successfully after {attempt + 1} attempts!")
+            await log_message("INFO", f"✅ Hyperliquid order executed successfully after {attempt} attempts!")
             await log_message("INFO", f"📈 Order result: {result}")
             main_order_result = result
             
