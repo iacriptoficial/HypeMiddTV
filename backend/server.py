@@ -764,19 +764,68 @@ async def clear_symbol_orders_and_positions(symbol: str, webhook_id: str):
                             await log_message("INFO", f"🔄 Closing position: {size} {symbol} ({'BUY' if is_buy else 'SELL'} {close_quantity})")
                             
                             try:
+                                # Get current market price for proper order pricing
+                                info_client = hyperliquid_config.get_info_client()
+                                market_data = info_client.meta()
+                                
+                                # Find the asset info for proper pricing
+                                asset_info = None
+                                for asset in market_data.get('universe', []):
+                                    if asset.get('name') == symbol:
+                                        asset_info = asset
+                                        break
+                                
+                                if asset_info:
+                                    # Get current mark price from meta
+                                    mark_px = float(asset_info.get('markPx', 160))
+                                    
+                                    # Set aggressive price to ensure execution
+                                    if is_buy:
+                                        # For buying (closing short), use price above mark
+                                        close_price = mark_px * 1.05  # 5% above mark
+                                    else:
+                                        # For selling (closing long), use price below mark
+                                        close_price = mark_px * 0.95  # 5% below mark
+                                    
+                                    # Round to 2 decimal places
+                                    close_price = round(close_price, 2)
+                                else:
+                                    # Fallback pricing if meta data not available
+                                    close_price = 160.0 if is_buy else 150.0
+                                
+                                await log_message("INFO", f"Closing position at price: ${close_price}")
+                                
                                 # Close position with IOC limit order (acts like market)
                                 close_result = exchange.order(
                                     name=symbol,
                                     is_buy=is_buy,
                                     sz=close_quantity,
-                                    limit_px=0,  # Market order price
-                                    order_type={"limit": {"tif": "Ioc"}},  # Use limit with IOC instead of market
+                                    limit_px=close_price,  # Use proper price
+                                    order_type={"limit": {"tif": "Ioc"}},
                                     reduce_only=True
                                 )
                                 
-                                # Store the REAL Hyperliquid response
+                                # Check if the order was actually successful
+                                is_successful = False
+                                error_message = None
+                                
+                                if close_result and close_result.get("status") == "ok":
+                                    # Check the actual order status in the response
+                                    response_data = close_result.get("response", {})
+                                    if response_data.get("type") == "order":
+                                        statuses = response_data.get("data", {}).get("statuses", [])
+                                        
+                                        for status in statuses:
+                                            if "error" in status:
+                                                error_message = status["error"]
+                                                break
+                                            elif "filled" in status or "resting" in status:
+                                                is_successful = True
+                                                break
+                                
+                                # Store the REAL Hyperliquid response with correct success/error
                                 close_response_data = {
-                                    "status": "success" if close_result and close_result.get("status") == "ok" else "error",
+                                    "status": "success" if is_successful else "error",
                                     "message": f"Close position response for {symbol}",
                                     "operation": "close_position",
                                     "environment": hyperliquid_config.environment,
@@ -785,9 +834,11 @@ async def clear_symbol_orders_and_positions(symbol: str, webhook_id: str):
                                         "symbol": symbol,
                                         "original_size": size,
                                         "close_side": "buy" if is_buy else "sell",
-                                        "close_quantity": close_quantity
+                                        "close_quantity": close_quantity,
+                                        "close_price": close_price
                                     },
-                                    "hyperliquid_response": close_result  # REAL response from Hyperliquid
+                                    "hyperliquid_response": close_result,  # REAL response from Hyperliquid
+                                    "error": error_message if error_message else None
                                 }
                                 
                                 close_hl_response = HyperliquidResponse(
@@ -796,10 +847,10 @@ async def clear_symbol_orders_and_positions(symbol: str, webhook_id: str):
                                 )
                                 await db.hyperliquid_responses.insert_one(close_hl_response.dict())
                                 
-                                if close_result and close_result.get("status") == "ok":
+                                if is_successful:
                                     await log_message("INFO", f"✅ Position closed: {size} {symbol}")
                                 else:
-                                    await log_message("ERROR", f"❌ Failed to close position {size} {symbol}: {close_result}")
+                                    await log_message("ERROR", f"❌ Failed to close position {size} {symbol}: {error_message or 'Unknown error'}")
                                     
                             except Exception as e:
                                 await log_message("ERROR", f"❌ Exception closing position {size} {symbol}: {str(e)}")
