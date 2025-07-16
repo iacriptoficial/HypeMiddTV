@@ -1874,9 +1874,9 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
                     await log_message("ERROR", f"❌ Error placing TP3 order: {str(tp_error)}")
                     tp_order_results.append({"tp3": {"error": str(tp_error)}})
             
-            # Handle TP4
+            # Handle TP4 - Special handling for complete exit
             if tp4_price or tp4_perc:
-                await log_message("INFO", f"🎯 Setting up take profit 4 order")
+                await log_message("INFO", f"🎯 Setting up take profit 4 order (COMPLETE EXIT)")
                 try:
                     # Calculate TP4 price
                     if tp4_price:
@@ -1892,23 +1892,37 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
                         else:
                             raise ValueError("Could not determine entry price for TP percentage calculation")
                     
-                    # Use tp4_perc directly as size (it's not a percentage, but the actual size)
-                    if tp4_perc:
-                        tp4_size = float(tp4_perc)  # Ensure it's a float
-                        # Apply szDecimals formatting to TP size
-                        tp4_size = round(tp4_size, sz_decimals)
-                        
-                        # If size becomes 0 after rounding, skip this TP
-                        if tp4_size <= 0:
-                            await log_message("INFO", f"🎯 Skipping TP4 - size {tp4_perc} rounds to 0 with szDecimals: {sz_decimals}")
-                            # Skip TP4 processing by jumping to the end of the try block
-                            raise ValueError("TP4 size is 0 after rounding - skipping")
-                        
-                        await log_message("INFO", f"🎯 Using tp4_perc as size: {tp4_size} (formatted with szDecimals: {sz_decimals})")
-                    else:
-                        tp4_size = quantity * 0.25  # Default 25% if no size specified
-                        tp4_size = round(tp4_size, sz_decimals)
-                        await log_message("INFO", f"🎯 Using default size (25%): {tp4_size}")
+                    # For TP4, use the total remaining position size to ensure complete exit
+                    # Calculate remaining size after TP1, TP2, TP3
+                    remaining_size = quantity
+                    
+                    # Subtract TP1 size if it exists
+                    if tp1_perc:
+                        tp1_actual_size = round(float(tp1_perc), sz_decimals)
+                        if tp1_actual_size > 0:
+                            remaining_size -= tp1_actual_size
+                    
+                    # Subtract TP2 size if it exists
+                    if tp2_perc:
+                        tp2_actual_size = round(float(tp2_perc), sz_decimals)
+                        if tp2_actual_size > 0:
+                            remaining_size -= tp2_actual_size
+                    
+                    # Subtract TP3 size if it exists
+                    if tp3_perc:
+                        tp3_actual_size = round(float(tp3_perc), sz_decimals)
+                        if tp3_actual_size > 0:
+                            remaining_size -= tp3_actual_size
+                    
+                    # Round the remaining size
+                    tp4_size = round(remaining_size, sz_decimals)
+                    
+                    # If remaining size is too small, skip TP4
+                    if tp4_size <= 0:
+                        await log_message("INFO", f"🎯 Skipping TP4 - remaining size {tp4_size} is too small")
+                        raise ValueError("TP4 remaining size is too small - skipping")
+                    
+                    await log_message("INFO", f"🎯 Using calculated remaining size for TP4: {tp4_size} (ensures complete exit)")
                     
                     # For take profit: if we bought, sell at TP price; if we sold, buy at TP price
                     tp_is_buy = not is_buy  # Opposite of main order
@@ -1921,7 +1935,7 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
                     else:
                         formatted_tp_price = round(tp4_target, 4)
                     
-                    await log_message("INFO", f"🎯 Placing TP4: {'BUY' if tp_is_buy else 'SELL'} {tp4_size} {symbol} at ${formatted_tp_price}")
+                    await log_message("INFO", f"🎯 Placing TP4: {'BUY' if tp_is_buy else 'SELL'} {tp4_size} {symbol} at ${formatted_tp_price} (COMPLETE EXIT)")
                     
                     # Place TP4 order using trigger order type
                     tp4_order_result = exchange.order(
