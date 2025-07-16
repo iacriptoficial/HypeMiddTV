@@ -1678,7 +1678,7 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
                     
                     # Use tp1_perc directly as size (it's not a percentage, but the actual size)
                     if tp1_perc:
-                        tp1_size = tp1_perc
+                        tp1_size = float(tp1_perc)  # Ensure it's a float
                         await log_message("INFO", f"🎯 Using tp1_perc as size: {tp1_size}")
                     else:
                         tp1_size = quantity * 0.25  # Default 25% if no size specified
