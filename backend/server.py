@@ -1463,7 +1463,7 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
                     "quantity": quantity,
                     "price": price,
                     "stop_price": stop_price,
-                    "attempts": attempt + 1,
+                    "attempts": attempt,
                     "hyperliquid_response": main_order_result,
                     "stop_loss_response": stop_order_result
                 },
