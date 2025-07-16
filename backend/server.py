@@ -448,6 +448,45 @@ async def get_wallet_address():
         return None
 
 # API Endpoints
+@api_router.post("/webhook/re-execute")
+async def re_execute_webhook(webhook_data: dict):
+    """Re-execute a webhook payload for testing purposes"""
+    try:
+        await log_message("INFO", f"🔄 Re-executing webhook: {webhook_data}")
+        
+        # Extract payload from the webhook data
+        payload = webhook_data.get('payload', {})
+        
+        if not payload:
+            raise HTTPException(status_code=400, detail="No payload found in webhook data")
+        
+        # Process the webhook using the same logic as the original webhook
+        webhook_id = str(uuid.uuid4())
+        
+        # Store the re-executed webhook
+        webhook_message = WebhookMessage(
+            id=webhook_id,
+            source="re-execution",
+            payload=payload
+        )
+        await db.webhooks.insert_one(webhook_message.dict())
+        
+        await log_message("INFO", f"📨 Re-executing webhook with ID: {webhook_id}")
+        
+        # Forward to Hyperliquid using the same logic
+        hyperliquid_response = await forward_to_hyperliquid(webhook_id, payload)
+        
+        return {
+            "status": "success",
+            "message": "Webhook re-executed successfully",
+            "webhook_id": webhook_id,
+            "hyperliquid_response": hyperliquid_response
+        }
+        
+    except Exception as e:
+        await log_message("ERROR", f"Failed to re-execute webhook: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @api_router.post("/webhook/tradingview")
 async def handle_tradingview_webhook(request: Request):
     """Handle incoming TradingView webhook"""
