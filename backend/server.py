@@ -1324,7 +1324,7 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
             # Use the dedicated market_open method for true market execution
             try:
                 result = exchange.market_open(
-                    coin=symbol,
+                    name=symbol,  # Use 'name' parameter not 'coin'
                     is_buy=is_buy,
                     sz=quantity,
                     px=None,  # Let it use current market price
