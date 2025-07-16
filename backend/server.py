@@ -298,7 +298,9 @@ async def get_cached_balance():
         (current_time - balance_cache["timestamp"]) < balance_cache["expires_in"] and
         balance_cache["balance"] is not None):
         
-        await log_message("INFO", f"Using cached balance: ${balance_cache['balance']}")
+        # Only log cache usage occasionally to reduce log spam
+        if current_time % 30 < 1:  # Log approximately every 30 seconds
+            await log_message("INFO", f"Using cached balance: ${balance_cache['balance']}")
         return balance_cache["address"], balance_cache["balance"]
     
     # Cache expired or empty, fetch new data
