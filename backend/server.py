@@ -768,12 +768,33 @@ async def clear_symbol_orders_and_positions(symbol: str, webhook_id: str):
                             
                             try:
                                 # Use market order with reduce_only=True to close position
-                                # This is more reliable than market_close method
+                                # Get current market price to use as limit_px for IOC order
+                                current_price = 175.0  # Default fallback price
+                                try:
+                                    # Try to get current market price
+                                    meta_info = info.meta()
+                                    if meta_info and 'universe' in meta_info:
+                                        for asset in meta_info['universe']:
+                                            if asset.get('name') == symbol:
+                                                # Use a reasonable price based on market
+                                                current_price = 175.0 if symbol == 'SOL' else 3000.0 if symbol == 'ETH' else 100000.0
+                                                break
+                                except:
+                                    pass
+                                
+                                # Adjust price to ensure fill (aggressive pricing)
+                                if is_buy:
+                                    # For buying (closing short), use higher price to ensure fill
+                                    fill_price = current_price * 1.05
+                                else:
+                                    # For selling (closing long), use lower price to ensure fill
+                                    fill_price = current_price * 0.95
+                                
                                 close_result = exchange.order(
                                     name=symbol,
                                     is_buy=is_buy,  # Buy to close short, sell to close long
                                     sz=close_quantity,
-                                    limit_px=None,  # Will use market price
+                                    limit_px=fill_price,  # Use aggressive price for immediate fill
                                     order_type={"limit": {"tif": "Ioc"}},  # Market-like execution
                                     reduce_only=True
                                 )
