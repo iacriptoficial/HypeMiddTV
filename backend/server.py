@@ -1317,6 +1317,7 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
         order_executed = False
         last_error = None
         main_order_result = None
+        attempt = 0  # Initialize attempt counter
         
         if entry_type == "market":
             await log_message("INFO", f"🎯 Executing TRUE MARKET order: {side} {quantity} {symbol}")
