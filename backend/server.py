@@ -1660,7 +1660,7 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
             
             # Handle TP1
             if tp1_price or tp1_perc:
-                await log_message("INFO", f"🎯 Setting up take profit 1 order")
+                await log_message("INFO", f"🎯 Setting up take profit 1 order - tp1_price: {tp1_price}, tp1_perc: {tp1_perc}")
                 try:
                     # Calculate TP1 price
                     if tp1_price:
