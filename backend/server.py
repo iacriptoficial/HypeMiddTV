@@ -881,8 +881,8 @@ async def clear_symbol_orders_and_positions(symbol: str, webhook_id: str):
                                     name=symbol,
                                     is_buy=is_buy,
                                     sz=close_quantity,
-                                    limit_px=0,  # Market order
-                                    order_type={"market": {}},
+                                    limit_px=0,  # Market order price
+                                    order_type={"limit": {"tif": "Ioc"}},  # Use limit with IOC instead of market
                                     reduce_only=True
                                 )
                                 
