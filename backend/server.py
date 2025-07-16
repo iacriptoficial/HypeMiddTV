@@ -1658,6 +1658,9 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
             # Place take profit orders if specified
             tp_order_results = []
             
+            # Calculate TP sizes based on percentages of total position
+            total_tp_size = 0
+            
             # Handle TP1
             if tp1_price or tp1_perc:
                 await log_message("INFO", f"🎯 Setting up take profit 1 order")
@@ -1676,6 +1679,14 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
                         else:
                             raise ValueError("Could not determine entry price for TP percentage calculation")
                     
+                    # Calculate TP1 size based on percentage of total position
+                    if tp1_perc:
+                        tp1_size = quantity * (tp1_perc / 100)
+                        total_tp_size += tp1_size
+                    else:
+                        tp1_size = quantity * 0.25  # Default 25% if no percentage specified
+                        total_tp_size += tp1_size
+                    
                     # For take profit: if we bought, sell at TP price; if we sold, buy at TP price
                     tp_is_buy = not is_buy  # Opposite of main order
                     
@@ -1687,13 +1698,13 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
                     else:
                         formatted_tp_price = round(tp1_target, 4)
                     
-                    await log_message("INFO", f"🎯 Placing TP1: {'BUY' if tp_is_buy else 'SELL'} {quantity} {symbol} at ${formatted_tp_price}")
+                    await log_message("INFO", f"🎯 Placing TP1: {'BUY' if tp_is_buy else 'SELL'} {tp1_size} {symbol} at ${formatted_tp_price} ({tp1_perc}% of position)")
                     
                     # Place TP1 order using trigger order type
                     tp1_order_result = exchange.order(
                         name=symbol,
                         is_buy=tp_is_buy,
-                        sz=quantity,
+                        sz=tp1_size,
                         limit_px=formatted_tp_price,
                         order_type={
                             "trigger": {
@@ -1735,6 +1746,14 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
                         else:
                             raise ValueError("Could not determine entry price for TP percentage calculation")
                     
+                    # Calculate TP2 size based on percentage of total position
+                    if tp2_perc:
+                        tp2_size = quantity * (tp2_perc / 100)
+                        total_tp_size += tp2_size
+                    else:
+                        tp2_size = quantity * 0.25  # Default 25% if no percentage specified
+                        total_tp_size += tp2_size
+                    
                     # For take profit: if we bought, sell at TP price; if we sold, buy at TP price
                     tp_is_buy = not is_buy  # Opposite of main order
                     
@@ -1746,13 +1765,13 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
                     else:
                         formatted_tp_price = round(tp2_target, 4)
                     
-                    await log_message("INFO", f"🎯 Placing TP2: {'BUY' if tp_is_buy else 'SELL'} {quantity} {symbol} at ${formatted_tp_price}")
+                    await log_message("INFO", f"🎯 Placing TP2: {'BUY' if tp_is_buy else 'SELL'} {tp2_size} {symbol} at ${formatted_tp_price} ({tp2_perc}% of position)")
                     
                     # Place TP2 order using trigger order type
                     tp2_order_result = exchange.order(
                         name=symbol,
                         is_buy=tp_is_buy,
-                        sz=quantity,
+                        sz=tp2_size,
                         limit_px=formatted_tp_price,
                         order_type={
                             "trigger": {
@@ -1775,6 +1794,144 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
                 except Exception as tp_error:
                     await log_message("ERROR", f"❌ Error placing TP2 order: {str(tp_error)}")
                     tp_order_results.append({"tp2": {"error": str(tp_error)}})
+            
+            # Handle TP3
+            if tp3_price or tp3_perc:
+                await log_message("INFO", f"🎯 Setting up take profit 3 order")
+                try:
+                    # Calculate TP3 price
+                    if tp3_price:
+                        tp3_target = tp3_price
+                    else:
+                        # Calculate from percentage
+                        entry_price = float(main_order_result.get("response", {}).get("data", {}).get("statuses", [{}])[0].get("filled", {}).get("avgPx", 0))
+                        if entry_price > 0:
+                            if is_buy:
+                                tp3_target = entry_price * (1 + tp3_perc / 100)
+                            else:
+                                tp3_target = entry_price * (1 - tp3_perc / 100)
+                        else:
+                            raise ValueError("Could not determine entry price for TP percentage calculation")
+                    
+                    # Calculate TP3 size based on percentage of total position
+                    if tp3_perc:
+                        tp3_size = quantity * (tp3_perc / 100)
+                        total_tp_size += tp3_size
+                    else:
+                        tp3_size = quantity * 0.25  # Default 25% if no percentage specified
+                        total_tp_size += tp3_size
+                    
+                    # For take profit: if we bought, sell at TP price; if we sold, buy at TP price
+                    tp_is_buy = not is_buy  # Opposite of main order
+                    
+                    # Format TP price
+                    if symbol in ["SOL", "ETH", "AVAX"]:
+                        formatted_tp_price = round(tp3_target * 2) / 2  # Round to nearest 0.50
+                    elif symbol in ["BTC"]:
+                        formatted_tp_price = round(tp3_target, -1)  # Round to nearest 10
+                    else:
+                        formatted_tp_price = round(tp3_target, 4)
+                    
+                    await log_message("INFO", f"🎯 Placing TP3: {'BUY' if tp_is_buy else 'SELL'} {tp3_size} {symbol} at ${formatted_tp_price} ({tp3_perc}% of position)")
+                    
+                    # Place TP3 order using trigger order type
+                    tp3_order_result = exchange.order(
+                        name=symbol,
+                        is_buy=tp_is_buy,
+                        sz=tp3_size,
+                        limit_px=formatted_tp_price,
+                        order_type={
+                            "trigger": {
+                                "triggerPx": formatted_tp_price,
+                                "isMarket": True,
+                                "tpsl": "tp"  # Take profit
+                            }
+                        },
+                        reduce_only=True  # Only reduce existing position
+                    )
+                    
+                    if tp3_order_result and tp3_order_result.get("status") == "ok":
+                        await log_message("INFO", f"✅ TP3 order placed successfully!")
+                        await log_message("INFO", f"🎯 TP3 result: {tp3_order_result}")
+                        tp_order_results.append({"tp3": tp3_order_result})
+                    else:
+                        await log_message("ERROR", f"❌ Failed to place TP3 order: {tp3_order_result}")
+                        tp_order_results.append({"tp3": {"error": "Failed to place TP3 order"}})
+                    
+                except Exception as tp_error:
+                    await log_message("ERROR", f"❌ Error placing TP3 order: {str(tp_error)}")
+                    tp_order_results.append({"tp3": {"error": str(tp_error)}})
+            
+            # Handle TP4 - This should close the remaining position to ensure complete exit
+            if tp4_price or tp4_perc:
+                await log_message("INFO", f"🎯 Setting up take profit 4 order (final exit)")
+                try:
+                    # Calculate TP4 price
+                    if tp4_price:
+                        tp4_target = tp4_price
+                    else:
+                        # Calculate from percentage
+                        entry_price = float(main_order_result.get("response", {}).get("data", {}).get("statuses", [{}])[0].get("filled", {}).get("avgPx", 0))
+                        if entry_price > 0:
+                            if is_buy:
+                                tp4_target = entry_price * (1 + tp4_perc / 100)
+                            else:
+                                tp4_target = entry_price * (1 - tp4_perc / 100)
+                        else:
+                            raise ValueError("Could not determine entry price for TP percentage calculation")
+                    
+                    # Calculate TP4 size - this should be the remainder to ensure complete exit
+                    if tp4_perc:
+                        tp4_size = quantity * (tp4_perc / 100)
+                    else:
+                        tp4_size = quantity * 0.25  # Default 25% if no percentage specified
+                    
+                    # Ensure TP4 closes the remaining position (adjust for rounding errors)
+                    remaining_size = quantity - total_tp_size
+                    if remaining_size > 0:
+                        tp4_size = remaining_size
+                        await log_message("INFO", f"🎯 Adjusting TP4 size to {tp4_size} to ensure complete exit")
+                    
+                    # For take profit: if we bought, sell at TP price; if we sold, buy at TP price
+                    tp_is_buy = not is_buy  # Opposite of main order
+                    
+                    # Format TP price
+                    if symbol in ["SOL", "ETH", "AVAX"]:
+                        formatted_tp_price = round(tp4_target * 2) / 2  # Round to nearest 0.50
+                    elif symbol in ["BTC"]:
+                        formatted_tp_price = round(tp4_target, -1)  # Round to nearest 10
+                    else:
+                        formatted_tp_price = round(tp4_target, 4)
+                    
+                    await log_message("INFO", f"🎯 Placing TP4: {'BUY' if tp_is_buy else 'SELL'} {tp4_size} {symbol} at ${formatted_tp_price} (FINAL EXIT)")
+                    
+                    # Place TP4 order using trigger order type
+                    tp4_order_result = exchange.order(
+                        name=symbol,
+                        is_buy=tp_is_buy,
+                        sz=tp4_size,
+                        limit_px=formatted_tp_price,
+                        order_type={
+                            "trigger": {
+                                "triggerPx": formatted_tp_price,
+                                "isMarket": True,
+                                "tpsl": "tp"  # Take profit
+                            }
+                        },
+                        reduce_only=True  # Only reduce existing position
+                    )
+                    
+                    if tp4_order_result and tp4_order_result.get("status") == "ok":
+                        await log_message("INFO", f"✅ TP4 order placed successfully!")
+                        await log_message("INFO", f"🎯 TP4 result: {tp4_order_result}")
+                        tp_order_results.append({"tp4": tp4_order_result})
+                    else:
+                        await log_message("ERROR", f"❌ Failed to place TP4 order: {tp4_order_result}")
+                        tp_order_results.append({"tp4": {"error": "Failed to place TP4 order"}})
+                    
+                except Exception as tp_error:
+                    await log_message("ERROR", f"❌ Error placing TP4 order: {str(tp_error)}")
+                    tp_order_results.append({"tp4": {"error": str(tp_error)}})
             
             # Prepare successful response
             response_data = {
