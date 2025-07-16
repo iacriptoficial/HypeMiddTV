@@ -817,8 +817,44 @@ async def clear_symbol_orders_and_positions(symbol: str, webhook_id: str):
             else:
                 await log_message("INFO", f"No open orders found for {symbol}")
                 
+                # Store response indicating no orders to cancel
+                no_orders_response_data = {
+                    "status": "info",
+                    "message": f"No open orders found for {symbol}",
+                    "operation": "cancel_order",
+                    "environment": hyperliquid_config.environment,
+                    "timestamp": get_brazil_time().isoformat(),
+                    "order_details": {
+                        "symbol": symbol,
+                        "orders_found": 0
+                    }
+                }
+                
+                no_orders_hl_response = HyperliquidResponse(
+                    webhook_id=webhook_id,
+                    response_data=no_orders_response_data
+                )
+                await db.hyperliquid_responses.insert_one(no_orders_hl_response.dict())
+                
         except Exception as e:
             await log_message("ERROR", f"Error checking/canceling orders for {symbol}: {str(e)}")
+            
+            # Store error response
+            error_response_data = {
+                "status": "error",
+                "message": f"Error checking orders for {symbol}",
+                "operation": "cancel_order",
+                "environment": hyperliquid_config.environment,
+                "timestamp": get_brazil_time().isoformat(),
+                "error": str(e),
+                "symbol": symbol
+            }
+            
+            error_hl_response = HyperliquidResponse(
+                webhook_id=webhook_id,
+                response_data=error_response_data
+            )
+            await db.hyperliquid_responses.insert_one(error_hl_response.dict())
         
         # STEP 2: Close all positions for this symbol
         try:
