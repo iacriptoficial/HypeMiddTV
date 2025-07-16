@@ -1450,6 +1450,127 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
                     await log_message("ERROR", f"❌ Error placing stop loss order: {str(stop_error)}")
                     stop_order_result = {"error": str(stop_error)}
             
+            # Place take profit orders if specified
+            tp_order_results = []
+            
+            # Handle TP1
+            if tp1_price or tp1_perc:
+                await log_message("INFO", f"🎯 Setting up take profit 1 order")
+                try:
+                    # Calculate TP1 price
+                    if tp1_price:
+                        tp1_target = tp1_price
+                    else:
+                        # Calculate from percentage
+                        entry_price = float(main_order_result.get("response", {}).get("data", {}).get("statuses", [{}])[0].get("filled", {}).get("avgPx", 0))
+                        if entry_price > 0:
+                            if is_buy:
+                                tp1_target = entry_price * (1 + tp1_perc / 100)
+                            else:
+                                tp1_target = entry_price * (1 - tp1_perc / 100)
+                        else:
+                            raise ValueError("Could not determine entry price for TP percentage calculation")
+                    
+                    # For take profit: if we bought, sell at TP price; if we sold, buy at TP price
+                    tp_is_buy = not is_buy  # Opposite of main order
+                    
+                    # Format TP price
+                    if symbol in ["SOL", "ETH", "AVAX"]:
+                        formatted_tp_price = round(tp1_target * 2) / 2  # Round to nearest 0.50
+                    elif symbol in ["BTC"]:
+                        formatted_tp_price = round(tp1_target, -1)  # Round to nearest 10
+                    else:
+                        formatted_tp_price = round(tp1_target, 4)
+                    
+                    await log_message("INFO", f"🎯 Placing TP1: {'BUY' if tp_is_buy else 'SELL'} {quantity} {symbol} at ${formatted_tp_price}")
+                    
+                    # Place TP1 order using trigger order type
+                    tp1_order_result = exchange.order(
+                        name=symbol,
+                        is_buy=tp_is_buy,
+                        sz=quantity,
+                        limit_px=formatted_tp_price,
+                        order_type={
+                            "trigger": {
+                                "triggerPx": formatted_tp_price,
+                                "isMarket": True,
+                                "tpsl": "tp"  # Take profit
+                            }
+                        },
+                        reduce_only=True  # Only reduce existing position
+                    )
+                    
+                    if tp1_order_result and tp1_order_result.get("status") == "ok":
+                        await log_message("INFO", f"✅ TP1 order placed successfully!")
+                        await log_message("INFO", f"🎯 TP1 result: {tp1_order_result}")
+                        tp_order_results.append({"tp1": tp1_order_result})
+                    else:
+                        await log_message("ERROR", f"❌ Failed to place TP1 order: {tp1_order_result}")
+                        tp_order_results.append({"tp1": {"error": "Failed to place TP1 order"}})
+                    
+                except Exception as tp_error:
+                    await log_message("ERROR", f"❌ Error placing TP1 order: {str(tp_error)}")
+                    tp_order_results.append({"tp1": {"error": str(tp_error)}})
+            
+            # Handle TP2
+            if tp2_price or tp2_perc:
+                await log_message("INFO", f"🎯 Setting up take profit 2 order")
+                try:
+                    # Calculate TP2 price
+                    if tp2_price:
+                        tp2_target = tp2_price
+                    else:
+                        # Calculate from percentage
+                        entry_price = float(main_order_result.get("response", {}).get("data", {}).get("statuses", [{}])[0].get("filled", {}).get("avgPx", 0))
+                        if entry_price > 0:
+                            if is_buy:
+                                tp2_target = entry_price * (1 + tp2_perc / 100)
+                            else:
+                                tp2_target = entry_price * (1 - tp2_perc / 100)
+                        else:
+                            raise ValueError("Could not determine entry price for TP percentage calculation")
+                    
+                    # For take profit: if we bought, sell at TP price; if we sold, buy at TP price
+                    tp_is_buy = not is_buy  # Opposite of main order
+                    
+                    # Format TP price
+                    if symbol in ["SOL", "ETH", "AVAX"]:
+                        formatted_tp_price = round(tp2_target * 2) / 2  # Round to nearest 0.50
+                    elif symbol in ["BTC"]:
+                        formatted_tp_price = round(tp2_target, -1)  # Round to nearest 10
+                    else:
+                        formatted_tp_price = round(tp2_target, 4)
+                    
+                    await log_message("INFO", f"🎯 Placing TP2: {'BUY' if tp_is_buy else 'SELL'} {quantity} {symbol} at ${formatted_tp_price}")
+                    
+                    # Place TP2 order using trigger order type
+                    tp2_order_result = exchange.order(
+                        name=symbol,
+                        is_buy=tp_is_buy,
+                        sz=quantity,
+                        limit_px=formatted_tp_price,
+                        order_type={
+                            "trigger": {
+                                "triggerPx": formatted_tp_price,
+                                "isMarket": True,
+                                "tpsl": "tp"  # Take profit
+                            }
+                        },
+                        reduce_only=True  # Only reduce existing position
+                    )
+                    
+                    if tp2_order_result and tp2_order_result.get("status") == "ok":
+                        await log_message("INFO", f"✅ TP2 order placed successfully!")
+                        await log_message("INFO", f"🎯 TP2 result: {tp2_order_result}")
+                        tp_order_results.append({"tp2": tp2_order_result})
+                    else:
+                        await log_message("ERROR", f"❌ Failed to place TP2 order: {tp2_order_result}")
+                        tp_order_results.append({"tp2": {"error": "Failed to place TP2 order"}})
+                    
+                except Exception as tp_error:
+                    await log_message("ERROR", f"❌ Error placing TP2 order: {str(tp_error)}")
+                    tp_order_results.append({"tp2": {"error": str(tp_error)}})
+            
             # Prepare successful response
             response_data = {
                 "status": "success",
