@@ -641,6 +641,54 @@ def format_quantity(quantity: float, sz_decimals: int) -> float:
     # Always use the maximum decimal places allowed by szDecimals
     return round(quantity, sz_decimals)
 
+async def get_open_positions_internal(symbol: str):
+    """Internal helper function to get open positions for a specific symbol"""
+    try:
+        info = hyperliquid_config.get_info_client()
+        
+        # Get wallet address from cache
+        wallet_address = await get_wallet_address()
+        if not wallet_address:
+            await log_message("WARNING", f"No wallet address found for position check")
+            return []
+        
+        # Get user state to check positions
+        user_state = info.user_state(wallet_address)
+        
+        if not user_state or 'assetPositions' not in user_state:
+            await log_message("INFO", f"No positions found for {symbol}")
+            return []
+        
+        # Find positions for the specific symbol
+        positions = []
+        for position in user_state['assetPositions']:
+            if position.get('position', {}).get('coin') == symbol:
+                position_data = position.get('position', {})
+                size = float(position_data.get('szi', 0))
+                
+                if size != 0:  # Only include non-zero positions
+                    # Debug logging to understand data types
+                    entry_px = position_data.get('entryPx')
+                    await log_message("INFO", f"Debug: entry_px type: {type(entry_px)}, value: {entry_px}")
+                    
+                    positions.append({
+                        'symbol': symbol,
+                        'size': size,
+                        'entry_px': entry_px,
+                        'unrealized_pnl': position_data.get('unrealizedPnl'),
+                        'position_data': position_data
+                    })
+        
+        await log_message("INFO", f"Found {len(positions)} open positions for {symbol}")
+        for pos in positions:
+            await log_message("INFO", f"  Position: {pos['size']} {symbol} @ {pos['entry_px']}")
+        
+        return positions
+        
+    except Exception as e:
+        await log_message("ERROR", f"Error checking positions for {symbol}: {str(e)}")
+        return []
+
 async def get_open_positions(symbol: str):
     """Get open positions for a specific symbol"""
     try:
