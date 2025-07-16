@@ -1879,9 +1879,11 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
                     
                     # Use tp4_perc directly as size (it's not a percentage, but the actual size)
                     if tp4_perc:
-                        tp4_size = tp4_perc
+                        tp4_size = float(tp4_perc)  # Ensure it's a float
+                        await log_message("INFO", f"🎯 Using tp4_perc as size: {tp4_size}")
                     else:
                         tp4_size = quantity * 0.25  # Default 25% if no size specified
+                        await log_message("INFO", f"🎯 Using default size (25%): {tp4_size}")
                     
                     # For take profit: if we bought, sell at TP price; if we sold, buy at TP price
                     tp_is_buy = not is_buy  # Opposite of main order
