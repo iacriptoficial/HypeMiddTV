@@ -764,13 +764,15 @@ async def clear_symbol_orders_and_positions(symbol: str, webhook_id: str):
                             await log_message("INFO", f"🔄 Closing position: {size} {symbol} using market_close")
                             
                             try:
-                                # Use market_close method which automatically handles position sizing
-                                close_result = exchange.market_close(
-                                    coin=symbol,
-                                    sz=None,  # Let it close the entire position automatically
-                                    px=None,  # Let it use market price
-                                    slippage=0.05,  # 5% slippage tolerance
-                                    cloid=None
+                                # Use market order with reduce_only=True to close position
+                                # This is more reliable than market_close method
+                                close_result = exchange.order(
+                                    name=symbol,
+                                    is_buy=is_buy,  # Buy to close short, sell to close long
+                                    sz=close_quantity,
+                                    limit_px=None,  # Will use market price
+                                    order_type={"limit": {"tif": "Ioc"}},  # Market-like execution
+                                    reduce_only=True
                                 )
                                 
                                 # Check if the close was actually successful
@@ -794,15 +796,16 @@ async def clear_symbol_orders_and_positions(symbol: str, webhook_id: str):
                                 # Store the REAL Hyperliquid response with correct success/error
                                 close_response_data = {
                                     "status": "success" if is_successful else "error",
-                                    "message": f"Market close response for {symbol}",
+                                    "message": f"Position close response for {symbol}",
                                     "operation": "close_position",
                                     "environment": hyperliquid_config.environment,
                                     "timestamp": get_brazil_time().isoformat(),
                                     "position_details": {
                                         "symbol": symbol,
                                         "original_size": size,
-                                        "close_method": "market_close",
-                                        "slippage": 0.05
+                                        "close_quantity": close_quantity,
+                                        "close_method": "reduce_only_order",
+                                        "is_buy": is_buy
                                     },
                                     "hyperliquid_response": close_result,  # REAL response from Hyperliquid
                                     "error": error_message if error_message else None
