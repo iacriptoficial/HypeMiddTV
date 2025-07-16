@@ -689,53 +689,155 @@ async def get_open_positions_internal(symbol: str):
         await log_message("ERROR", f"Error checking positions for {symbol}: {str(e)}")
         return []
 
-async def get_open_positions(symbol: str):
-    """Get open positions for a specific symbol"""
+async def clear_symbol_orders_and_positions(symbol: str, webhook_id: str):
+    """Cancel all open orders and close all positions for a specific symbol"""
     try:
+        exchange = hyperliquid_config.get_exchange_client()
         info = hyperliquid_config.get_info_client()
         
         # Get wallet address from cache
         wallet_address = await get_wallet_address()
         if not wallet_address:
-            await log_message("WARNING", f"No wallet address found for position check")
-            return []
+            await log_message("WARNING", f"No wallet address found for clearing {symbol}")
+            return True
         
-        # Get user state to check positions
-        user_state = info.user_state(wallet_address)
+        await log_message("INFO", f"🧹 Clearing all orders and positions for {symbol}")
         
-        if not user_state or 'assetPositions' not in user_state:
-            await log_message("INFO", f"No positions found for {symbol}")
-            return []
-        
-        # Find positions for the specific symbol
-        positions = []
-        for position in user_state['assetPositions']:
-            if position.get('position', {}).get('coin') == symbol:
-                position_data = position.get('position', {})
-                size = float(position_data.get('szi', 0))
+        # STEP 1: Cancel all open orders for this symbol
+        canceled_orders = []
+        try:
+            open_orders = info.open_orders(wallet_address)
+            symbol_orders = [order for order in open_orders if order.get('coin') == symbol]
+            
+            if symbol_orders:
+                await log_message("INFO", f"Found {len(symbol_orders)} open orders for {symbol}")
                 
-                if size != 0:  # Only include non-zero positions
-                    # Debug logging to understand data types
-                    entry_px = position_data.get('entryPx')
-                    await log_message("INFO", f"Debug: entry_px type: {type(entry_px)}, value: {entry_px}")
+                for order in symbol_orders:
+                    order_id = order.get('oid')
+                    side = order.get('side')
+                    size = order.get('sz')
+                    price = order.get('limitPx')
                     
-                    positions.append({
-                        'symbol': symbol,
-                        'size': size,
-                        'entry_px': entry_px,
-                        'unrealized_pnl': position_data.get('unrealizedPnl'),
-                        'position_data': position_data
-                    })
+                    await log_message("INFO", f"🚫 Canceling order: {symbol} {side} {size} @ ${price} (ID: {order_id})")
+                    
+                    try:
+                        cancel_result = exchange.cancel(symbol, order_id)
+                        if cancel_result and cancel_result.get("status") == "ok":
+                            await log_message("INFO", f"✅ Order canceled: {order_id}")
+                            canceled_orders.append({
+                                'order_id': order_id,
+                                'symbol': symbol,
+                                'side': side,
+                                'size': size,
+                                'price': price
+                            })
+                        else:
+                            await log_message("ERROR", f"❌ Failed to cancel order {order_id}: {cancel_result}")
+                    except Exception as e:
+                        await log_message("ERROR", f"❌ Exception canceling order {order_id}: {str(e)}")
+            else:
+                await log_message("INFO", f"No open orders found for {symbol}")
+                
+        except Exception as e:
+            await log_message("ERROR", f"Error checking/canceling orders for {symbol}: {str(e)}")
         
-        await log_message("INFO", f"Found {len(positions)} open positions for {symbol}")
-        for pos in positions:
-            await log_message("INFO", f"  Position: {pos['size']} {symbol} @ {pos['entry_px']}")
+        # STEP 2: Close all positions for this symbol
+        closed_positions = []
+        try:
+            user_state = info.user_state(wallet_address)
+            
+            if user_state and 'assetPositions' in user_state:
+                for position in user_state['assetPositions']:
+                    if position.get('position', {}).get('coin') == symbol:
+                        position_data = position.get('position', {})
+                        size = float(position_data.get('szi', 0))
+                        
+                        if size != 0:  # Only close non-zero positions
+                            # Determine the side to close the position
+                            is_buy = size < 0  # Buy to close short, sell to close long
+                            close_quantity = abs(size)
+                            
+                            await log_message("INFO", f"🔄 Closing position: {size} {symbol} ({'BUY' if is_buy else 'SELL'} {close_quantity})")
+                            
+                            try:
+                                # Close position with market order using reduce_only
+                                close_result = exchange.order(
+                                    name=symbol,
+                                    is_buy=is_buy,
+                                    sz=close_quantity,
+                                    limit_px=0,  # Market order
+                                    order_type={"market": {}},
+                                    reduce_only=True
+                                )
+                                
+                                if close_result and close_result.get("status") == "ok":
+                                    await log_message("INFO", f"✅ Position closed: {size} {symbol}")
+                                    closed_positions.append({
+                                        'symbol': symbol,
+                                        'size': size,
+                                        'side': 'buy' if is_buy else 'sell',
+                                        'quantity': close_quantity
+                                    })
+                                else:
+                                    await log_message("ERROR", f"❌ Failed to close position {size} {symbol}: {close_result}")
+                                    
+                            except Exception as e:
+                                await log_message("ERROR", f"❌ Exception closing position {size} {symbol}: {str(e)}")
+                                
+            else:
+                await log_message("INFO", f"No positions found for {symbol}")
+                
+        except Exception as e:
+            await log_message("ERROR", f"Error checking/closing positions for {symbol}: {str(e)}")
         
-        return positions
+        # Store summary response
+        summary_response = {
+            "status": "success",
+            "message": f"Cleared {len(canceled_orders)} orders and {len(closed_positions)} positions for {symbol}",
+            "operation": "clear_symbol",
+            "environment": hyperliquid_config.environment,
+            "timestamp": get_brazil_time().isoformat(),
+            "clear_details": {
+                "symbol": symbol,
+                "canceled_orders": len(canceled_orders),
+                "closed_positions": len(closed_positions),
+                "orders_details": canceled_orders,
+                "positions_details": closed_positions
+            }
+        }
+        
+        # Store response
+        clear_hl_response = HyperliquidResponse(
+            webhook_id=webhook_id,
+            response_data=summary_response
+        )
+        await db.hyperliquid_responses.insert_one(clear_hl_response.dict())
+        
+        await log_message("INFO", f"✅ Successfully cleared {symbol}: {len(canceled_orders)} orders + {len(closed_positions)} positions")
+        
+        return True
         
     except Exception as e:
-        await log_message("ERROR", f"Error checking positions for {symbol}: {str(e)}")
-        return []
+        await log_message("ERROR", f"Error clearing symbol {symbol}: {str(e)}")
+        
+        # Store error response
+        error_response = {
+            "status": "error",
+            "message": f"Failed to clear {symbol}",
+            "operation": "clear_symbol",
+            "environment": hyperliquid_config.environment,
+            "timestamp": get_brazil_time().isoformat(),
+            "error": str(e),
+            "symbol": symbol
+        }
+        
+        error_hl_response = HyperliquidResponse(
+            webhook_id=webhook_id,
+            response_data=error_response
+        )
+        await db.hyperliquid_responses.insert_one(error_hl_response.dict())
+        
+        return False
 
 async def close_existing_positions(symbol: str, webhook_id: str):
     """Close all existing positions for a symbol"""
