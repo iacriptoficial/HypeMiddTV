@@ -1425,7 +1425,11 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
         
         # Get asset information from Hyperliquid
         await log_message("INFO", f"🔍 Getting asset info for {symbol}")
-        sz_decimals = await get_asset_info(symbol)
+        asset_info = await get_asset_info(symbol)
+        sz_decimals = asset_info["szDecimals"]
+        px_decimals = asset_info["pxDecimals"]
+        
+        await log_message("INFO", f"📏 Asset {symbol} - szDecimals: {sz_decimals}, pxDecimals: {px_decimals}")
         
         # Format quantity based on szDecimals
         quantity = format_quantity(raw_quantity, sz_decimals)
