@@ -282,17 +282,17 @@ backend:
           agent: "testing"
           comment: "✅ VERIFIED: Stop loss implementation working correctly as part of complete order flow testing. Stop loss orders are being placed as resting orders with correct trigger prices. Complete trading system functionality confirmed."
 
-  - task: "Order history and verification endpoints"
+  - task: "Simple Limit Orders for TP and SL implementation"
     implemented: true
-    working: true
+    working: false
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
-        - working: true
-          agent: "testing"
-          comment: "✅ VERIFIED: Order history endpoints working correctly. GET /api/orders/history returns 20 historical orders successfully. Order verification functionality is operational for tracking executed trades."
+        - working: false
+          agent: "main"
+          comment: "✅ IMPLEMENTED: Converted all Stop Loss and Take Profit orders (TP1-TP4) from trigger orders to simple limit orders without triggers. Removed complex order_type structure with triggers and replaced with simple limit orders using only: name, is_buy, sz, limit_px, reduce_only=True. This should resolve the 'isMarket' error and ensure orders appear as Limit orders on the exchange."
 
 frontend:
   - task: "Display real Hyperliquid balance and account address"
