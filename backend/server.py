@@ -1648,7 +1648,7 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
                     
                     await log_message("INFO", f"🛑 Placing stop loss: {'BUY' if stop_is_buy else 'SELL'} {quantity} {symbol} at trigger ${formatted_stop_price} (price truncated from ${stop_price})")
                     
-                    # Place stop loss order using trigger order type
+                    # Place stop loss order using trigger order type (attempt 1: remove isMarket)
                     stop_order_result = exchange.order(
                         name=symbol,
                         is_buy=stop_is_buy,
@@ -1656,8 +1656,7 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
                         limit_px=formatted_stop_price,
                         order_type={
                             "trigger": {
-                                "triggerPx": formatted_stop_price,  # Changed from "trigger_px" to "triggerPx"
-                                "isMarket": False,  # ✅ CORREÇÃO: Executa como Limit order no preço exato
+                                "triggerPx": formatted_stop_price,
                                 "tpsl": "sl"  # Stop loss
                             }
                         },
