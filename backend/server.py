@@ -1392,6 +1392,13 @@ def format_price_for_symbol(price: float, symbol: str) -> float:
         # Default tick size 0.0001 - format to 4 decimal places
         return truncate_to_decimals(price, 4)
 
+def format_price_with_px_decimals(price: float, px_decimals: int) -> float:
+    """
+    Format price using pxDecimals for precise price formatting.
+    Truncates (not rounds) to maintain exact precision from webhook signal.
+    """
+    return truncate_to_decimals(price, px_decimals)
+
 async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
     """Forward the webhook payload to Hyperliquid and execute real trades"""
     try:
