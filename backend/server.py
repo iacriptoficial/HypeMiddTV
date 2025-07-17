@@ -1779,19 +1779,12 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
                     
                     await log_message("INFO", f"🎯 Placing TP2: {'BUY' if tp_is_buy else 'SELL'} {tp2_size} {symbol} at ${formatted_tp_price} (price truncated from ${tp2_target})")
                     
-                    # CORRECT STRUCTURE: Take Profit Limit Order using proper Hyperliquid syntax
+                    # SIMPLE LIMIT ORDER: Take Profit as simple limit order without trigger
                     tp2_order_result = exchange.order(
                         name=symbol,
                         is_buy=tp_is_buy,
                         sz=tp2_size,
                         limit_px=formatted_tp_price,
-                        order_type={
-                            "trigger": {
-                                "price": formatted_tp_price,    # ✅ CORREÇÃO: "price" em vez de "triggerPx"
-                                "is_market": False,             # ✅ CORREÇÃO: Explicitamente Limit execution
-                                "trigger": "tp"                 # ✅ CORREÇÃO: "trigger" em vez de "tpsl"
-                            }
-                        },
                         reduce_only=True  # Only reduce existing position
                     )
                     
