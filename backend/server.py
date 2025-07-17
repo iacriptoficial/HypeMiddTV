@@ -1812,7 +1812,7 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
                     tp_is_buy = not is_buy  # Opposite of main order
                     
                     # Truncate TP price to ensure it never exceeds the original strategy price
-                    formatted_tp_price = truncate_price_to_tick_size(tp2_target, symbol)
+                    formatted_tp_price = format_price_for_symbol(tp2_target, symbol)
                     
                     await log_message("INFO", f"🎯 Placing TP2: {'BUY' if tp_is_buy else 'SELL'} {tp2_size} {symbol} at ${formatted_tp_price} (price truncated from ${tp2_target})")
                     
