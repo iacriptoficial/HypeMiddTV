@@ -1648,15 +1648,21 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
                     
                     await log_message("INFO", f"🛑 Placing stop loss: {'BUY' if stop_is_buy else 'SELL'} {quantity} {symbol} at ${formatted_stop_price} (price truncated from ${stop_price})")
                     
-                    # SIMPLE LIMIT ORDER: Stop Loss as simple limit order without trigger
-                    await log_message("INFO", f"🛑 Placing stop loss as SIMPLE LIMIT ORDER")
+                    # TRIGGER ORDER: Stop Loss as conditional trigger order
+                    await log_message("INFO", f"🛑 Placing stop loss as TRIGGER ORDER")
                     
                     stop_order_result = exchange.order(
                         name=symbol,
                         is_buy=stop_is_buy,
                         sz=quantity,
                         limit_px=formatted_stop_price,
-                        order_type={"limit": {"tif": "Gtc"}},
+                        order_type={
+                            "trigger": {
+                                "triggerPx": formatted_stop_price,
+                                "isMarket": False,  # False = Limit execution
+                                "tpsl": "sl"  # Stop Loss
+                            }
+                        },
                         reduce_only=True
                     )
                     
