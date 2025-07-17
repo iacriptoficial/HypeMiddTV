@@ -282,7 +282,7 @@ backend:
           agent: "testing"
           comment: "✅ VERIFIED: Stop loss implementation working correctly as part of complete order flow testing. Stop loss orders are being placed as resting orders with correct trigger prices. Complete trading system functionality confirmed."
 
-  - task: "pxDecimals precision for TP and SL prices"
+  - task: "Trigger Orders with Market execution for TP and SL"
     implemented: true
     working: true
     file: "/app/backend/server.py"
@@ -292,7 +292,7 @@ backend:
     status_history:
         - working: true
           agent: "main"
-          comment: "✅ IMPLEMENTED AND TESTED: Successfully implemented pxDecimals-based price formatting for Stop Loss and Take Profit orders. Modified get_asset_info() to return both szDecimals and pxDecimals, created format_price_with_px_decimals() function using truncation for precise pricing. Test confirmed: stop=170.44 formatted to exactly $170.44, tp1_price=175.44 formatted to exactly $175.44 using pxDecimals=2 for SOL. Prices now match webhook signals exactly as requested."
+          comment: "✅ IMPLEMENTATION UPDATED: Converted all Stop Loss and Take Profit trigger orders from Limit execution to Market execution when triggered. Changed isMarket from False to True for all TP/SL orders. This ensures immediate execution at market price when trigger is hit, preventing orders from being placed at distant prices in volatile markets. Orders still use triggerPx for precise trigger points and pxDecimals for accurate pricing, but execute as market orders for guaranteed fills."
 
 frontend:
   - task: "Display real Hyperliquid balance and account address"
