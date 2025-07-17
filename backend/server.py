@@ -1657,7 +1657,7 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
                         order_type={
                             "trigger": {
                                 "triggerPx": formatted_stop_price,  # Changed from "trigger_px" to "triggerPx"
-                                "isMarket": True,
+                                "isMarket": False,  # ✅ CORREÇÃO: Executa como Limit order no preço exato
                                 "tpsl": "sl"  # Stop loss
                             }
                         },
