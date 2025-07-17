@@ -1933,15 +1933,10 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
                     # For take profit: if we bought, sell at TP price; if we sold, buy at TP price
                     tp_is_buy = not is_buy  # Opposite of main order
                     
-                    # Format TP price
-                    if symbol in ["SOL", "ETH", "AVAX"]:
-                        formatted_tp_price = round(tp4_target * 2) / 2  # Round to nearest 0.50
-                    elif symbol in ["BTC"]:
-                        formatted_tp_price = round(tp4_target, -1)  # Round to nearest 10
-                    else:
-                        formatted_tp_price = round(tp4_target, 4)
+                    # Truncate TP price to ensure it never exceeds the original strategy price
+                    formatted_tp_price = truncate_price_to_tick_size(tp4_target, symbol)
                     
-                    await log_message("INFO", f"🎯 Placing TP4: {'BUY' if tp_is_buy else 'SELL'} {tp4_size} {symbol} at ${formatted_tp_price} (COMPLETE EXIT)")
+                    await log_message("INFO", f"🎯 Placing TP4: {'BUY' if tp_is_buy else 'SELL'} {tp4_size} {symbol} at ${formatted_tp_price} (price truncated from ${tp4_target}) (COMPLETE EXIT)")
                     
                     # Place TP4 order using trigger order type
                     tp4_order_result = exchange.order(
