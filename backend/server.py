@@ -1859,7 +1859,7 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
                     
                     await log_message("INFO", f"🎯 Placing TP3: {'BUY' if tp_is_buy else 'SELL'} {tp3_size} {symbol} at ${formatted_tp_price} (price truncated from ${tp3_target})")
                     
-                    # Place TP3 order using trigger order type
+                    # Place TP3 order using trigger order type (attempt 1: remove isMarket)
                     tp3_order_result = exchange.order(
                         name=symbol,
                         is_buy=tp_is_buy,
@@ -1868,7 +1868,6 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
                         order_type={
                             "trigger": {
                                 "triggerPx": formatted_tp_price,
-                                "isMarket": False,  # ✅ CORREÇÃO: Executa como Limit order no preço exato
                                 "tpsl": "tp"  # Take profit
                             }
                         },
