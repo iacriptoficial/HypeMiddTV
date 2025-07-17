@@ -1374,6 +1374,21 @@ def truncate_to_decimals(value: float, decimals: int) -> float:
     multiplier = 10 ** decimals
     return int(value * multiplier) / multiplier
 
+def truncate_price_to_tick_size(price: float, symbol: str) -> float:
+    """
+    Truncate price to the appropriate tick size for the symbol.
+    This ensures the price never exceeds the original strategy price.
+    """
+    if symbol in ["SOL", "ETH", "AVAX"]:
+        # Tick size 0.50 - truncate to nearest 0.50 below
+        return int(price * 2) / 2
+    elif symbol in ["BTC"]:
+        # Tick size 10 - truncate to nearest 10 below  
+        return int(price / 10) * 10
+    else:
+        # Default tick size 0.0001 - truncate to 4 decimal places
+        return truncate_to_decimals(price, 4)
+
 async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
     """Forward the webhook payload to Hyperliquid and execute real trades"""
     try:
