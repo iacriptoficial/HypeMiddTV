@@ -1366,6 +1366,14 @@ async def close_existing_positions(symbol: str, webhook_id: str):
         
         return False
 
+def truncate_to_decimals(value: float, decimals: int) -> float:
+    """
+    Truncate a float to a specific number of decimal places (not round).
+    This ensures the value never exceeds the original value.
+    """
+    multiplier = 10 ** decimals
+    return int(value * multiplier) / multiplier
+
 async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
     """Forward the webhook payload to Hyperliquid and execute real trades"""
     try:
