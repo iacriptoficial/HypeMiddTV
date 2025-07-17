@@ -1656,6 +1656,7 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
                         is_buy=stop_is_buy,
                         sz=quantity,
                         limit_px=formatted_stop_price,
+                        order_type={"limit": {"tif": "Gtc"}},
                         reduce_only=True
                     )
                     
