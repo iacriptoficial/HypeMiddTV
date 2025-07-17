@@ -1874,7 +1874,13 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
                     # Truncate TP price to ensure it never exceeds the original strategy price
                     formatted_tp_price = format_price_for_symbol(tp3_target, symbol)
                     
-                    await log_message("INFO", f"🎯 Placing TP3: {'BUY' if tp_is_buy else 'SELL'} {tp3_size} {symbol} at ${formatted_tp_price} (price truncated from ${tp3_target})")
+                    # Check if order value meets minimum requirement ($10)
+                    order_value = tp3_size * formatted_tp_price
+                    if order_value < 10:
+                        await log_message("INFO", f"🎯 Skipping TP3 - order value ${order_value:.2f} is below minimum $10 requirement")
+                        raise ValueError(f"TP3 order value ${order_value:.2f} is below minimum $10 requirement")
+                    
+                    await log_message("INFO", f"🎯 Placing TP3: {'BUY' if tp_is_buy else 'SELL'} {tp3_size} {symbol} at ${formatted_tp_price} (value: ${order_value:.2f})")
                     
                     # TRIGGER ORDER: Take Profit as conditional trigger order
                     tp3_order_result = exchange.order(
