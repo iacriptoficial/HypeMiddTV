@@ -1374,31 +1374,6 @@ def truncate_to_decimals(value: float, decimals: int) -> float:
     multiplier = 10 ** decimals
     return int(value * multiplier) / multiplier
 
-def truncate_price_to_tick_size(price: float, symbol: str) -> float:
-    """
-    Truncate price to the appropriate tick size for the symbol only if needed.
-    This ensures the price is compatible with the exchange's tick size requirements.
-    """
-    if symbol in ["SOL", "ETH", "AVAX"]:
-        # Tick size 0.50 - only truncate if price has more precision than needed
-        tick_size = 0.5
-        if price != round(price / tick_size) * tick_size:
-            return int(price / tick_size) * tick_size
-        else:
-            return price  # Price is already correctly formatted
-    elif symbol in ["BTC"]:
-        # Tick size 10 - only truncate if price has more precision than needed
-        tick_size = 10
-        if price != round(price / tick_size) * tick_size:
-            return int(price / tick_size) * tick_size
-        else:
-            return price  # Price is already correctly formatted
-    else:
-        # Default tick size 0.0001 - truncate to 4 decimal places only if needed
-        if price != round(price, 4):
-            return truncate_to_decimals(price, 4)
-        else:
-            return price  # Price is already correctly formatted
 
 def format_price_for_symbol(price: float, symbol: str) -> float:
     """
