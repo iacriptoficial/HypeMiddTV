@@ -1839,12 +1839,18 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
                     # Use tp3_perc directly as size (it's not a percentage, but the actual size)
                     if tp3_perc:
                         tp3_size = float(tp3_perc)  # Ensure it's a float
-                        # Apply szDecimals formatting to TP size
-                        tp3_size = round(tp3_size, sz_decimals)
-                        await log_message("INFO", f"🎯 Using tp3_perc as size: {tp3_size} (formatted with szDecimals: {sz_decimals})")
+                        # Apply szDecimals truncation (not rounding) to TP size
+                        tp3_size = truncate_to_decimals(tp3_size, sz_decimals)
+                        
+                        # If size becomes 0 after truncation, skip this TP
+                        if tp3_size <= 0:
+                            await log_message("INFO", f"🎯 Skipping TP3 - size {tp3_perc} truncates to 0 with szDecimals: {sz_decimals}")
+                            raise ValueError("TP3 size is 0 after truncation - skipping")
+                        
+                        await log_message("INFO", f"🎯 Using tp3_perc as size: {tp3_size} (truncated with szDecimals: {sz_decimals})")
                     else:
                         tp3_size = quantity * 0.25  # Default 25% if no size specified
-                        tp3_size = round(tp3_size, sz_decimals)
+                        tp3_size = truncate_to_decimals(tp3_size, sz_decimals)
                         await log_message("INFO", f"🎯 Using default size (25%): {tp3_size}")
                     
                     # For take profit: if we bought, sell at TP price; if we sold, buy at TP price
