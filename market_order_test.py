@@ -10,7 +10,7 @@ from datetime import datetime
 import sys
 
 # Base URL from frontend/.env
-BASE_URL = "https://1aef2d8a-0e9e-4d38-afc5-08ed9b1e8a21.preview.emergentagent.com/api"
+BASE_URL = "https://0a039c73-9ba7-46b5-8b18-dfce94d9075a.preview.emergentagent.com/api"
 
 def test_market_open_method():
     """Test 1: market_open method implementation for market orders"""

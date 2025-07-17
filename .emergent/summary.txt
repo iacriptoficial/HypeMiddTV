@@ -1,31 +1,35 @@
 <analysis>
-The previous AI engineer successfully brought the Hyperliquid trading application from a basic balance display to a complex order execution system. Initial efforts focused on accurate balance fetching, TradingView webhook integration, precise quantity/price formatting (using  and retries), and implementing stop-loss orders. A major phase involved integrating Brazilian timezone (GMT-3) across logs and API responses, which required  and Pydantic model adjustments. Debugging revealed challenges with frontend loading (due to  issues), incorrect MongoDB database names, and flawed log/webhook/response timestamp sorting.
+The previous AI engineer successfully developed a Hyperliquid trading application from basic functionality to an advanced order execution system. Initial efforts involved accurate balance display, TradingView webhook integration, and precise quantity/price formatting. Key architectural decisions included using  for Brazilian timezone compliance and Pydantic for data models. The system evolved to handle complex position management, initially using custom logic, then , and finally  for true market orders.
 
-Subsequently, the engineer focused on implementing position management, moving from a manual  approach to the more robust  SDK method. Throughout this, the engineer battled persistent Hyperliquid API rate limiting (error 429), leading to cache optimization and reduced frontend polling. A key challenge was ensuring market orders were truly executed as such, leading to the discovery of dedicated  and  methods, which the engineer was in the process of integrating to finally resolve the inversion and order type issues. The trajectory concluded with the engineer about to implement these dedicated  methods.
+Significant progress was made on implementing multi-level Take Profit (TP1-TP4) orders, including crucial refinements for size calculation and price precision using truncation instead of rounding to prevent  errors. A major challenge throughout the latter part of the trajectory was ensuring that Stop Loss (SL) and Take Profit orders were executed as *Limit* orders on the exchange, not Market orders. Despite multiple attempts to adjust the  structure within the Hyperliquid SDK (e.g., changing  to , and later adapting to  and  fields), the orders consistently appeared as Market on the exchange interface. The engineer updated the  and was in the process of re-investigating the correct SDK structure for true Stop Limit orders on Hyperliquid.
 </analysis>
 
 <product_requirements>
-The application's core purpose is to provide a robust interface for Hyperliquid futures trading, evolving through several stages:
-
-1.  **Accurate Balance & Wallet Display**: Fetch and display the correct Hyperliquid main trading account balance and associated wallet address, distinguishing it from the agent wallet.
-2.  **TradingView Webhook Integration**: Implement a  endpoint to receive and process TradingView alerts for executing trades.
-3.  **Real Order Execution & Precision**: Execute real buy/sell orders (market or limit) on Hyperliquid, dynamically adjusting quantities using  and prices for  compliance, including retry mechanisms for errors.
-4.  **UI/UX Enhancements**: Improve the frontend with features like sticky headers, infinite scrolling for logs/webhooks/responses, a Copy webhook URL button, a Restart Server button, and log filtering (ERROR/INFO/ALL).
-5.  **Stop Loss Order Functionality**: Process  prices from webhooks to place corresponding stop-loss orders on Hyperliquid.
-6.  **Brazilian Timezone (GMT-3)**: Ensure all timestamps (API responses, console logs, database entries) across the application reflect the Brazilian timezone.
-7.  **Log Management (New)**: Provide a Clear Logs option on the frontend to purge historical logs from the database.
-8.  **Webhook Re-execution (New)**: Add a feature to re-send existing webhook payloads for testing purposes via an Execute button on the UI.
-9.  **Position Management & Inversion (New)**: Before placing a new order from a webhook, automatically close all existing positions for that symbol and cancel any open orders to ensure clear position inversion and prevent orphaned orders.
+The application serves as a robust interface for Hyperliquid futures trading, with a progressive feature set:
+1.  **Accurate Balance & Wallet Display**: Fetch and display the Hyperliquid trading account balance and wallet address.
+2.  **TradingView Webhook Integration**: Implement a  endpoint to receive and process TradingView alerts for trade execution.
+3.  **Real Order Execution & Precision**: Execute real buy/sell orders, dynamically adjusting quantities using  and prices for  compliance, with retry mechanisms.
+4.  **UI/UX Enhancements**: Frontend improvements like sticky headers, infinite scrolling for logs/webhooks/responses, Copy webhook URL, Restart Server, and log filtering (ERROR/INFO/ALL).
+5.  **Stop Loss Order Functionality**: Process  prices from webhooks to place corresponding stop-loss orders.
+6.  **Brazilian Timezone (GMT-3)**: Ensure all application timestamps reflect the Brazilian timezone.
+7.  **Log Management**: Provide a Clear Logs option on the frontend to purge historical logs.
+8.  **Webhook Re-execution**: Allow re-sending existing webhook payloads for testing via a UI Execute button.
+9.  **Position Management & Inversion**: Automatically close existing positions and cancel open orders for a symbol before placing new inverse orders.
+10. **Multi-level Take Profit (TP)**: Implement TP1-TP4 functionality, using  as direct size and  for absolute price, ensuring total position exit. Sizes and prices must be truncated for precision.
+11. **TP/SL Order Type**: Ensure Stop Loss and Take Profit orders are placed as Limit orders (not Market) on the exchange, executing precisely at specified prices.
 </product_requirements>
 
 <key_technical_concepts>
 -   **Full-stack Development**: React.js (frontend), FastAPI (backend), MongoDB (database).
--   **Hyperliquid Python SDK**: For account balance, order execution (, , ), and market data.
+-   **Hyperliquid Python SDK**: For account balance, order execution (, , ).
 -   **Webhooks**: Receiving and processing TradingView alerts.
--   **Environment Variables**: Secure configuration.
--   **Supervisorctl**: Process management.
--   **Timezone Management**: Using  for explicit timezone handling (Brazilian timezone GMT-3).
--   **Rate Limiting Mitigation**: Strategies like caching and reduced polling frequency.
+-   **Timezone Management**:  for  (GMT-3).
+-   **Order Precision**: Dynamic , , and custom truncation logic.
+-   **Process Management**: backend                          RUNNING   pid 46, uptime 0:00:04
+code-server                      RUNNING   pid 48, uptime 0:00:04
+frontend                         STOPPED   Jul 17 05:40 PM
+mongodb                          RUNNING   pid 50, uptime 0:00:04
+supervisor> .
 </key_technical_concepts>
 
 <code_architecture>
@@ -34,56 +38,55 @@ The application adheres to a standard full-stack architecture:
 
 
 -   ****:
-    -   **Summary**: Stores backend environment variables (, , ).
-    -   **Changes**:  was found to be  which was different from  that was incorrectly assumed in previous debugging.
+    -   **Summary**: Stores essential backend environment variables (, , , ).
+    -   **Changes**:  was confirmed and used as .
 
 -   ****:
-    -   **Summary**: The core FastAPI application handling API routes, Hyperliquid interactions, and data logging.
-    -   **Changes**:
-        -   **MongoDB Connection & Timezone**: Modified to correctly connect to .  integrated for  timezone, replacing  with timezone-aware  or . Pydantic models (, , , ) now store timestamps as ISO 8601 timezone-aware strings.
-        -   **Webhook Endpoint ()**: Enhanced error handling and data extraction.
-        -   **Order Execution ()**: Implemented dynamic  and retry for price rounding. Initial stop-loss logic added.
-        -   **Log Clearing**: Added  endpoint for clearing logs.
-        -   **Webhook Re-execution**: Added  endpoint.
-        -   **Data Retrieval & Sorting**: Corrected  and  endpoints to sort by  instead of  due to inconsistent string formatting of timestamps, ensuring chronological order.
-        -   **Balance Cache**: Optimized  to increase cache duration to 5 minutes to mitigate rate limiting.
-        -   **Position Management**:
-            -   Initially,  and  were implemented, using  with  and IOC orders.
-            -   Later, the  function was introduced to combine cancelling all open orders and closing all open positions for a symbol.
-            -   The order of operations was refined: Close positions first, then cancel remaining orders, then execute new order. Delays were removed, replaced by waiting for operation success.
-            -   The  was updated to correctly interpret Hyperliquid responses (checking  for errors, not just ).
-            -   Most recently, the  SDK method was adopted for closing positions, and  was identified as the correct method for opening market positions.
-        -   **Logging**: Enhanced to capture real Hyperliquid API responses for all operations (cancellation, closing, normal orders) and specific messages for no orders/positions found.
+    -   **Summary**: The core FastAPI application. Handles API routes, Hyperliquid interactions, and data logging.
+    -   **Changes Made**:
+        -   **Timezone Integration**:  for  timezone is used for all timestamp logging and Pydantic model serialization.
+        -   **Market Order Execution**: Switched from  with IOC to dedicated  and  for true market orders.
+        -   **Position Management ()**: This function was refined multiple times. It now uses  with  and aggressive prices for closing existing positions, ensuring a delay and robust success/failure checks before opening new inverse orders. It returns  if position clearing fails.
+        -   **Take Profit (TP) Logic**:
+            -   Implemented TP1, TP2, TP3, TP4.
+            -    (e.g., ) is now interpreted as the direct size for the TP order, not a percentage.
+            -   A  function was introduced and applied to TP sizes (using ) to prevent  rounding errors.
+            -   TP4 size is calculated to ensure 100% position exit, using the webhook's  if its calculated size truncates to zero.
+        -   **Price Precision (TP/SL)**:  was added to apply truncation based on symbol-specific  to  and  prices from the webhook, ensuring they match the strategy signal exactly.
+        -   **Trigger Order Structure (TP/SL)**: Repeatedly modified to attempt to make trigger orders (Stop Loss and Take Profit) execute as Limit orders instead of Market orders. The latest attempt involved changing  to .
+        -   **API Endpoints**:  (clear),  (re-send),  (fixed missing decorator).
+        -   **Balance Cache**: Increased  duration to 5 minutes.
 
 -   ****:
-    -   **Summary**: Contains frontend environment variables, primarily .
-    -   **Changes**: Ensured consistent usage of  for all backend interactions.
+    -   **Summary**: Stores .
+    -   **Changes**: Ensures all frontend API calls use this variable.
 
 -   ****:
-    -   **Summary**: The main React component for UI, state, and API communication.
-    -   **Changes**: Displays balance, webhook URL. Implemented sticky header, infinite scrolling, and log filtering.
-    -   **UI Features**: Added Clear Logs button. Added Restart Server button.
-    -   **Data Loading**: Changed data fetching logic from  to  and then to individual fetches to prevent frontend freezing on API failures.
-    -   **Polling Frequency**: Reduced  refresh rate from 5 seconds to 30 seconds to mitigate rate limiting.
-    -   **Webhook Re-execution**: Added Execute button next to each webhook to re-send its payload to the backend. Removed pop-up messages, logging responses directly to the Responses tab.
+    -   **Summary**: Main React component.
+    -   **Changes**: Displays balance, webhook URL, logs. Features include sticky header, infinite scrolling, log filtering, Clear Logs, and Execute webhook buttons. Data fetching was optimized from  to individual fetches. Polling frequency for  was reduced to mitigate rate limiting.
+
+-   ****:
+    -   **Summary**: Comprehensive project documentation for setup and usage.
+    -   **Changes**: Extensively updated with sections on functionalities, requirements, installation, configuration, Hyperliquid keys, TradingView webhooks, API endpoints, project structure, troubleshooting, security, monitoring, and warnings.
 </code_architecture>
 
 <pending_tasks>
--   Implement Take Profit (TP) prices (, , etc.) from the TradingView payload.
--   Address the no matching error for market orders when there's insufficient liquidity, potentially with retries or better error communication.
--   Continue testing order execution with different symbols (e.g., ETH) to verify the  and price formatting logic.
+-   **TP/SL Order Type Issue**: Resolve the persistent problem where Stop Loss and Take Profit orders, despite explicit configuration, still appear as Market orders on the Hyperliquid exchange instead of Limit orders. This requires further investigation into the precise Hyperliquid SDK structure for Stop Limit orders.
+-   Address no matching errors for market orders due to insufficient liquidity.
+-   Continue testing order execution with different symbols for  and price formatting.
 </pending_tasks>
 
 <current_work>
-Immediately prior to this summary, the AI engineer was tackling two critical, persistent issues:
-1.  **Position Inversion Failure**: When a webhook signaled an opposite trade (e.g., from long to short), the existing position was closed, but the new, inverse position was not opened. This left the user without a position or with an orphaned stop order.
-2.  **Market Orders as Limit**: Despite the webhook payload specifying , the orders sent to Hyperliquid were observed to be of Limit type with a specific price, not true market orders. This meant the  parameter was not being ignored as expected for market entries.
+Immediately prior to this summary, the AI engineer was focused on a critical, persistent issue: ensuring that Stop Loss (SL) and Take Profit (TP) orders are placed and executed as **Limit orders** on the Hyperliquid exchange, not as Market orders. The user repeatedly confirmed via the exchange interface that these orders were still showing as Market, indicating that previous code changes had not resolved this.
 
-Debugging revealed that the previous attempt to define market orders using  with an aggressive  was still not translating to the desired behavior for genuine market orders or handling position inversion correctly. The  function, despite being identified as superior, was also exhibiting errors (e.g., returning  in its  and failing to execute correctly on the exchange).
+The engineer had previously attempted several fixes in , including:
+1.  Changing  to  within the  part of the  parameter for SL and TP orders.
+2.  Removing the  field entirely, assuming it might be implicitly defaulting to Market.
+3.  Adopting a new  structure based on research, specifically for Stop Limit orders, changing  to  and  to , along with explicitly setting . This was applied to all 5 relevant order placements (SL, TP1, TP2, TP3, TP4).
 
-The AI engineer's most recent action, stemming from researching Hyperliquid's API, was the critical discovery of dedicated Python SDK methods:  for opening market positions and  for closing them. These methods are designed to handle true market order logic internally, including automatically using market price and size. The previous engineer was about to implement  to replace the custom market order logic for new orders from webhooks, and  for closing existing positions.
+After the most recent implementation of the new  structure and testing via webhook, the internal logs showed successful order placement without errors. However, the user's latest feedback (Chat Message 576) explicitly stated: As ordens ainda estão como Market. This means the orders are still not behaving as desired on the exchange, despite the code changes. The AI engineer's last action was to acknowledge this and initiate further in-depth research into the correct Hyperliquid SDK structure for placing true Stop Limit orders.
 </current_work>
 
 <optional_next_step>
-Implement  for opening new market orders to replace the existing logic.
+Investigate Hyperliquid's official documentation for the precise SDK structure of Stop Limit orders, testing findings directly before modifying code.
 </optional_next_step>
