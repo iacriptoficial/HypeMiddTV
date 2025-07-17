@@ -1913,20 +1913,18 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
                             raise ValueError("Could not determine entry price for TP percentage calculation")
                     
                     # For TP4, we want to ensure COMPLETE EXIT of the position
-                    # Option 1: Use the original tp4_perc value if provided
-                    # Option 2: Calculate remaining size
-                    # Option 3: Use the total quantity to ensure complete exit
+                    # Use the provided tp4_perc value and ensure it never exceeds the original strategy value
                     
                     if tp4_perc:
-                        # First try to use the provided tp4_perc value
+                        # Use the provided tp4_perc value with truncation (not rounding)
                         tp4_size = float(tp4_perc)
-                        tp4_size = round(tp4_size, sz_decimals)
-                        await log_message("INFO", f"🎯 Using provided tp4_perc as size: {tp4_size}")
+                        tp4_size = truncate_to_decimals(tp4_size, sz_decimals)
+                        await log_message("INFO", f"🎯 Using provided tp4_perc as size: {tp4_size} (truncated with szDecimals: {sz_decimals})")
                         
-                        # If the provided size is too small after formatting, use total quantity
+                        # If the provided size is too small after truncation, use total quantity
                         if tp4_size <= 0:
-                            await log_message("INFO", f"🎯 Provided tp4_perc {tp4_perc} rounds to {tp4_size}, using total quantity for complete exit")
-                            tp4_size = quantity  # Use total quantity to ensure complete exit
+                            await log_message("INFO", f"🎯 Provided tp4_perc {tp4_perc} truncates to {tp4_size}, using total quantity for complete exit")
+                            tp4_size = quantity  # Use total quantity from webhook to ensure complete exit
                     else:
                         # If no tp4_perc provided, use total quantity for complete exit
                         tp4_size = quantity
