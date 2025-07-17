@@ -615,7 +615,7 @@ async def handle_tradingview_webhook(request: Request):
         )
 
 async def get_asset_info(symbol: str):
-    """Get asset metadata from Hyperliquid including szDecimals"""
+    """Get asset metadata from Hyperliquid including szDecimals and pxDecimals"""
     try:
         info = hyperliquid_config.get_info_client()
         
@@ -640,28 +640,30 @@ async def get_asset_info(symbol: str):
                     break
         
         if asset_info:
-            # For perpetual contracts, get szDecimals from tokens
+            # For perpetual contracts, get szDecimals and pxDecimals from tokens
             if "tokens" in asset_info:
                 # This is a perpetual contract like "SOL/USDC"
                 token_index = asset_info["tokens"][0]  # First token is the base asset
                 if token_index < len(meta_data["tokens"]):
                     token_info = meta_data["tokens"][token_index]
                     sz_decimals = token_info.get("szDecimals", 3)
-                    await log_message("INFO", f"📏 {symbol} perpetual szDecimals: {sz_decimals}")
-                    return sz_decimals
+                    px_decimals = token_info.get("pxDecimals", 2)
+                    await log_message("INFO", f"📏 {symbol} perpetual szDecimals: {sz_decimals}, pxDecimals: {px_decimals}")
+                    return {"szDecimals": sz_decimals, "pxDecimals": px_decimals}
             else:
                 # This is a spot token
                 sz_decimals = asset_info.get("szDecimals", 3)
-                await log_message("INFO", f"📏 {symbol} spot szDecimals: {sz_decimals}")
-                return sz_decimals
+                px_decimals = asset_info.get("pxDecimals", 2)
+                await log_message("INFO", f"📏 {symbol} spot szDecimals: {sz_decimals}, pxDecimals: {px_decimals}")
+                return {"szDecimals": sz_decimals, "pxDecimals": px_decimals}
         
         # Default fallback
-        await log_message("WARNING", f"⚠️ Asset {symbol} not found in metadata, using default szDecimals: 3")
-        return 3
+        await log_message("WARNING", f"⚠️ Asset {symbol} not found in metadata, using default szDecimals: 3, pxDecimals: 2")
+        return {"szDecimals": 3, "pxDecimals": 2}
         
     except Exception as e:
         await log_message("ERROR", f"❌ Error getting asset info for {symbol}: {str(e)}")
-        return 3  # Default fallback
+        return {"szDecimals": 3, "pxDecimals": 2}  # Default fallback
 
 def calculate_quantity_from_usd(usd_amount: float, price: float, sz_decimals: int) -> float:
     """Calculate quantity from USD amount and round to szDecimals"""
