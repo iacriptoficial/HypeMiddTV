@@ -1648,20 +1648,61 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
                     
                     await log_message("INFO", f"🛑 Placing stop loss: {'BUY' if stop_is_buy else 'SELL'} {quantity} {symbol} at trigger ${formatted_stop_price} (price truncated from ${stop_price})")
                     
-                    # Place stop loss order using trigger order type (attempt 1: remove isMarket)
-                    stop_order_result = exchange.order(
-                        name=symbol,
-                        is_buy=stop_is_buy,
-                        sz=quantity,
-                        limit_px=formatted_stop_price,
-                        order_type={
-                            "trigger": {
-                                "triggerPx": formatted_stop_price,
-                                "tpsl": "sl"  # Stop loss
-                            }
-                        },
-                        reduce_only=True  # Only reduce existing position
-                    )
+                    # ATTEMPT 2: Try using limit order with trigger parameters
+                    await log_message("INFO", f"🛑 Attempting stop loss as limit order with trigger")
+                    
+                    try:
+                        # Try approach 2: Use limit order type with trigger condition
+                        stop_order_result = exchange.order(
+                            name=symbol,
+                            is_buy=stop_is_buy,
+                            sz=quantity,
+                            limit_px=formatted_stop_price,
+                            order_type={
+                                "trigger": {
+                                    "triggerPx": formatted_stop_price,
+                                    "tpsl": "sl"  # Stop loss
+                                }
+                            },
+                            reduce_only=True
+                        )
+                        
+                        if not (stop_order_result and stop_order_result.get("status") == "ok"):
+                            # If approach 2 fails, try approach 3: Different structure
+                            await log_message("INFO", f"🛑 Trying alternative structure for stop loss")
+                            stop_order_result = exchange.order(
+                                name=symbol,
+                                is_buy=stop_is_buy,
+                                sz=quantity,
+                                limit_px=formatted_stop_price,
+                                order_type={
+                                    "limit": {
+                                        "tif": "Gtc"  # Good till cancel
+                                    },
+                                    "trigger": {
+                                        "triggerPx": formatted_stop_price,
+                                        "tpsl": "sl"
+                                    }
+                                },
+                                reduce_only=True
+                            )
+                            
+                    except Exception as alt_error:
+                        await log_message("ERROR", f"Alternative stop loss structure failed: {str(alt_error)}")
+                        # Fallback to original structure
+                        stop_order_result = exchange.order(
+                            name=symbol,
+                            is_buy=stop_is_buy,
+                            sz=quantity,
+                            limit_px=formatted_stop_price,
+                            order_type={
+                                "trigger": {
+                                    "triggerPx": formatted_stop_price,
+                                    "tpsl": "sl"
+                                }
+                            },
+                            reduce_only=True
+                        )
                     
                     if stop_order_result and stop_order_result.get("status") == "ok":
                         await log_message("INFO", f"✅ Stop loss order placed successfully!")
