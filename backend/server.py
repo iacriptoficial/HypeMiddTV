@@ -1643,26 +1643,19 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
                     # For stop loss: if we bought, sell at stop price; if we sold, buy at stop price
                     stop_is_buy = not is_buy  # Opposite of main order
                     
-                    # Truncate stop price to ensure it never exceeds the original strategy price
+                    # Apply price formatting to stop price
                     formatted_stop_price = format_price_for_symbol(stop_price, symbol)
                     
-                    await log_message("INFO", f"🛑 Placing stop loss: {'BUY' if stop_is_buy else 'SELL'} {quantity} {symbol} at trigger ${formatted_stop_price} (price truncated from ${stop_price})")
+                    await log_message("INFO", f"🛑 Placing stop loss: {'BUY' if stop_is_buy else 'SELL'} {quantity} {symbol} at ${formatted_stop_price} (price truncated from ${stop_price})")
                     
-                    # CORRECT STRUCTURE: Stop Limit Order using proper Hyperliquid syntax
-                    await log_message("INFO", f"🛑 Placing stop loss as Stop Limit Order")
+                    # SIMPLE LIMIT ORDER: Stop Loss as simple limit order without trigger
+                    await log_message("INFO", f"🛑 Placing stop loss as SIMPLE LIMIT ORDER")
                     
                     stop_order_result = exchange.order(
                         name=symbol,
                         is_buy=stop_is_buy,
                         sz=quantity,
                         limit_px=formatted_stop_price,
-                        order_type={
-                            "trigger": {
-                                "price": formatted_stop_price,  # ✅ CORREÇÃO: "price" em vez de "triggerPx"
-                                "is_market": False,             # ✅ CORREÇÃO: Explicitamente Limit execution
-                                "trigger": "sl"                 # ✅ CORREÇÃO: "trigger" em vez de "tpsl"
-                            }
-                        },
                         reduce_only=True
                     )
                     
