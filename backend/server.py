@@ -1669,7 +1669,7 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
                     stop_is_buy = not is_buy  # Opposite of main order
                     
                     # Truncate stop price to ensure it never exceeds the original strategy price
-                    formatted_stop_price = truncate_price_to_tick_size(stop_price, symbol)
+                    formatted_stop_price = format_price_for_symbol(stop_price, symbol)
                     
                     await log_message("INFO", f"🛑 Placing stop loss: {'BUY' if stop_is_buy else 'SELL'} {quantity} {symbol} at trigger ${formatted_stop_price} (price truncated from ${stop_price})")
                     
