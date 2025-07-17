@@ -1400,6 +1400,21 @@ def truncate_price_to_tick_size(price: float, symbol: str) -> float:
         else:
             return price  # Price is already correctly formatted
 
+def format_price_for_symbol(price: float, symbol: str) -> float:
+    """
+    Format price to be compatible with the exchange's tick size requirements.
+    Only truncates if the price has more precision than the tick size allows.
+    """
+    if symbol in ["SOL", "ETH", "AVAX"]:
+        # Tick size 0.50 - format to nearest 0.50 (truncate excess precision)
+        return int(price * 2) / 2
+    elif symbol in ["BTC"]:
+        # Tick size 10 - format to nearest 10 (truncate excess precision)
+        return int(price / 10) * 10
+    else:
+        # Default tick size 0.0001 - format to 4 decimal places
+        return truncate_to_decimals(price, 4)
+
 async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
     """Forward the webhook payload to Hyperliquid and execute real trades"""
     try:
