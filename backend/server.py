@@ -1642,15 +1642,10 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
                     # For stop loss: if we bought, sell at stop price; if we sold, buy at stop price
                     stop_is_buy = not is_buy  # Opposite of main order
                     
-                    # Format stop price similar to main order
-                    if symbol in ["SOL", "ETH", "AVAX"]:
-                        formatted_stop_price = round(stop_price * 2) / 2  # Round to nearest 0.50
-                    elif symbol in ["BTC"]:
-                        formatted_stop_price = round(stop_price, -1)  # Round to nearest 10
-                    else:
-                        formatted_stop_price = round(stop_price, 4)
+                    # Truncate stop price to ensure it never exceeds the original strategy price
+                    formatted_stop_price = truncate_price_to_tick_size(stop_price, symbol)
                     
-                    await log_message("INFO", f"🛑 Placing stop loss: {'BUY' if stop_is_buy else 'SELL'} {quantity} {symbol} at trigger ${formatted_stop_price}")
+                    await log_message("INFO", f"🛑 Placing stop loss: {'BUY' if stop_is_buy else 'SELL'} {quantity} {symbol} at trigger ${formatted_stop_price} (price truncated from ${stop_price})")
                     
                     # Place stop loss order using trigger order type
                     stop_order_result = exchange.order(
