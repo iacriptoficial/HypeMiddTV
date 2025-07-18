@@ -2521,10 +2521,22 @@ app.add_middleware(
 @app.on_event("startup")
 async def startup_event():
     """Initialize the application"""
+    global uptime_task
     await log_message("INFO", "TradingView to Hyperliquid Middleware Server Starting")
     await test_hyperliquid_connection()
+    
+    # Start uptime monitoring task
+    uptime_task = asyncio.create_task(ping_uptime_monitor())
+    await log_message("INFO", "🔄 Uptime monitoring started")
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
+    global uptime_task
     await log_message("INFO", "Server shutting down")
+    
+    # Cancel uptime monitoring task
+    if uptime_task:
+        uptime_task.cancel()
+        await log_message("INFO", "🔄 Uptime monitoring stopped")
+    
     client.close()
