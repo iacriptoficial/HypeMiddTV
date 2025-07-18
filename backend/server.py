@@ -2279,12 +2279,10 @@ async def get_status():
     """Get server status and statistics"""
     try:
         # Get balance and wallet address
-        try:
-            address, balance_value = await get_cached_balance()
-            wallet_address = address if address else "N/A"
-            balance = float(balance_value) if balance_value is not None else 0.0
-        except Exception as e:
-            await log_message("ERROR", f"Error getting balance in status endpoint: {str(e)}")
+        balance_result = await get_cached_balance()
+        if isinstance(balance_result, tuple) and len(balance_result) == 2:
+            wallet_address, balance = balance_result
+        else:
             wallet_address = "Error"
             balance = 0.0
         
