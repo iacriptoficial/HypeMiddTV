@@ -307,8 +307,8 @@ function App() {
 
     // Auto-refresh with different intervals for different data types
     const statusInterval = setInterval(() => {
-      fetchStatus();  // Status less frequently
-    }, 30000);  // Every 30 seconds instead of 5
+      fetchStatus();  // Status every 10 seconds
+    }, 10000);  // Every 10 seconds for real-time dashboard updates
     
     const dataInterval = setInterval(() => {
       fetchLogs();
