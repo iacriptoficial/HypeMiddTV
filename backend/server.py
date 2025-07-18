@@ -2408,20 +2408,6 @@ async def get_webhooks(limit: int = 50):
         await log_message("ERROR", f"Failed to get webhooks: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@api_router.get("/test-balance")
-async def test_balance():
-    """Test balance function for debugging"""
-    try:
-        result = await get_cached_balance()
-        return {
-            "result": result,
-            "result_type": str(type(result)),
-            "is_tuple": isinstance(result, tuple),
-            "length": len(result) if hasattr(result, '__len__') else None
-        }
-    except Exception as e:
-        return {"error": str(e)}
-
 @api_router.post("/reset-uptime-stats")
 async def reset_uptime_statistics():
     """Reset uptime monitoring statistics"""
