@@ -282,17 +282,17 @@ backend:
           agent: "testing"
           comment: "✅ VERIFIED: Stop loss implementation working correctly as part of complete order flow testing. Stop loss orders are being placed as resting orders with correct trigger prices. Complete trading system functionality confirmed."
 
-  - task: "Trigger Orders with Market execution for TP and SL"
+  - task: "Network uptime monitoring system"
     implemented: true
     working: true
-    file: "/app/backend/server.py"
+    file: "/app/backend/server.py, /app/frontend/src/App.js"
     stuck_count: 0
     priority: "high"
     needs_retesting: false
     status_history:
         - working: true
           agent: "main"
-          comment: "✅ IMPLEMENTATION UPDATED: Converted all Stop Loss and Take Profit trigger orders from Limit execution to Market execution when triggered. Changed isMarket from False to True for all TP/SL orders. This ensures immediate execution at market price when trigger is hit, preventing orders from being placed at distant prices in volatile markets. Orders still use triggerPx for precise trigger points and pxDecimals for accurate pricing, but execute as market orders for guaranteed fills."
+          comment: "✅ IMPLEMENTED: Network uptime monitoring system using ping/wget to 1.1.1.1 every 5 seconds. Added background task ping_uptime_monitor(), uptime statistics tracking, /api/reset-uptime-stats endpoint. Frontend displays uptime percentage with color coding (green ≥95%, yellow ≥85%, red <85%), total/successful/failed pings, and time since reset. Includes reset button for debugging. Only logs errors to avoid spam. Test confirmed: 100% uptime after implementation, reset functionality working correctly."
 
 frontend:
   - task: "Display real Hyperliquid balance and account address"
