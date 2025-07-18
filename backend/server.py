@@ -127,8 +127,21 @@ class LogEntry(BaseModel):
     message: str
     details: Optional[Dict[str, Any]] = None
 
-# Global stats
+# Stats tracking
 stats = defaultdict(int)
+stats['total_webhooks'] = 0
+stats['successful_forwards'] = 0
+stats['failed_forwards'] = 0
+
+# Uptime monitoring
+uptime_stats = {
+    'total_pings': 0,
+    'successful_pings': 0,
+    'start_time': time.time(),
+    'last_reset_time': time.time()
+}
+uptime_task = None
+
 server_start_time = get_brazil_time()
 
 # Utility functions
