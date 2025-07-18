@@ -2273,7 +2273,7 @@ async def get_status():
         # Get balance and wallet address
         address, balance_value = await get_cached_balance()
         wallet_address = address
-        balance = balance_value
+        balance = balance_value if isinstance(balance_value, (int, float)) else 0.0
         
         # Calculate uptime percentage
         uptime_percentage = get_uptime_percentage()
