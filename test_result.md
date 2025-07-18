@@ -282,17 +282,17 @@ backend:
           agent: "testing"
           comment: "✅ VERIFIED: Stop loss implementation working correctly as part of complete order flow testing. Stop loss orders are being placed as resting orders with correct trigger prices. Complete trading system functionality confirmed."
 
-  - task: "Fixed balance display error in frontend"
+  - task: "Dashboard real-time updates and uptime monitoring improvements"
     implemented: true
     working: true
     file: "/app/frontend/src/App.js, /app/backend/server.py"
     stuck_count: 0
-    priority: "high"
+    priority: "medium"
     needs_retesting: false
     status_history:
         - working: true
           agent: "main"
-          comment: "✅ FIXED: Resolved TypeError 'balance.toFixed is not a function' error. Problem was that get_cached_balance() returns a tuple (address, balance) which was being serialized as JSON array instead of separate values. Fixed by properly extracting balance from tuple before returning in /api/status endpoint. Frontend now displays balance correctly ($961.70) without JavaScript errors. Also improved balance type checking in frontend with typeof validation."
+          comment: "✅ IMPLEMENTED: Dashboard now updates every 10 seconds for real-time monitoring. Added comprehensive uptime monitoring with monitoring_since timestamp (2025-07-18 20:33:15) and monitoring_duration tracking. Reset functionality preserves original start time while resetting stats. Frontend displays: monitoring since date/time, total duration, time since reset. API provides precise timestamps and duration calculations. Test confirmed: updates every 10s, reset works correctly, duration tracking accurate."
 
 frontend:
   - task: "Display real Hyperliquid balance and account address"
