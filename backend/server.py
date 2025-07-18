@@ -2270,11 +2270,9 @@ async def get_open_orders():
 async def get_status():
     """Get server status and statistics"""
     try:
-        # Get balance
-        balance = await get_account_balance()
-        
         # Get wallet address
-        wallet_address = await get_wallet_address()
+        address, balance = await get_cached_balance()
+        wallet_address = address
         
         # Calculate uptime percentage
         uptime_percentage = get_uptime_percentage()
