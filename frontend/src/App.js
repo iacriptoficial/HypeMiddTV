@@ -212,6 +212,36 @@ function App() {
     }
   };
 
+  // Reset uptime stats function
+  const resetUptimeStats = async () => {
+    try {
+      const response = await axios.post(`${API}/reset-uptime-stats`);
+      
+      // Add success log
+      const successLog = {
+        timestamp: new Date().toISOString(),
+        level: "INFO",
+        message: "Uptime statistics reset successfully",
+        details: "Uptime monitoring stats cleared"
+      };
+      setLogs(prevLogs => [successLog, ...prevLogs]);
+      
+      // Refresh status to show updated stats
+      fetchStatus();
+      
+    } catch (err) {
+      console.error("Error resetting uptime stats:", err);
+      // Add error to logs
+      const errorLog = {
+        timestamp: new Date().toISOString(),
+        level: "ERROR",
+        message: "Failed to reset uptime statistics",
+        details: err.message
+      };
+      setLogs(prevLogs => [errorLog, ...prevLogs]);
+    }
+  };
+
   // Re-execute webhook function
   const reExecuteWebhook = async (webhookData) => {
     try {
