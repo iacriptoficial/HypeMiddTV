@@ -152,31 +152,49 @@ async def ping_uptime_monitor():
     """
     while True:
         try:
-            # Ping Cloudflare DNS (1.1.1.1) with 1 second timeout
-            process = await asyncio.create_subprocess_exec(
-                'ping', '-c', '1', '-W', '1', '1.1.1.1',
-                stdout=asyncio.subprocess.DEVNULL,
-                stderr=asyncio.subprocess.DEVNULL
-            )
-            
-            # Wait for ping to complete
-            await asyncio.wait_for(process.wait(), timeout=2.0)
-            
-            # Update stats
-            uptime_stats['total_pings'] += 1
-            
-            if process.returncode == 0:
-                uptime_stats['successful_pings'] += 1
-            else:
-                # Log ping failure
-                await log_message("ERROR", f"❌ Uptime ping failed: return code {process.returncode}")
+            # Try ping first, fallback to wget if ping fails
+            try:
+                # Ping Cloudflare DNS (1.1.1.1) with 2 second timeout
+                process = await asyncio.create_subprocess_exec(
+                    'ping', '-c', '1', '-W', '2', '1.1.1.1',
+                    stdout=asyncio.subprocess.DEVNULL,
+                    stderr=asyncio.subprocess.DEVNULL
+                )
+                
+                # Wait for ping to complete with timeout
+                await asyncio.wait_for(process.wait(), timeout=3.0)
+                
+                # Update stats
+                uptime_stats['total_pings'] += 1
+                
+                if process.returncode == 0:
+                    uptime_stats['successful_pings'] += 1
+                else:
+                    # Try alternative method with wget
+                    raise Exception(f"Ping failed with return code {process.returncode}")
+                    
+            except Exception:
+                # Fallback to wget/curl for HTTP connectivity test
+                process = await asyncio.create_subprocess_exec(
+                    'wget', '--timeout=2', '--tries=1', '-q', '--spider', 'http://1.1.1.1',
+                    stdout=asyncio.subprocess.DEVNULL,
+                    stderr=asyncio.subprocess.DEVNULL
+                )
+                
+                await asyncio.wait_for(process.wait(), timeout=3.0)
+                uptime_stats['total_pings'] += 1
+                
+                if process.returncode == 0:
+                    uptime_stats['successful_pings'] += 1
+                else:
+                    await log_message("ERROR", f"❌ Uptime check failed: ping and wget both failed")
                 
         except asyncio.TimeoutError:
             uptime_stats['total_pings'] += 1
-            await log_message("ERROR", "❌ Uptime ping timeout")
+            await log_message("ERROR", "❌ Uptime check timeout")
         except Exception as e:
             uptime_stats['total_pings'] += 1
-            await log_message("ERROR", f"❌ Uptime ping error: {str(e)}")
+            await log_message("ERROR", f"❌ Uptime check error: {str(e)}")
         
         # Wait 5 seconds before next ping
         await asyncio.sleep(5)
