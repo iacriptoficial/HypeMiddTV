@@ -138,7 +138,8 @@ uptime_stats = {
     'total_pings': 0,
     'successful_pings': 0,
     'start_time': time.time(),
-    'last_reset_time': time.time()
+    'last_reset_time': time.time(),
+    'monitoring_start_time': get_brazil_time()  # Store when monitoring started
 }
 uptime_task = None
 
