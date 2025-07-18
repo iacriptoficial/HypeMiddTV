@@ -2309,6 +2309,17 @@ async def get_status():
         reset_seconds = time_since_reset % 60
         reset_formatted = f"{reset_hours:02d}h {reset_minutes:02d}m {reset_seconds:02d}s"
         
+        # Calculate time since monitoring started
+        monitoring_duration = get_brazil_time() - uptime_stats['monitoring_start_time']
+        monitoring_days = monitoring_duration.days
+        monitoring_hours = monitoring_duration.seconds // 3600
+        monitoring_minutes = (monitoring_duration.seconds % 3600) // 60
+        
+        if monitoring_days > 0:
+            monitoring_formatted = f"{monitoring_days}d {monitoring_hours:02d}h {monitoring_minutes:02d}m"
+        else:
+            monitoring_formatted = f"{monitoring_hours:02d}h {monitoring_minutes:02d}m"
+        
         return {
             "status": "running",
             "environment": hyperliquid_config.environment,
@@ -2327,7 +2338,9 @@ async def get_status():
                 "total_pings": uptime_stats['total_pings'],
                 "successful_pings": uptime_stats['successful_pings'],
                 "failed_pings": uptime_stats['total_pings'] - uptime_stats['successful_pings'],
-                "time_since_reset": reset_formatted
+                "time_since_reset": reset_formatted,
+                "monitoring_since": uptime_stats['monitoring_start_time'].strftime('%Y-%m-%d %H:%M:%S'),
+                "monitoring_duration": monitoring_formatted
             }
         }
         
