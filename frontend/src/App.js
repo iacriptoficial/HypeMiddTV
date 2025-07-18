@@ -493,24 +493,64 @@ function App() {
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <span className="text-gray-400">Total Webhooks:</span>
-                    <span className="text-white">{status.total_webhooks}</span>
+                    <span className="text-white">{status.statistics?.total_webhooks || 0}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-400">Successful:</span>
-                    <span className="text-green-400">{status.successful_forwards}</span>
+                    <span className="text-green-400">{status.statistics?.successful_forwards || 0}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-400">Failed:</span>
-                    <span className="text-red-400">{status.failed_forwards}</span>
+                    <span className="text-red-400">{status.statistics?.failed_forwards || 0}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-400">Success Rate:</span>
                     <span className="text-white">
-                      {status.total_webhooks > 0 
-                        ? ((status.successful_forwards / status.total_webhooks) * 100).toFixed(1) + '%'
-                        : '0%'
-                      }
+                      {status.statistics?.success_rate || '0%'}
                     </span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Uptime Monitoring */}
+            <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold">Uptime Monitoring</h3>
+                <button
+                  onClick={resetUptimeStats}
+                  className="bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1 rounded text-sm transition-colors"
+                  title="Reset uptime statistics"
+                >
+                  🔄 Reset
+                </button>
+              </div>
+              {status?.uptime_monitoring && (
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Network Uptime:</span>
+                    <span className={`font-bold ${
+                      parseFloat(status.uptime_monitoring.percentage) >= 95 ? 'text-green-400' :
+                      parseFloat(status.uptime_monitoring.percentage) >= 85 ? 'text-yellow-400' : 'text-red-400'
+                    }`}>
+                      {status.uptime_monitoring.percentage}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Total Pings:</span>
+                    <span className="text-white">{status.uptime_monitoring.total_pings}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Successful:</span>
+                    <span className="text-green-400">{status.uptime_monitoring.successful_pings}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Failed:</span>
+                    <span className="text-red-400">{status.uptime_monitoring.failed_pings}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Monitoring Since:</span>
+                    <span className="text-white">{status.uptime_monitoring.time_since_reset}</span>
                   </div>
                 </div>
               )}
