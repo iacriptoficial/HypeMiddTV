@@ -421,8 +421,12 @@ async def get_account_balance():
 async def get_wallet_address():
     """Get the correct wallet address with caching"""
     try:
-        address, balance = await get_cached_balance()
-        return address
+        result = await get_cached_balance()
+        if isinstance(result, tuple) and len(result) == 2:
+            address, balance = result
+            return address
+        else:
+            return None
         
     except Exception as e:
         await log_message("ERROR", f"Failed to get wallet address: {str(e)}")
