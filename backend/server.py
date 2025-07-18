@@ -2271,16 +2271,13 @@ async def get_status():
     """Get server status and statistics"""
     try:
         # Get balance and wallet address
-        cache_result = await get_cached_balance()
-        await log_message("INFO", f"DEBUG: get_cached_balance returned: {cache_result}, type: {type(cache_result)}")
-        
-        if isinstance(cache_result, tuple) and len(cache_result) == 2:
-            address, balance_value = cache_result
-            wallet_address = address
-            balance = balance_value if isinstance(balance_value, (int, float)) else 0.0
-        else:
-            await log_message("ERROR", f"Unexpected cache result format: {cache_result}")
-            wallet_address = None
+        try:
+            address, balance_value = await get_cached_balance()
+            wallet_address = address if address else "N/A"
+            balance = float(balance_value) if balance_value is not None else 0.0
+        except Exception as e:
+            await log_message("ERROR", f"Error getting balance in status endpoint: {str(e)}")
+            wallet_address = "Error"
             balance = 0.0
         
         # Calculate uptime percentage
