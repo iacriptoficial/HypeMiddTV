@@ -473,7 +473,7 @@ function App() {
               <h3 className="text-lg font-semibold mb-4">Account Balance</h3>
               <div className="text-center">
                 <div className="text-3xl font-bold text-green-400">
-                  ${status?.balance?.toFixed(2) || "0.00"}
+                  ${typeof status?.balance === 'number' ? status.balance.toFixed(2) : (status?.balance || "0.00")}
                 </div>
                 <div className="text-sm text-gray-400 mt-2">
                   {currentEnvironment === "testnet" ? "Testnet Balance" : "Mainnet Balance"}
