@@ -2271,7 +2271,7 @@ async def get_status():
     """Get server status and statistics"""
     try:
         # Get balance
-        balance = await get_cached_balance()
+        balance = await get_account_balance()
         
         # Get wallet address
         wallet_address = await get_wallet_address()
