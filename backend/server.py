@@ -2380,6 +2380,23 @@ async def get_webhooks(limit: int = 50):
         await log_message("ERROR", f"Failed to get webhooks: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@api_router.post("/reset-uptime-stats")
+async def reset_uptime_statistics():
+    """Reset uptime monitoring statistics"""
+    try:
+        reset_uptime_stats()
+        await log_message("INFO", "🔄 Uptime statistics reset")
+        
+        return {
+            "status": "success", 
+            "message": "Uptime statistics reset successfully",
+            "timestamp": get_brazil_time().isoformat()
+        }
+        
+    except Exception as e:
+        await log_message("ERROR", f"Failed to reset uptime stats: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @api_router.post("/restart")
 async def restart_server():
     """Restart the server"""
