@@ -282,17 +282,17 @@ backend:
           agent: "testing"
           comment: "✅ VERIFIED: Stop loss implementation working correctly as part of complete order flow testing. Stop loss orders are being placed as resting orders with correct trigger prices. Complete trading system functionality confirmed."
 
-  - task: "Network uptime monitoring system"
+  - task: "Fixed balance display error in frontend"
     implemented: true
     working: true
-    file: "/app/backend/server.py, /app/frontend/src/App.js"
+    file: "/app/frontend/src/App.js, /app/backend/server.py"
     stuck_count: 0
     priority: "high"
     needs_retesting: false
     status_history:
         - working: true
           agent: "main"
-          comment: "✅ IMPLEMENTED: Network uptime monitoring system using ping/wget to 1.1.1.1 every 5 seconds. Added background task ping_uptime_monitor(), uptime statistics tracking, /api/reset-uptime-stats endpoint. Frontend displays uptime percentage with color coding (green ≥95%, yellow ≥85%, red <85%), total/successful/failed pings, and time since reset. Includes reset button for debugging. Only logs errors to avoid spam. Test confirmed: 100% uptime after implementation, reset functionality working correctly."
+          comment: "✅ FIXED: Resolved TypeError 'balance.toFixed is not a function' error. Problem was that get_cached_balance() returns a tuple (address, balance) which was being serialized as JSON array instead of separate values. Fixed by properly extracting balance from tuple before returning in /api/status endpoint. Frontend now displays balance correctly ($961.70) without JavaScript errors. Also improved balance type checking in frontend with typeof validation."
 
 frontend:
   - task: "Display real Hyperliquid balance and account address"
