@@ -2249,40 +2249,81 @@ async def get_open_orders():
         raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.get("/status")
-async def get_server_status():
+async def get_status():
     """Get server status and statistics"""
     try:
-        # Test Hyperliquid connection
-        hl_connected = await test_hyperliquid_connection()
-        
-        # Get account balance
-        balance = await get_account_balance()
+        # Get balance
+        balance = await get_cached_balance()
         
         # Get wallet address
         wallet_address = await get_wallet_address()
         
-        # Calculate uptime
-        uptime = get_brazil_time() - server_start_time
-        uptime_str = f"{uptime.days}d {uptime.seconds//3600}h {(uptime.seconds//60)%60}m"
+        # Calculate uptime percentage
+        uptime_percentage = get_uptime_percentage()
         
-        status = ServerStatus(
-            status="running",
-            environment=hyperliquid_config.environment,
-            timestamp=get_brazil_time().isoformat(),
-            uptime=uptime_str,
-            total_webhooks=stats['total_webhooks'],
-            successful_forwards=stats['successful_forwards'],
-            failed_forwards=stats['failed_forwards'],
-            hyperliquid_connected=hl_connected,
-            balance=balance,
-            wallet_address=wallet_address
-        )
+        # Calculate server runtime
+        current_time = get_brazil_time()
+        uptime_duration = current_time - server_start_time
+        uptime_seconds = int(uptime_duration.total_seconds())
         
-        return status
+        # Format uptime
+        hours = uptime_seconds // 3600
+        minutes = (uptime_seconds % 3600) // 60
+        seconds = uptime_seconds % 60
+        uptime_formatted = f"{hours:02d}h {minutes:02d}m {seconds:02d}s"
+        
+        # Calculate time since last reset
+        time_since_reset = int(time.time() - uptime_stats['last_reset_time'])
+        reset_hours = time_since_reset // 3600
+        reset_minutes = (time_since_reset % 3600) // 60
+        reset_seconds = time_since_reset % 60
+        reset_formatted = f"{reset_hours:02d}h {reset_minutes:02d}m {reset_seconds:02d}s"
+        
+        return {
+            "status": "running",
+            "environment": hyperliquid_config.environment,
+            "uptime": uptime_formatted,
+            "balance": balance,
+            "wallet_address": wallet_address,
+            "hyperliquid_connected": True,
+            "statistics": {
+                "total_webhooks": stats['total_webhooks'],
+                "successful_forwards": stats['successful_forwards'],
+                "failed_forwards": stats['failed_forwards'],
+                "success_rate": f"{(stats['successful_forwards'] / max(stats['total_webhooks'], 1)) * 100:.1f}%"
+            },
+            "uptime_monitoring": {
+                "percentage": f"{uptime_percentage:.1f}%",
+                "total_pings": uptime_stats['total_pings'],
+                "successful_pings": uptime_stats['successful_pings'],
+                "failed_pings": uptime_stats['total_pings'] - uptime_stats['successful_pings'],
+                "time_since_reset": reset_formatted
+            }
+        }
         
     except Exception as e:
-        await log_message("ERROR", f"Failed to get server status: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        return {
+            "status": "error",
+            "error": str(e),
+            "environment": hyperliquid_config.environment,
+            "uptime": "unknown",
+            "balance": "error",
+            "wallet_address": "error",
+            "hyperliquid_connected": False,
+            "statistics": {
+                "total_webhooks": stats['total_webhooks'],
+                "successful_forwards": stats['successful_forwards'],
+                "failed_forwards": stats['failed_forwards'],
+                "success_rate": f"{(stats['successful_forwards'] / max(stats['total_webhooks'], 1)) * 100:.1f}%"
+            },
+            "uptime_monitoring": {
+                "percentage": f"{get_uptime_percentage():.1f}%",
+                "total_pings": uptime_stats['total_pings'],
+                "successful_pings": uptime_stats['successful_pings'],
+                "failed_pings": uptime_stats['total_pings'] - uptime_stats['successful_pings'],
+                "time_since_reset": "unknown"
+            }
+        }
 
 @api_router.get("/logs")
 async def get_logs(limit: int = 100, level: Optional[str] = None):
