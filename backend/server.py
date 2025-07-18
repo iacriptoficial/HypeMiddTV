@@ -145,6 +145,55 @@ uptime_task = None
 server_start_time = get_brazil_time()
 
 # Utility functions
+async def ping_uptime_monitor():
+    """
+    Background task that pings a reliable server every 5 seconds to monitor uptime.
+    Only logs errors, not successful pings.
+    """
+    while True:
+        try:
+            # Ping Cloudflare DNS (1.1.1.1) with 1 second timeout
+            process = await asyncio.create_subprocess_exec(
+                'ping', '-c', '1', '-W', '1', '1.1.1.1',
+                stdout=asyncio.subprocess.DEVNULL,
+                stderr=asyncio.subprocess.DEVNULL
+            )
+            
+            # Wait for ping to complete
+            await asyncio.wait_for(process.wait(), timeout=2.0)
+            
+            # Update stats
+            uptime_stats['total_pings'] += 1
+            
+            if process.returncode == 0:
+                uptime_stats['successful_pings'] += 1
+            else:
+                # Log ping failure
+                await log_message("ERROR", f"❌ Uptime ping failed: return code {process.returncode}")
+                
+        except asyncio.TimeoutError:
+            uptime_stats['total_pings'] += 1
+            await log_message("ERROR", "❌ Uptime ping timeout")
+        except Exception as e:
+            uptime_stats['total_pings'] += 1
+            await log_message("ERROR", f"❌ Uptime ping error: {str(e)}")
+        
+        # Wait 5 seconds before next ping
+        await asyncio.sleep(5)
+
+def get_uptime_percentage():
+    """Calculate uptime percentage"""
+    if uptime_stats['total_pings'] == 0:
+        return 100.0  # No pings yet, assume 100%
+    
+    return (uptime_stats['successful_pings'] / uptime_stats['total_pings']) * 100
+
+def reset_uptime_stats():
+    """Reset uptime statistics"""
+    uptime_stats['total_pings'] = 0
+    uptime_stats['successful_pings'] = 0
+    uptime_stats['last_reset_time'] = time.time()
+
 async def log_message(level: str, message: str, details: Optional[Dict[str, Any]] = None):
     """Log message to database and console"""
     log_entry = LogEntry(level=level, message=message, details=details)
