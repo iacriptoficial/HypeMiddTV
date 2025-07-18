@@ -407,8 +407,12 @@ async def get_cached_balance():
 async def get_account_balance():
     """Get Hyperliquid exchange account balance with caching"""
     try:
-        address, balance = await get_cached_balance()
-        return balance
+        result = await get_cached_balance()
+        if isinstance(result, tuple) and len(result) == 2:
+            address, balance = result
+            return balance
+        else:
+            return result
                 
     except Exception as e:
         await log_message("ERROR", f"Failed to get account balance: {str(e)}")
