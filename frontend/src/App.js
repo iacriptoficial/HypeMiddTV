@@ -549,8 +549,16 @@ function App() {
                     <span className="text-red-400">{status.uptime_monitoring.failed_pings}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-400">Monitoring Since:</span>
+                    <span className="text-gray-400">Since Reset:</span>
                     <span className="text-white">{status.uptime_monitoring.time_since_reset}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Monitoring Since:</span>
+                    <span className="text-blue-400 text-sm">{status.uptime_monitoring.monitoring_since}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Total Duration:</span>
+                    <span className="text-blue-400">{status.uptime_monitoring.monitoring_duration}</span>
                   </div>
                 </div>
               )}
