@@ -15,6 +15,7 @@ from hyperliquid.exchange import Exchange
 from hyperliquid.utils import constants
 import json
 import asyncio
+import time
 from collections import defaultdict
 
 # Configure Brazilian timezone
