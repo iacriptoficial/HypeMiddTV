@@ -282,17 +282,17 @@ backend:
           agent: "testing"
           comment: "✅ VERIFIED: Stop loss implementation working correctly as part of complete order flow testing. Stop loss orders are being placed as resting orders with correct trigger prices. Complete trading system functionality confirmed."
 
-  - task: "Dashboard real-time updates and uptime monitoring improvements"
+  - task: "Investigation of 6:40 error and uptime display fixes"
     implemented: true
     working: true
-    file: "/app/frontend/src/App.js, /app/backend/server.py"
+    file: "/app/backend/server.py, /app/frontend/src/App.js"
     stuck_count: 0
-    priority: "medium"
+    priority: "high"
     needs_retesting: false
     status_history:
         - working: true
           agent: "main"
-          comment: "✅ IMPLEMENTED: Dashboard now updates every 10 seconds for real-time monitoring. Added comprehensive uptime monitoring with monitoring_since timestamp (2025-07-18 20:33:15) and monitoring_duration tracking. Reset functionality preserves original start time while resetting stats. Frontend displays: monitoring since date/time, total duration, time since reset. API provides precise timestamps and duration calculations. Test confirmed: updates every 10s, reset works correctly, duration tracking accurate."
+          comment: "✅ INVESTIGATION COMPLETED: 6:40 errors were external Hyperliquid issues (502 Bad Gateway nginx/1.26.2) - not our system. Uptime monitoring correctly detected network failures at 06:34 and 06:36. Fixed uptime display issues: 1) Corrected time_since_reset logic to show 'No reset' when appropriate, 2) Fixed 24h time format (was showing 08:35 instead of 20:35), 3) Added proper monitoring duration calculations. Dashboard updates every 10s. System working correctly - external API failures properly detected and logged."
 
 frontend:
   - task: "Display real Hyperliquid balance and account address"
