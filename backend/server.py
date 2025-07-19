@@ -212,6 +212,7 @@ def reset_uptime_stats():
     uptime_stats['total_pings'] = 0
     uptime_stats['successful_pings'] = 0
     uptime_stats['last_reset_time'] = time.time()
+    uptime_stats['was_reset'] = True  # Flag to indicate if stats were reset
     # Keep monitoring_start_time unchanged to track total monitoring period
 
 async def log_message(level: str, message: str, details: Optional[Dict[str, Any]] = None):
