@@ -2304,12 +2304,20 @@ async def get_status():
         seconds = uptime_seconds % 60
         uptime_formatted = f"{hours:02d}h {minutes:02d}m {seconds:02d}s"
         
-        # Calculate time since last reset
-        time_since_reset = int(time.time() - uptime_stats['last_reset_time'])
-        reset_hours = time_since_reset // 3600
-        reset_minutes = (time_since_reset % 3600) // 60
-        reset_seconds = time_since_reset % 60
-        reset_formatted = f"{reset_hours:02d}h {reset_minutes:02d}m {reset_seconds:02d}s"
+        # Calculate time since last reset (only if reset was actually used)
+        if uptime_stats.get('was_reset', False):
+            time_since_reset = int(time.time() - uptime_stats['last_reset_time'])
+            reset_hours = time_since_reset // 3600
+            reset_minutes = (time_since_reset % 3600) // 60
+            reset_seconds = time_since_reset % 60
+            reset_formatted = f"{reset_hours:02d}h {reset_minutes:02d}m {reset_seconds:02d}s"
+        else:
+            # No reset occurred, show total monitoring time
+            time_since_start = int(time.time() - uptime_stats['start_time'])
+            start_hours = time_since_start // 3600
+            start_minutes = (time_since_start % 3600) // 60
+            start_seconds = time_since_start % 60
+            reset_formatted = f"{start_hours:02d}h {start_minutes:02d}m {start_seconds:02d}s"
         
         # Calculate time since monitoring started
         monitoring_duration = get_brazil_time() - uptime_stats['monitoring_start_time']
@@ -2340,8 +2348,8 @@ async def get_status():
                 "total_pings": uptime_stats['total_pings'],
                 "successful_pings": uptime_stats['successful_pings'],
                 "failed_pings": uptime_stats['total_pings'] - uptime_stats['successful_pings'],
-                "time_since_reset": reset_formatted,
-                "monitoring_since": uptime_stats['monitoring_start_time'].strftime('%Y-%m-%d %H:%M:%S'),
+                "time_since_reset": reset_formatted if uptime_stats.get('was_reset', False) else f"No reset (total: {reset_formatted})",
+                "monitoring_since": uptime_stats['monitoring_start_time'].strftime('%Y-%m-%d %H:%M:%S'),  # 24h format
                 "monitoring_duration": monitoring_formatted
             }
         }
