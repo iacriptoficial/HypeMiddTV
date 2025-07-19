@@ -139,7 +139,8 @@ uptime_stats = {
     'successful_pings': 0,
     'start_time': time.time(),
     'last_reset_time': time.time(),
-    'monitoring_start_time': get_brazil_time()  # Store when monitoring started
+    'monitoring_start_time': get_brazil_time(),  # Store when monitoring started
+    'was_reset': False  # Flag to track if reset was used
 }
 uptime_task = None
 
