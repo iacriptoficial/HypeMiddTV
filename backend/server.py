@@ -147,61 +147,6 @@ uptime_task = None
 server_start_time = get_brazil_time()
 
 # Utility functions
-async def initialize_uptime_monitoring():
-    """Initialize uptime monitoring with persistent data from database"""
-    try:
-        # Try to load existing uptime data from database
-        existing_uptime = await db.uptime_stats.find_one({"_id": "main_uptime"})
-        
-        if existing_uptime:
-            uptime_stats['total_pings'] = existing_uptime.get('total_pings', 0)
-            uptime_stats['successful_pings'] = existing_uptime.get('successful_pings', 0)
-            uptime_stats['start_time'] = existing_uptime.get('start_time', time.time())
-            uptime_stats['last_reset_time'] = existing_uptime.get('last_reset_time', time.time())
-            uptime_stats['was_reset'] = existing_uptime.get('was_reset', False)
-            
-            # Parse monitoring_start_time from string
-            if 'monitoring_start_time' in existing_uptime:
-                monitoring_start_str = existing_uptime['monitoring_start_time']
-                uptime_stats['monitoring_start_time'] = BRAZIL_TZ.localize(
-                    datetime.strptime(monitoring_start_str, '%Y-%m-%d %H:%M:%S')
-                )
-            else:
-                uptime_stats['monitoring_start_time'] = get_brazil_time()
-                
-            await log_message("INFO", f"📊 Uptime monitoring restored: {uptime_stats['total_pings']} total pings since {monitoring_start_str}")
-        else:
-            # First time initialization
-            uptime_stats['monitoring_start_time'] = get_brazil_time()
-            await save_uptime_stats()
-            await log_message("INFO", f"📊 Uptime monitoring initialized at {uptime_stats['monitoring_start_time'].strftime('%Y-%m-%d %H:%M:%S')}")
-            
-    except Exception as e:
-        await log_message("ERROR", f"❌ Error initializing uptime monitoring: {str(e)}")
-        uptime_stats['monitoring_start_time'] = get_brazil_time()
-
-async def save_uptime_stats():
-    """Save uptime statistics to database"""
-    try:
-        uptime_data = {
-            "_id": "main_uptime",
-            "total_pings": uptime_stats['total_pings'],
-            "successful_pings": uptime_stats['successful_pings'],
-            "start_time": uptime_stats['start_time'],
-            "last_reset_time": uptime_stats['last_reset_time'],
-            "was_reset": uptime_stats.get('was_reset', False),
-            "monitoring_start_time": uptime_stats['monitoring_start_time'].strftime('%Y-%m-%d %H:%M:%S'),
-            "last_updated": time.time()
-        }
-        
-        await db.uptime_stats.replace_one(
-            {"_id": "main_uptime"}, 
-            uptime_data, 
-            upsert=True
-        )
-    except Exception as e:
-        await log_message("ERROR", f"❌ Error saving uptime stats: {str(e)}")
-
 async def ping_uptime_monitor():
     """
     Background task that pings a reliable server every 5 seconds to monitor uptime.
