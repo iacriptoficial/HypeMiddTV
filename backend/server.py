@@ -245,10 +245,6 @@ async def ping_uptime_monitor():
                     uptime_stats['successful_pings'] += 1
                 else:
                     await log_message("ERROR", f"❌ Uptime check failed: ping and wget both failed")
-            
-            # Save stats to database every 10 pings to persist data
-            if uptime_stats['total_pings'] % 10 == 0:
-                await save_uptime_stats()
                 
         except asyncio.TimeoutError:
             uptime_stats['total_pings'] += 1
