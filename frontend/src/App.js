@@ -513,10 +513,10 @@ function App() {
               )}
             </div>
 
-            {/* Uptime Monitoring */}
+            {/* External Uptime */}
             <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold">Uptime Monitoring</h3>
+                <h3 className="text-lg font-semibold">External Uptime</h3>
                 <button
                   onClick={resetUptimeStats}
                   className="bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1 rounded text-sm transition-colors"
@@ -549,16 +549,8 @@ function App() {
                     <span className="text-red-400">{status.uptime_monitoring.failed_pings}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-400">Since Reset:</span>
-                    <span className="text-white">{status.uptime_monitoring.time_since_reset}</span>
-                  </div>
-                  <div className="flex justify-between">
                     <span className="text-gray-400">Monitoring Since:</span>
-                    <span className="text-blue-400 text-sm">{status.uptime_monitoring.monitoring_since}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Total Duration:</span>
-                    <span className="text-blue-400">{status.uptime_monitoring.monitoring_duration}</span>
+                    <span className="text-white">{status.uptime_monitoring.monitoring_since}</span>
                   </div>
                 </div>
               )}
