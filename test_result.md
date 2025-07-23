@@ -282,7 +282,7 @@ backend:
           agent: "testing"
           comment: "✅ VERIFIED: Stop loss implementation working correctly as part of complete order flow testing. Stop loss orders are being placed as resting orders with correct trigger prices. Complete trading system functionality confirmed."
 
-  - task: "Investigation of 6:40 error and uptime display fixes"
+  - task: "Simplified External Uptime monitoring (server-side only)"
     implemented: true
     working: true
     file: "/app/backend/server.py, /app/frontend/src/App.js"
@@ -292,7 +292,7 @@ backend:
     status_history:
         - working: true
           agent: "main"
-          comment: "✅ INVESTIGATION COMPLETED: 6:40 errors were external Hyperliquid issues (502 Bad Gateway nginx/1.26.2) - not our system. Uptime monitoring correctly detected network failures at 06:34 and 06:36. Fixed uptime display issues: 1) Corrected time_since_reset logic to show 'No reset' when appropriate, 2) Fixed 24h time format (was showing 08:35 instead of 20:35), 3) Added proper monitoring duration calculations. Dashboard updates every 10s. System working correctly - external API failures properly detected and logged."
+          comment: "✅ CORRECTED IMPLEMENTATION: Fixed uptime monitoring to work correctly. Uptime SHOULD restart when server restarts (server was offline during restart). Removed unnecessary database persistence. Changed title from 'Uptime Monitoring' to 'External Uptime'. Simplified interface to show only: Network Uptime %, Total Pings, Successful, Failed, and 'Monitoring Since' in white. Removed 'Since Reset' and 'Total Duration' fields. System correctly tests server external connectivity from inside-out using ping to 1.1.1.1 every 5 seconds."
 
 frontend:
   - task: "Display real Hyperliquid balance and account address"
