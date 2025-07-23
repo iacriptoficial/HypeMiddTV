@@ -2345,9 +2345,7 @@ async def get_status():
                 "total_pings": uptime_stats['total_pings'],
                 "successful_pings": uptime_stats['successful_pings'],
                 "failed_pings": uptime_stats['total_pings'] - uptime_stats['successful_pings'],
-                "time_since_reset": "unknown",
-                "monitoring_since": uptime_stats.get('monitoring_start_time', get_brazil_time()).strftime('%Y-%m-%d %H:%M:%S'),
-                "monitoring_duration": "unknown"
+                "monitoring_since": uptime_stats.get('monitoring_start_time', get_brazil_time()).strftime('%Y-%m-%d %H:%M:%S')
             }
         }
 
