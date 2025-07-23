@@ -2669,9 +2669,6 @@ async def startup_event():
     await log_message("INFO", "TradingView to Hyperliquid Middleware Server Starting")
     await test_hyperliquid_connection()
     
-    # Initialize uptime monitoring with persistent data
-    await initialize_uptime_monitoring()
-    
     # Start uptime monitoring task
     uptime_task = asyncio.create_task(ping_uptime_monitor())
     await log_message("INFO", "🔄 Uptime monitoring started")
