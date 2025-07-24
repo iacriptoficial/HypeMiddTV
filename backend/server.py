@@ -2473,37 +2473,6 @@ async def get_webhooks(limit: int = 50):
         await log_message("ERROR", f"Failed to get webhooks: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@api_router.get("/debug-uptime")
-async def debug_uptime():
-    """Debug uptime calculation"""
-    try:
-        twenty_four_hours_ago = get_brazil_time() - timedelta(hours=24)
-        
-        # Get ALL error logs with uptime failures (no time filter first)
-        all_error_logs = await db.logs.find({
-            "level": "ERROR",
-            "message": {"$regex": "❌ Uptime check failed"}
-        }).limit(10).to_list(10)
-        
-        # Get error logs from last 24 hours using string comparison
-        recent_error_logs = []
-        twenty_four_hours_str = twenty_four_hours_ago.isoformat()
-        
-        for log in all_error_logs:
-            if log["timestamp"] >= twenty_four_hours_str:
-                recent_error_logs.append(log)
-        
-        return {
-            "twenty_four_hours_ago": twenty_four_hours_ago.isoformat(),
-            "current_time": get_brazil_time().isoformat(),
-            "all_error_logs_count": len(all_error_logs),
-            "recent_error_logs_count": len(recent_error_logs),
-            "all_error_logs": [{"timestamp": log["timestamp"], "message": log["message"]} for log in all_error_logs[:3]],
-            "recent_error_logs": [{"timestamp": log["timestamp"], "message": log["message"]} for log in recent_error_logs[:3]]
-        }
-    except Exception as e:
-        return {"error": str(e)}
-
 @api_router.post("/reset-uptime-stats")
 async def reset_uptime_statistics():
     """Reset uptime monitoring statistics"""
