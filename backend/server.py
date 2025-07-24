@@ -147,50 +147,6 @@ uptime_task = None
 server_start_time = get_brazil_time()
 
 # Utility functions
-async def initialize_uptime_stats():
-    """Initialize uptime statistics in database"""
-    try:
-        # Try to get existing uptime document
-        existing_stats = await db.uptime_counter.find_one({"_id": "main_uptime"})
-        
-        if existing_stats:
-            # Load existing stats into memory
-            uptime_stats['total_pings'] = existing_stats.get('total_pings', 0)
-            uptime_stats['successful_pings'] = existing_stats.get('successful_pings', 0)
-            uptime_stats['monitoring_start_time'] = existing_stats.get('monitoring_start_time')
-            
-            await log_message("INFO", f"📊 Restored uptime stats: {uptime_stats['successful_pings']}/{uptime_stats['total_pings']} successful pings")
-        else:
-            # First time - create new document
-            await save_uptime_stats_to_db()
-            await log_message("INFO", "📊 Initialized new uptime statistics")
-            
-    except Exception as e:
-        await log_message("ERROR", f"❌ Error initializing uptime stats: {str(e)}")
-        # Reset to defaults if error
-        uptime_stats['total_pings'] = 0
-        uptime_stats['successful_pings'] = 0
-        uptime_stats['monitoring_start_time'] = None
-
-async def save_uptime_stats_to_db():
-    """Save uptime statistics to database"""
-    try:
-        stats_doc = {
-            "_id": "main_uptime",
-            "total_pings": uptime_stats['total_pings'],
-            "successful_pings": uptime_stats['successful_pings'],
-            "monitoring_start_time": uptime_stats['monitoring_start_time'],
-            "last_updated": get_brazil_time().isoformat(),
-            "server_restart_time": server_start_time.isoformat()
-        }
-        
-        await db.uptime_counter.replace_one(
-            {"_id": "main_uptime"}, 
-            stats_doc, 
-            upsert=True
-        )
-    except Exception as e:
-        await log_message("ERROR", f"❌ Error saving uptime stats: {str(e)}")
 
 async def load_persistent_uptime_stats():
     """Load uptime statistics from database (survives container restarts)"""
