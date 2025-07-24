@@ -2334,6 +2334,9 @@ async def get_status():
         seconds = uptime_seconds % 60
         uptime_formatted = f"{hours:02d}h {minutes:02d}m {seconds:02d}s"
         
+        # Calculate uptime percentage from historical logs
+        uptime_percentage, expected_pings, successful_pings, failed_pings = await get_uptime_percentage_from_logs()
+        
         return {
             "status": "running",
             "environment": hyperliquid_config.environment,
@@ -2349,10 +2352,10 @@ async def get_status():
             },
             "uptime_monitoring": {
                 "percentage": f"{uptime_percentage:.1f}%",
-                "total_pings": uptime_stats['total_pings'],
-                "successful_pings": uptime_stats['successful_pings'],
-                "failed_pings": uptime_stats['total_pings'] - uptime_stats['successful_pings'],
-                "monitoring_since": uptime_stats['monitoring_start_time'].strftime('%Y-%m-%d %H:%M:%S')
+                "total_pings": expected_pings,
+                "successful_pings": successful_pings,
+                "failed_pings": failed_pings,
+                "monitoring_since": "2025-07-19 (Historical 24h data)"
             }
         }
         
