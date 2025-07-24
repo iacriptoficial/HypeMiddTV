@@ -481,7 +481,14 @@ async def get_cached_balance():
         return address, balance
         
     except Exception as e:
-        await log_message("ERROR", f"Error fetching balance: {str(e)}")
+        error_str = str(e)
+        if "429" in error_str:
+            await log_message("ERROR", f"❌ Rate limit in get_cached_balance, extending cache time")
+            # Extend cache time to 15 minutes when rate limited
+            balance_cache["expires_in"] = 900  # 15 minutes
+        else:
+            await log_message("ERROR", f"Error fetching balance: {str(e)}")
+        
         # Return cached data if available, even if expired
         if balance_cache["balance"] is not None:
             await log_message("INFO", f"Returning stale cache due to error: ${balance_cache['balance']}")
