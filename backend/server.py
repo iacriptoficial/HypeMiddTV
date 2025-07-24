@@ -192,6 +192,63 @@ async def save_uptime_stats_to_db():
     except Exception as e:
         await log_message("ERROR", f"❌ Error saving uptime stats: {str(e)}")
 
+async def load_persistent_uptime_stats():
+    """Load uptime statistics from database (survives container restarts)"""
+    try:
+        # Try to get existing uptime document
+        existing_stats = await db.uptime_persistent.find_one({"_id": "global_uptime"})
+        
+        if existing_stats:
+            # Load persistent data
+            uptime_stats['total_pings'] = existing_stats.get('total_pings', 0)
+            uptime_stats['successful_pings'] = existing_stats.get('successful_pings', 0)
+            uptime_stats['monitoring_start_time'] = existing_stats.get('monitoring_start_time')
+            
+            # Reset session counters but keep total/monitoring_start_time
+            uptime_stats['start_time'] = time.time()
+            uptime_stats['was_reset'] = False
+            
+            await log_message("INFO", f"📊 Loaded persistent uptime: {uptime_stats['successful_pings']}/{uptime_stats['total_pings']} pings since {uptime_stats['monitoring_start_time']}")
+        else:
+            # First time ever - create new persistent record
+            uptime_stats['total_pings'] = 0
+            uptime_stats['successful_pings'] = 0
+            uptime_stats['monitoring_start_time'] = None  # Will be set on first successful ping
+            uptime_stats['start_time'] = time.time()
+            uptime_stats['was_reset'] = False
+            
+            await save_persistent_uptime_stats()
+            await log_message("INFO", "📊 Initialized new persistent uptime monitoring")
+            
+    except Exception as e:
+        await log_message("ERROR", f"❌ Error loading persistent uptime stats: {str(e)}")
+        # Reset to defaults if error
+        uptime_stats['total_pings'] = 0
+        uptime_stats['successful_pings'] = 0
+        uptime_stats['monitoring_start_time'] = None
+        uptime_stats['start_time'] = time.time()
+        uptime_stats['was_reset'] = False
+
+async def save_persistent_uptime_stats():
+    """Save uptime statistics to database (persistent across restarts)"""
+    try:
+        stats_doc = {
+            "_id": "global_uptime",
+            "total_pings": uptime_stats['total_pings'],
+            "successful_pings": uptime_stats['successful_pings'],
+            "monitoring_start_time": uptime_stats['monitoring_start_time'],
+            "last_updated": get_brazil_time().strftime('%Y-%m-%d %H:%M:%S'),
+            "last_server_start": server_start_time.strftime('%Y-%m-%d %H:%M:%S')
+        }
+        
+        await db.uptime_persistent.replace_one(
+            {"_id": "global_uptime"}, 
+            stats_doc, 
+            upsert=True
+        )
+    except Exception as e:
+        await log_message("ERROR", f"❌ Error saving persistent uptime stats: {str(e)}")
+
 async def ping_uptime_monitor():
     """
     Background task that pings a reliable server every 5 seconds to monitor uptime.
