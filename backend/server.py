@@ -147,6 +147,51 @@ uptime_task = None
 server_start_time = get_brazil_time()
 
 # Utility functions
+async def initialize_uptime_stats():
+    """Initialize uptime statistics in database"""
+    try:
+        # Try to get existing uptime document
+        existing_stats = await db.uptime_counter.find_one({"_id": "main_uptime"})
+        
+        if existing_stats:
+            # Load existing stats into memory
+            uptime_stats['total_pings'] = existing_stats.get('total_pings', 0)
+            uptime_stats['successful_pings'] = existing_stats.get('successful_pings', 0)
+            uptime_stats['monitoring_start_time'] = existing_stats.get('monitoring_start_time')
+            
+            await log_message("INFO", f"📊 Restored uptime stats: {uptime_stats['successful_pings']}/{uptime_stats['total_pings']} successful pings")
+        else:
+            # First time - create new document
+            await save_uptime_stats_to_db()
+            await log_message("INFO", "📊 Initialized new uptime statistics")
+            
+    except Exception as e:
+        await log_message("ERROR", f"❌ Error initializing uptime stats: {str(e)}")
+        # Reset to defaults if error
+        uptime_stats['total_pings'] = 0
+        uptime_stats['successful_pings'] = 0
+        uptime_stats['monitoring_start_time'] = None
+
+async def save_uptime_stats_to_db():
+    """Save uptime statistics to database"""
+    try:
+        stats_doc = {
+            "_id": "main_uptime",
+            "total_pings": uptime_stats['total_pings'],
+            "successful_pings": uptime_stats['successful_pings'],
+            "monitoring_start_time": uptime_stats['monitoring_start_time'],
+            "last_updated": get_brazil_time().isoformat(),
+            "server_restart_time": server_start_time.isoformat()
+        }
+        
+        await db.uptime_counter.replace_one(
+            {"_id": "main_uptime"}, 
+            stats_doc, 
+            upsert=True
+        )
+    except Exception as e:
+        await log_message("ERROR", f"❌ Error saving uptime stats: {str(e)}")
+
 async def ping_uptime_monitor():
     """
     Background task that pings a reliable server every 5 seconds to monitor uptime.
@@ -154,6 +199,8 @@ async def ping_uptime_monitor():
     """
     while True:
         try:
+            ping_successful = False
+            
             # Try ping first, fallback to wget if ping fails
             try:
                 # Ping Cloudflare DNS (1.1.1.1) with 2 second timeout
@@ -166,30 +213,45 @@ async def ping_uptime_monitor():
                 # Wait for ping to complete with timeout
                 await asyncio.wait_for(process.wait(), timeout=3.0)
                 
-                # Update stats
-                uptime_stats['total_pings'] += 1
-                
                 if process.returncode == 0:
-                    uptime_stats['successful_pings'] += 1
+                    ping_successful = True
                 else:
                     # Try alternative method with wget
                     raise Exception(f"Ping failed with return code {process.returncode}")
                     
             except Exception:
                 # Fallback to wget/curl for HTTP connectivity test
-                process = await asyncio.create_subprocess_exec(
-                    'wget', '--timeout=2', '--tries=1', '-q', '--spider', 'http://1.1.1.1',
-                    stdout=asyncio.subprocess.DEVNULL,
-                    stderr=asyncio.subprocess.DEVNULL
-                )
+                try:
+                    process = await asyncio.create_subprocess_exec(
+                        'wget', '--timeout=2', '--tries=1', '-q', '--spider', 'http://1.1.1.1',
+                        stdout=asyncio.subprocess.DEVNULL,
+                        stderr=asyncio.subprocess.DEVNULL
+                    )
+                    
+                    await asyncio.wait_for(process.wait(), timeout=3.0)
+                    
+                    if process.returncode == 0:
+                        ping_successful = True
+                except Exception:
+                    pass  # ping_successful remains False
+            
+            # Update counters
+            uptime_stats['total_pings'] += 1
+            
+            if ping_successful:
+                uptime_stats['successful_pings'] += 1
                 
-                await asyncio.wait_for(process.wait(), timeout=3.0)
-                uptime_stats['total_pings'] += 1
-                
-                if process.returncode == 0:
-                    uptime_stats['successful_pings'] += 1
-                else:
-                    await log_message("ERROR", f"❌ Uptime check failed: ping and wget both failed")
+                # Set monitoring start time on first successful ping
+                if uptime_stats['monitoring_start_time'] is None:
+                    uptime_stats['monitoring_start_time'] = get_brazil_time().isoformat()
+                    await log_message("INFO", f"📊 First successful ping - monitoring started at {uptime_stats['monitoring_start_time']}")
+            else:
+                # Only log errors
+                await log_message("ERROR", f"❌ Uptime check failed: ping and wget both failed")
+            
+            # Save to database every 10 pings
+            if uptime_stats['total_pings'] % 10 == 0:
+                await save_uptime_stats_to_db()
                 
         except asyncio.TimeoutError:
             uptime_stats['total_pings'] += 1
