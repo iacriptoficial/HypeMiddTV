@@ -241,12 +241,12 @@ async def ping_uptime_monitor():
             if ping_successful:
                 uptime_stats['successful_pings'] += 1
                 
-                # Set monitoring start time on first successful ping
+                # Set monitoring start time on first successful ping (clean format)
                 if uptime_stats['monitoring_start_time'] is None:
-                    # Store only date/time without microseconds
-                    start_time = get_brazil_time().replace(microsecond=0)
-                    uptime_stats['monitoring_start_time'] = start_time.isoformat()
-                    await log_message("INFO", f"📊 First successful ping - monitoring started at {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
+                    # Store in clean format without decimals
+                    start_time = get_brazil_time()
+                    uptime_stats['monitoring_start_time'] = start_time.strftime('%Y-%m-%d %H:%M:%S')
+                    await log_message("INFO", f"📊 First successful ping - monitoring started at {uptime_stats['monitoring_start_time']}")
             else:
                 # Only log errors
                 await log_message("ERROR", f"❌ Uptime check failed: ping and wget both failed")
