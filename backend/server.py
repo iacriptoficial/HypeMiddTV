@@ -2740,7 +2740,7 @@ async def startup_event():
     await test_hyperliquid_connection()
     
     # Load existing uptime data from database (survives container restarts)
-    await initialize_uptime_stats()
+    await load_persistent_uptime_stats()
     
     # Start uptime monitoring task
     uptime_task = asyncio.create_task(ping_uptime_monitor())
