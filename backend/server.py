@@ -2438,6 +2438,28 @@ async def get_webhooks(limit: int = 50):
         await log_message("ERROR", f"Failed to get webhooks: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@api_router.get("/debug-uptime")
+async def debug_uptime():
+    """Debug uptime calculation"""
+    try:
+        twenty_four_hours_ago = get_brazil_time() - timedelta(hours=24)
+        
+        # Get error logs from last 24 hours
+        error_logs = await db.logs.find({
+            "level": "ERROR",
+            "message": {"$regex": "❌ Uptime check failed"},
+            "timestamp": {"$gte": twenty_four_hours_ago}
+        }).to_list(None)
+        
+        return {
+            "twenty_four_hours_ago": twenty_four_hours_ago.isoformat(),
+            "current_time": get_brazil_time().isoformat(),
+            "error_logs_count": len(error_logs),
+            "error_logs": [{"timestamp": log["timestamp"].isoformat(), "message": log["message"]} for log in error_logs[:5]]
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
 @api_router.post("/reset-uptime-stats")
 async def reset_uptime_statistics():
     """Reset uptime monitoring statistics"""
