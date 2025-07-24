@@ -2412,7 +2412,7 @@ async def get_status():
                 "total_pings": uptime_stats['total_pings'],
                 "successful_pings": uptime_stats['successful_pings'],
                 "failed_pings": uptime_stats['total_pings'] - uptime_stats['successful_pings'],
-                "monitoring_since": uptime_stats['monitoring_start_time'] or "Starting..."
+                "monitoring_since": uptime_stats['monitoring_start_time'].strftime('%Y-%m-%d %H:%M:%S.%f')[:-4] if uptime_stats['monitoring_start_time'] else "Starting..."
             }
         }
         
