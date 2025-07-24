@@ -2444,18 +2444,27 @@ async def debug_uptime():
     try:
         twenty_four_hours_ago = get_brazil_time() - timedelta(hours=24)
         
-        # Get error logs from last 24 hours
-        error_logs = await db.logs.find({
+        # Get ALL error logs with uptime failures (no time filter first)
+        all_error_logs = await db.logs.find({
             "level": "ERROR",
-            "message": {"$regex": "❌ Uptime check failed"},
-            "timestamp": {"$gte": twenty_four_hours_ago}
-        }).to_list(None)
+            "message": {"$regex": "❌ Uptime check failed"}
+        }).limit(10).to_list(10)
+        
+        # Get error logs from last 24 hours using string comparison
+        recent_error_logs = []
+        twenty_four_hours_str = twenty_four_hours_ago.isoformat()
+        
+        for log in all_error_logs:
+            if log["timestamp"] >= twenty_four_hours_str:
+                recent_error_logs.append(log)
         
         return {
             "twenty_four_hours_ago": twenty_four_hours_ago.isoformat(),
             "current_time": get_brazil_time().isoformat(),
-            "error_logs_count": len(error_logs),
-            "error_logs": [{"timestamp": log["timestamp"].isoformat(), "message": log["message"]} for log in error_logs[:5]]
+            "all_error_logs_count": len(all_error_logs),
+            "recent_error_logs_count": len(recent_error_logs),
+            "all_error_logs": [{"timestamp": log["timestamp"], "message": log["message"]} for log in all_error_logs[:3]],
+            "recent_error_logs": [{"timestamp": log["timestamp"], "message": log["message"]} for log in recent_error_logs[:3]]
         }
     except Exception as e:
         return {"error": str(e)}
