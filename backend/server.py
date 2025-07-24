@@ -304,11 +304,11 @@ def get_uptime_percentage():
     return (uptime_stats['successful_pings'] / uptime_stats['total_pings']) * 100
 
 def reset_uptime_stats():
-    """Reset uptime statistics"""
+    """Reset uptime statistics (counter starts from zero)"""
     uptime_stats['total_pings'] = 0
     uptime_stats['successful_pings'] = 0
-    uptime_stats['last_reset_time'] = time.time()
-    uptime_stats['was_reset'] = True  # Flag to indicate if stats were reset
+    uptime_stats['monitoring_start_time'] = None  # Will be set on next successful ping
+    uptime_stats['was_reset'] = True
 
 async def log_message(level: str, message: str, details: Optional[Dict[str, Any]] = None):
     """Log message to database and console"""
