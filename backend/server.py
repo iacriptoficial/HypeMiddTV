@@ -2449,8 +2449,12 @@ async def get_status():
 
 @api_router.get("/logs")
 async def get_logs(limit: int = 100, level: Optional[str] = None):
-    """Get recent logs"""
+    """Get recent logs (max 1000)"""
     try:
+        # Limit maximum to 1000 to prevent performance issues
+        if limit > 1000:
+            limit = 1000
+            
         query = {}
         if level:
             query["level"] = level
