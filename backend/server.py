@@ -2396,22 +2396,9 @@ async def get_status():
         # Calculate uptime percentage
         uptime_percentage = get_uptime_percentage()
         
-        # Format monitoring since timestamp - remove any decimals
+        # Format monitoring since timestamp
         if uptime_stats['monitoring_start_time']:
-            # Parse the ISO string and format nicely
-            from datetime import datetime
-            if isinstance(uptime_stats['monitoring_start_time'], str):
-                # Remove any microseconds/decimals from the string first
-                clean_timestamp = uptime_stats['monitoring_start_time'].split('.')[0]
-                if 'T' in clean_timestamp:
-                    clean_timestamp = clean_timestamp.replace('T', ' ')
-                if '+' in clean_timestamp:
-                    clean_timestamp = clean_timestamp.split('+')[0]
-                if '-03:00' in clean_timestamp:
-                    clean_timestamp = clean_timestamp.replace('-03:00', '')
-                monitoring_since_formatted = clean_timestamp
-            else:
-                monitoring_since_formatted = uptime_stats['monitoring_start_time'].strftime('%Y-%m-%d %H:%M:%S')
+            monitoring_since_formatted = uptime_stats['monitoring_start_time']
         else:
             monitoring_since_formatted = "Starting..."
         
