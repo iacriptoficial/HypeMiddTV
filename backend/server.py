@@ -203,23 +203,25 @@ async def ping_uptime_monitor():
 
 async def get_uptime_percentage_from_logs():
     """Calculate uptime percentage from historical logs"""
-    try:
-        # Get all uptime errors from logs (last 7 days)
-        seven_days_ago = get_brazil_time() - timedelta(days=7)
-        
-        # Count total expected pings in last 24 hours (ping every 5s = 17280 pings/day)
-        twenty_four_hours_ago = get_brazil_time() - timedelta(hours=24)
-        
-        # Get error logs from last 24 hours
-        error_logs = await db.logs.find({
+    try:        
+        # Get ALL error logs with uptime failures and filter manually
+        all_error_logs = await db.logs.find({
             "level": "ERROR",
-            "message": {"$regex": "❌ Uptime check failed"},
-            "timestamp": {"$gte": twenty_four_hours_ago}
+            "message": {"$regex": "❌ Uptime check failed"}
         }).to_list(None)
+        
+        # Filter logs from last 24 hours using string comparison
+        twenty_four_hours_ago = get_brazil_time() - timedelta(hours=24)
+        twenty_four_hours_str = twenty_four_hours_ago.isoformat()
+        
+        recent_errors = []
+        for log in all_error_logs:
+            if log["timestamp"] >= twenty_four_hours_str:
+                recent_errors.append(log)
         
         # Calculate expected pings in 24h (every 5 seconds)
         expected_pings_24h = 24 * 60 * 60 // 5  # 17280 pings
-        failed_pings_24h = len(error_logs)
+        failed_pings_24h = len(recent_errors)
         successful_pings_24h = expected_pings_24h - failed_pings_24h
         
         if expected_pings_24h > 0:
