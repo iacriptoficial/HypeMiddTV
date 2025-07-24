@@ -415,14 +415,33 @@ async def find_account_with_balance():
                     return address, total_balance
                     
             except Exception as e:
-                await log_message("WARNING", f"Error checking address {address}: {str(e)}")
+                # Check specifically for rate limit
+                error_str = str(e)
+                if "429" in error_str:
+                    await log_message("ERROR", f"❌ Rate limit detected for {address}: {error_str}")
+                    # Return cached data if available to avoid further rate limiting
+                    if balance_cache["balance"] is not None:
+                        await log_message("INFO", f"🔄 Using cached data due to rate limit: ${balance_cache['balance']}")
+                        return balance_cache["address"], balance_cache["balance"]
+                    # If no cache, wait a bit and continue
+                    await asyncio.sleep(2)
+                else:
+                    await log_message("WARNING", f"Error checking address {address}: {str(e)}")
                 continue
         
         await log_message("WARNING", "No account with balance found in discovered accounts")
         return None, 0.0
         
     except Exception as e:
-        await log_message("ERROR", f"Error in find_account_with_balance: {str(e)}")
+        error_str = str(e)
+        if "429" in error_str:
+            await log_message("ERROR", f"❌ Rate limit in find_account_with_balance: {error_str}")
+            # Return cached data if available
+            if balance_cache["balance"] is not None:
+                await log_message("INFO", f"🔄 Using cached data due to rate limit: ${balance_cache['balance']}")
+                return balance_cache["address"], balance_cache["balance"]
+        else:
+            await log_message("ERROR", f"Error in find_account_with_balance: {str(e)}")
         return None, 0.0
 
 # Cache for balance to avoid rate limiting
