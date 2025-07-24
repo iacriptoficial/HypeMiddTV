@@ -2403,7 +2403,7 @@ async def get_status():
             else:
                 monitoring_dt = uptime_stats['monitoring_start_time']
             
-            # Format with normal seconds (0-59, no decimals)
+            # Format with normal date/time (no decimals in seconds)
             monitoring_since_formatted = monitoring_dt.strftime('%Y-%m-%d %H:%M:%S')
         else:
             monitoring_since_formatted = "Starting..."
