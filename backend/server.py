@@ -2394,6 +2394,19 @@ async def get_status():
         # Calculate uptime percentage
         uptime_percentage = get_uptime_percentage()
         
+        # Format monitoring since timestamp
+        if uptime_stats['monitoring_start_time']:
+            # Parse the ISO string and format nicely
+            from datetime import datetime
+            if isinstance(uptime_stats['monitoring_start_time'], str):
+                monitoring_dt = datetime.fromisoformat(uptime_stats['monitoring_start_time'].replace('Z', '+00:00'))
+            else:
+                monitoring_dt = uptime_stats['monitoring_start_time']
+            
+            monitoring_since_formatted = monitoring_dt.strftime('%Y-%m-%d %H:%M:%S.%f')[:-4]  # Remove last 4 digits to keep 2 decimal places
+        else:
+            monitoring_since_formatted = "Starting..."
+        
         return {
             "status": "running",
             "environment": hyperliquid_config.environment,
@@ -2412,7 +2425,7 @@ async def get_status():
                 "total_pings": uptime_stats['total_pings'],
                 "successful_pings": uptime_stats['successful_pings'],
                 "failed_pings": uptime_stats['total_pings'] - uptime_stats['successful_pings'],
-                "monitoring_since": uptime_stats['monitoring_start_time'].strftime('%Y-%m-%d %H:%M:%S.%f')[:-4] if uptime_stats['monitoring_start_time'] else "Starting..."
+                "monitoring_since": monitoring_since_formatted
             }
         }
         
