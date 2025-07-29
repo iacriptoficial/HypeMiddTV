@@ -336,7 +336,7 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Market close method for position closing - CRITICAL BUG FIX NEEDED"
+    - "Market close method for position closing - CRITICAL: market_close() method implemented but failing with null response"
   stuck_tasks:
     - "Market close method for position closing"
   test_all: false
