@@ -28,23 +28,23 @@ SAMPLE_SELL_PAYLOAD = {
     "timestamp": "2025-07-09T16:00:00Z"
 }
 
-def test_position_clearing_mechanism():
-    """Test position clearing mechanism - CRITICAL FIX VERIFICATION"""
-    print("\n=== Testing Position Clearing Mechanism ===")
-    print("🎯 CRITICAL: Testing the fixed clear_symbol_orders_and_positions function")
-    print("User reported: 'Order could not immediately match against any resting orders' error")
-    print("Fix: Replaced exchange.order() with reduce_only=True with exchange.market_close() method")
-    print("Scenario: Existing -10.73 SOL position needs to be closed before new order")
+def test_enhanced_position_clearing_mechanism():
+    """Test enhanced position clearing mechanism with detailed error logging - CRITICAL FOCUS"""
+    print("\n=== Testing Enhanced Position Clearing Mechanism ===")
+    print("🎯 CRITICAL: Testing the enhanced position clearing with detailed error logging")
+    print("User's exact case: -10.73 SOL position clearing failing")
+    print("Focus: Understanding why exchange.market_close() is failing with null response")
+    print("Latest fix includes: detailed logging, exception handling, fallback mechanism, retry logic")
     
-    # Test 1: Simulate webhook that requires position clearing (position inversion)
-    print("\n--- Test 1: Position Inversion Scenario (Close existing -> Place new) ---")
-    print("Simulating: Existing -10.73 SOL short position, new webhook wants +5 SOL long")
+    # Test 1: Exact user scenario - -10.73 SOL position clearing
+    print("\n--- Test 1: Exact User Scenario (-10.73 SOL Position Clearing) ---")
+    print("Simulating: User's exact case with -10.73 SOL short position")
     
-    position_inversion_payload = {
+    exact_user_payload = {
         "symbol": "SOL",
-        "side": "buy",  # This should trigger position clearing if short position exists
+        "side": "buy",  # This should trigger position clearing for short position
         "entry": "market",
-        "quantity": "5.0",  # Smaller than existing position to test partial clearing
+        "quantity": "5.0",  # New position size (will require closing -10.73 first)
         "price": "175.00",
         "timestamp": datetime.now().isoformat()
     }
@@ -52,140 +52,240 @@ def test_position_clearing_mechanism():
     url = f"{BASE_URL}/webhook/tradingview"
     
     try:
-        print(f"📤 Sending webhook to test position clearing...")
-        response = requests.post(url, json=position_inversion_payload)
-        print(f"Position Clearing Test Status Code: {response.status_code}")
+        print(f"📤 Sending webhook for exact user scenario...")
+        response = requests.post(url, json=exact_user_payload)
+        print(f"User Scenario Test Status Code: {response.status_code}")
         
         if response.status_code == 200:
             result = response.json()
-            print("✅ Position clearing webhook received successfully")
-            print(f"Response: {json.dumps(result, indent=2)}")
+            print("✅ User scenario webhook received successfully")
+            print(f"Full Response: {json.dumps(result, indent=2)}")
             
-            # Check if position clearing was attempted
+            # Detailed analysis of the response
             hl_response = result.get('hyperliquid_response', {})
             
-            if hl_response.get('status') == 'success':
-                print("✅ Webhook processing completed successfully")
-                
-                # Look for position clearing responses in the order details
-                order_details = hl_response.get('order_details', {})
-                
-                # Check for position clearing operations
-                position_cleared = False
-                market_close_used = False
-                no_match_error = False
-                
-                # Check main response for position clearing
-                if 'position_clearing' in str(order_details).lower():
-                    position_cleared = True
-                    print("✅ Position clearing operation detected")
-                
-                # Check if market_close method was used
-                if 'market_close' in str(order_details).lower():
-                    market_close_used = True
-                    print("✅ exchange.market_close() method was used - FIX CONFIRMED!")
-                
-                # Check for the specific error that should be fixed
-                response_str = str(result).lower()
-                if 'order could not immediately match' in response_str:
-                    no_match_error = True
-                    print("❌ CRITICAL: 'Order could not immediately match' error still occurring!")
-                    print("🚨 The fix may not be working properly")
-                else:
-                    print("✅ No 'Order could not immediately match' error detected - FIX WORKING!")
-                
-                # Analyze the response structure for position operations
-                print(f"\n📊 Response Analysis:")
-                print(f"  - Position clearing detected: {position_cleared}")
-                print(f"  - market_close() method used: {market_close_used}")
-                print(f"  - 'No match' error present: {no_match_error}")
-                
-                # Check for successful order execution after position clearing
-                main_order_success = False
-                if order_details.get('hyperliquid_response', {}).get('status') == 'ok':
-                    main_order_success = True
-                    print("✅ Main order executed successfully after position clearing")
-                else:
-                    print("⚠️ Main order execution status unclear")
-                
-                return not no_match_error and (position_cleared or market_close_used)
-                
+            # Check for detailed logging indicators
+            detailed_logging_found = False
+            market_close_attempted = False
+            market_close_failed = False
+            fallback_used = False
+            null_response_detected = False
+            exception_caught = False
+            
+            response_str = str(result).lower()
+            
+            # Look for detailed logging patterns
+            if any(phrase in response_str for phrase in [
+                'using exchange.market_close()', 
+                'market_close() completed',
+                'parameters: coin=',
+                'market_close() raw result'
+            ]):
+                detailed_logging_found = True
+                print("✅ Detailed logging detected in response")
+            
+            # Check if market_close was attempted
+            if 'market_close' in response_str:
+                market_close_attempted = True
+                print("✅ exchange.market_close() method was attempted")
+            
+            # Check for null response issue
+            if any(phrase in response_str for phrase in [
+                'null response',
+                'returning null',
+                'result: null',
+                'market_close() raw result: null'
+            ]):
+                null_response_detected = True
+                print("❌ CRITICAL: Null response from market_close() detected!")
+            
+            # Check for exceptions
+            if any(phrase in response_str for phrase in [
+                'exception in exchange.market_close()',
+                'exception type:',
+                'exception details:',
+                'unknown error'
+            ]):
+                exception_caught = True
+                print("❌ CRITICAL: Exception in market_close() detected!")
+            
+            # Check for fallback mechanism
+            if any(phrase in response_str for phrase in [
+                'falling back to reduce_only',
+                'fallback mechanism',
+                'retrying market_close with minimal parameters',
+                'minimal parameter attempt'
+            ]):
+                fallback_used = True
+                print("✅ Fallback mechanism was triggered")
+            
+            # Check for the original error that should be fixed
+            original_error_present = False
+            if 'order could not immediately match' in response_str:
+                original_error_present = True
+                print("❌ CRITICAL: Original 'Order could not immediately match' error still present!")
             else:
-                error_msg = hl_response.get('message', 'Unknown error')
+                print("✅ Original 'Order could not immediately match' error NOT present - Good!")
+            
+            # Check overall success/failure
+            overall_success = hl_response.get('status') == 'success'
+            
+            print(f"\n📊 Detailed Analysis:")
+            print(f"  - Detailed logging found: {detailed_logging_found}")
+            print(f"  - market_close() attempted: {market_close_attempted}")
+            print(f"  - Null response detected: {null_response_detected}")
+            print(f"  - Exception caught: {exception_caught}")
+            print(f"  - Fallback mechanism used: {fallback_used}")
+            print(f"  - Original error present: {original_error_present}")
+            print(f"  - Overall success: {overall_success}")
+            
+            # Analyze specific error messages
+            if not overall_success:
+                error_msg = hl_response.get('message', 'No error message')
                 error_details = hl_response.get('error', 'No error details')
-                print(f"❌ Position clearing failed: {error_msg}")
-                print(f"Error details: {error_details}")
+                print(f"\n🔍 Error Analysis:")
+                print(f"  - Error message: {error_msg}")
+                print(f"  - Error details: {error_details}")
                 
-                # Check if this is the specific error we're trying to fix
-                if 'order could not immediately match' in error_msg.lower() or 'order could not immediately match' in error_details.lower():
-                    print("🚨 CRITICAL: The exact error we're trying to fix is still occurring!")
-                    print("❌ exchange.market_close() fix is NOT working")
-                    return False
-                
-                return False
+                # Check for specific failure patterns
+                if 'failed to clear existing positions' in error_msg.lower():
+                    print("❌ CRITICAL: Position clearing is failing as reported by user")
+                    
+                    # Look for the root cause
+                    if null_response_detected:
+                        print("🔍 ROOT CAUSE: market_close() returning null response")
+                    elif exception_caught:
+                        print("🔍 ROOT CAUSE: Exception in market_close() method")
+                    else:
+                        print("🔍 ROOT CAUSE: Unknown - need more detailed logging")
+            
+            return overall_success and not original_error_present
                 
         else:
-            print(f"❌ Position clearing webhook failed: {response.text}")
+            print(f"❌ User scenario webhook failed: {response.text}")
             return False
             
     except Exception as e:
-        print(f"❌ Error testing position clearing: {str(e)}")
+        print(f"❌ Error testing user scenario: {str(e)}")
         return False
     
     # Wait before next test
     time.sleep(3)
     
-    # Test 2: Direct position closing test
-    print("\n--- Test 2: Direct Position Closing Test ---")
-    print("Testing: Webhook specifically designed to close existing positions")
+    # Test 2: Check detailed logs to understand market_close() failure
+    print("\n--- Test 2: Analyzing Detailed Logs for market_close() Failure ---")
+    print("Checking logs to understand the exact failure in market_close()")
     
-    close_position_payload = {
+    logs_url = f"{BASE_URL}/logs"
+    
+    try:
+        logs_response = requests.get(logs_url)
+        if logs_response.status_code == 200:
+            logs_data = logs_response.json()
+            logs = logs_data.get('logs', [])
+            
+            print(f"📊 Retrieved {len(logs)} logs for analysis")
+            
+            # Look for market_close related logs
+            market_close_logs = []
+            for log in logs[-50:]:  # Check last 50 logs
+                message = log.get('message', '').lower()
+                if any(keyword in message for keyword in [
+                    'market_close',
+                    'closing position',
+                    'exchange.market_close',
+                    'position clearing',
+                    'clear_symbol_orders'
+                ]):
+                    market_close_logs.append(log)
+            
+            print(f"🔍 Found {len(market_close_logs)} market_close related logs:")
+            
+            for i, log in enumerate(market_close_logs[-10:]):  # Show last 10 relevant logs
+                timestamp = log.get('timestamp', 'No timestamp')
+                level = log.get('level', 'INFO')
+                message = log.get('message', 'No message')
+                details = log.get('details', {})
+                
+                print(f"\nLog {i+1}: [{level}] {timestamp}")
+                print(f"  Message: {message}")
+                if details:
+                    print(f"  Details: {details}")
+                
+                # Look for specific error patterns
+                if 'exception' in message.lower():
+                    print("  ❌ EXCEPTION DETECTED in this log")
+                elif 'null' in message.lower():
+                    print("  ❌ NULL RESPONSE DETECTED in this log")
+                elif 'failed' in message.lower():
+                    print("  ❌ FAILURE DETECTED in this log")
+                elif 'success' in message.lower():
+                    print("  ✅ SUCCESS DETECTED in this log")
+            
+            if not market_close_logs:
+                print("⚠️ No market_close related logs found - may indicate logging issue")
+                
+        else:
+            print(f"❌ Failed to retrieve logs: {logs_response.text}")
+            
+    except Exception as e:
+        print(f"❌ Error analyzing logs: {str(e)}")
+    
+    # Test 3: Test fallback mechanism specifically
+    print("\n--- Test 3: Testing Fallback Mechanism ---")
+    print("Testing if fallback to reduce_only method works when market_close fails")
+    
+    fallback_test_payload = {
         "symbol": "SOL",
-        "side": "sell",  # Opposite side to close long positions
+        "side": "sell",  # Opposite side to test position closing
         "entry": "market",
-        "quantity": "10.73",  # Exact amount mentioned in user report
+        "quantity": "10.73",  # Exact user amount
         "price": "175.00",
-        "close_position": True,  # If backend supports this flag
+        "force_fallback": True,  # If backend supports this flag for testing
         "timestamp": datetime.now().isoformat()
     }
     
     try:
-        print(f"📤 Sending direct position closing webhook...")
-        response = requests.post(url, json=close_position_payload)
-        print(f"Direct Position Close Status Code: {response.status_code}")
+        print(f"📤 Sending fallback mechanism test...")
+        response = requests.post(url, json=fallback_test_payload)
+        print(f"Fallback Test Status Code: {response.status_code}")
         
         if response.status_code == 200:
             result = response.json()
-            print("✅ Direct position closing webhook received successfully")
+            print("✅ Fallback test webhook received successfully")
             
-            # Check for market_close usage and success
             response_str = str(result).lower()
             
-            if 'market_close' in response_str:
-                print("✅ exchange.market_close() method detected in response")
+            # Check if fallback was used
+            if any(phrase in response_str for phrase in [
+                'fallback',
+                'reduce_only',
+                'minimal parameter',
+                'alternative method'
+            ]):
+                print("✅ Fallback mechanism detected in response")
             else:
-                print("⚠️ exchange.market_close() method not clearly detected")
+                print("⚠️ Fallback mechanism not clearly detected")
             
-            if 'order could not immediately match' in response_str:
-                print("❌ CRITICAL: 'Order could not immediately match' error still present!")
-                return False
-            else:
-                print("✅ No 'Order could not immediately match' error - Good!")
-            
+            # Check success
             hl_response = result.get('hyperliquid_response', {})
             if hl_response.get('status') == 'success':
-                print("✅ Direct position closing completed successfully")
+                print("✅ Fallback mechanism worked successfully")
                 return True
             else:
-                print(f"❌ Direct position closing failed: {hl_response}")
+                print(f"❌ Fallback mechanism failed: {hl_response}")
                 return False
         else:
-            print(f"❌ Direct position closing webhook failed: {response.text}")
+            print(f"❌ Fallback test webhook failed: {response.text}")
             return False
             
     except Exception as e:
-        print(f"❌ Error testing direct position closing: {str(e)}")
+        print(f"❌ Error testing fallback mechanism: {str(e)}")
         return False
+
+def test_position_clearing_mechanism():
+    """Legacy test - now calls enhanced version"""
+    return test_enhanced_position_clearing_mechanism()
 
 def test_stop_loss_implementation():
     """Test stop loss order implementation - MAIN FOCUS OF REVIEW REQUEST"""
