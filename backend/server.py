@@ -1030,8 +1030,13 @@ async def clear_symbol_orders_and_positions(symbol: str, webhook_id: str):
                                 # Check if the close was actually successful
                                 is_successful = False
                                 error_message = None
+                                method_used = "market_close"  # Track which method was used
                                 
-                                if close_result and close_result.get("status") == "ok":
+                                # Handle None response
+                                if close_result is None:
+                                    error_message = "market_close() returned None response"
+                                    await log_message("ERROR", f"❌ market_close() returned None response")
+                                elif close_result and close_result.get("status") == "ok":
                                     # Check the actual order status in the response
                                     response_data = close_result.get("response", {})
                                     if response_data.get("type") == "order":
@@ -1042,6 +1047,9 @@ async def clear_symbol_orders_and_positions(symbol: str, webhook_id: str):
                                             for status in statuses:
                                                 if isinstance(status, dict) and "error" in status:
                                                     error_message = status["error"]
+                                                    # Check if this is the old error we fixed
+                                                    if "order could not immediately match" in error_message.lower():
+                                                        method_used = "reduce_only_fallback"
                                                     break
                                                 elif "filled" in str(status).lower() or status == "success":
                                                     is_successful = True
@@ -1067,6 +1075,11 @@ async def clear_symbol_orders_and_positions(symbol: str, webhook_id: str):
                                     # Extract error message from failed response
                                     if close_result:
                                         error_message = str(close_result.get("error", close_result))
+                                        # Check if we're using the fallback method
+                                        if "reduce_only" in str(close_result).lower():
+                                            method_used = "reduce_only_fallback"
+                                    else:
+                                        error_message = "Unknown error - no response received"
                                 
                                 # Store the REAL Hyperliquid response with correct success/error
                                 close_response_data = {
