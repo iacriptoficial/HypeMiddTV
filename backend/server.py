@@ -1023,9 +1023,11 @@ async def clear_symbol_orders_and_positions(symbol: str, webhook_id: str):
                                             cloid=None
                                         )
                                         
-                                        await log_message("INFO", f"   Fallback order result: {close_result}")
+                                        await log_message("INFO", f"   Fallback market_open result: {close_result}")
                                         
                                         # Don't re-raise - let the fallback result be processed
+                                        # Update method tracking
+                                        method_used = "market_open_fallback"
                                 
                                 # Check if the close was actually successful
                                 is_successful = False
