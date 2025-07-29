@@ -1027,8 +1027,8 @@ async def clear_symbol_orders_and_positions(symbol: str, webhook_id: str):
                                         "symbol": symbol,
                                         "original_size": size,
                                         "close_quantity": close_quantity,
-                                        "close_method": "reduce_only_order",
-                                        "is_buy": is_buy
+                                        "close_method": "market_close",  # Updated to reflect actual method used
+                                        "direction": "closing_short" if size < 0 else "closing_long"
                                     },
                                     "hyperliquid_response": close_result,  # REAL response from Hyperliquid
                                     "error": error_message if error_message else None
