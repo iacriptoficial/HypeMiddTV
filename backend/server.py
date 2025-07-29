@@ -982,21 +982,31 @@ async def clear_symbol_orders_and_positions(symbol: str, webhook_id: str):
                                     await log_message("INFO", f"   market_close() completed, result type: {type(close_result)}")
                                     await log_message("INFO", f"   market_close() raw result: {close_result}")
                                     
+                                    # Check for None response (API returning null)
+                                    if close_result is None:
+                                        await log_message("WARNING", f"❌ market_close() returned None - triggering fallback mechanism")
+                                        raise Exception("market_close() returned None response - fallback needed")
+                                    
                                 except Exception as close_error:
                                     await log_message("ERROR", f"❌ Exception in exchange.market_close(): {str(close_error)}")
                                     await log_message("ERROR", f"   Exception type: {type(close_error).__name__}")
                                     await log_message("ERROR", f"   Exception details: {repr(close_error)}")
                                     
-                                    # Try with different parameters in case of parameter issues
+                                    # FALLBACK MECHANISM: Try with different parameters first
                                     try:
                                         await log_message("INFO", f"🔄 Retrying market_close with minimal parameters...")
                                         close_result = exchange.market_close(coin=symbol)
-                                        await log_message("INFO", f"   Minimal parameter result: {close_result}")
                                         
+                                        if close_result is not None:
+                                            await log_message("INFO", f"   Minimal parameter result: {close_result}")
+                                        else:
+                                            await log_message("WARNING", f"   Minimal parameter attempt also returned None")
+                                            raise Exception("Minimal parameter market_close also returned None")
+                                            
                                     except Exception as minimal_error:
                                         await log_message("ERROR", f"❌ Minimal parameter attempt also failed: {str(minimal_error)}")
                                         
-                                        # Fallback to the old method if market_close is completely broken
+                                        # FINAL FALLBACK: Use the old reduce_only order method
                                         await log_message("WARNING", f"🔄 Falling back to reduce_only order method...")
                                         
                                         # Get current market price for fallback
@@ -1015,8 +1025,7 @@ async def clear_symbol_orders_and_positions(symbol: str, webhook_id: str):
                                         
                                         await log_message("INFO", f"   Fallback order result: {close_result}")
                                         
-                                    # Re-raise the original exception
-                                    raise close_error
+                                        # Don't re-raise - let the fallback result be processed
                                 
                                 # Check if the close was actually successful
                                 is_successful = False
