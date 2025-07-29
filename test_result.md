@@ -244,7 +244,7 @@ backend:
     implemented: true
     working: false
     file: "/app/backend/server.py"
-    stuck_count: 1
+    stuck_count: 2
     priority: "high"
     needs_retesting: false
     status_history:
@@ -263,6 +263,9 @@ backend:
         - working: false
           agent: "testing"
           comment: "❌ CRITICAL ISSUE CONFIRMED: Position clearing mechanism is failing. GOOD NEWS: exchange.market_close() method IS implemented and being used correctly (logs show '🎯 Using exchange.market_close() to close position: -10.73 SOL'). BAD NEWS: The market_close() call is failing with 'Unknown error' and returning null response. The original 'Order could not immediately match' error is NOT occurring anymore - the fix worked for that part. However, the market_close() method itself is failing silently, possibly due to: 1) Exception in market_close() call, 2) Invalid parameters, 3) Hyperliquid API issue, 4) Network/connection problem. All webhook attempts result in 'Failed to clear existing positions' preventing new orders from executing."
+        - working: false
+          agent: "testing"
+          comment: "❌ ROOT CAUSE IDENTIFIED: Comprehensive testing with enhanced logging reveals the exact issue. The exchange.market_close() method IS being called correctly (logs confirm '🎯 Using exchange.market_close() to close position: -10.73 SOL') but it returns None/null instead of a proper response (logs show 'market_close() completed, result type: <class 'NoneType'>' and 'market_close() raw result: None'). The fallback mechanism exists but is NOT triggered because None return doesn't throw an exception - it only triggers on exceptions. The code at line 1025 checks 'if close_result and close_result.get(\"status\") == \"ok\"' but when close_result is None, this fails and marks the operation as failed without attempting fallback. SOLUTION NEEDED: Modify the code to treat None response from market_close() as a failure condition that should trigger the fallback mechanism to reduce_only orders. The original 'Order could not immediately match' error is completely fixed - this is a different issue with the Hyperliquid market_close() API returning null responses."
 
   - task: "Take profit implementation (TP1 and TP2)"
     implemented: true
