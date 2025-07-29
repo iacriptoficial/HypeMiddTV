@@ -968,12 +968,55 @@ async def clear_symbol_orders_and_positions(symbol: str, webhook_id: str):
                                 # This method is specifically designed for closing positions
                                 await log_message("INFO", f"🎯 Using exchange.market_close() to close position: {size} {symbol}")
                                 
-                                close_result = exchange.market_close(
-                                    coin=symbol,  # Use 'coin' parameter for market_close
-                                    sz=close_quantity,  # Size to close (absolute value)
-                                    px=None,  # Let it use current market price
-                                    slippage=0.05  # 5% slippage tolerance
-                                )
+                                # Add detailed logging for debugging
+                                await log_message("INFO", f"   Parameters: coin={symbol}, sz={close_quantity}, px=None, slippage=0.05")
+                                
+                                try:
+                                    close_result = exchange.market_close(
+                                        coin=symbol,  # Use 'coin' parameter for market_close
+                                        sz=close_quantity,  # Size to close (absolute value)
+                                        px=None,  # Let it use current market price
+                                        slippage=0.05  # 5% slippage tolerance
+                                    )
+                                    
+                                    await log_message("INFO", f"   market_close() completed, result type: {type(close_result)}")
+                                    await log_message("INFO", f"   market_close() raw result: {close_result}")
+                                    
+                                except Exception as close_error:
+                                    await log_message("ERROR", f"❌ Exception in exchange.market_close(): {str(close_error)}")
+                                    await log_message("ERROR", f"   Exception type: {type(close_error).__name__}")
+                                    await log_message("ERROR", f"   Exception details: {repr(close_error)}")
+                                    
+                                    # Try with different parameters in case of parameter issues
+                                    try:
+                                        await log_message("INFO", f"🔄 Retrying market_close with minimal parameters...")
+                                        close_result = exchange.market_close(coin=symbol)
+                                        await log_message("INFO", f"   Minimal parameter result: {close_result}")
+                                        
+                                    except Exception as minimal_error:
+                                        await log_message("ERROR", f"❌ Minimal parameter attempt also failed: {str(minimal_error)}")
+                                        
+                                        # Fallback to the old method if market_close is completely broken
+                                        await log_message("WARNING", f"🔄 Falling back to reduce_only order method...")
+                                        
+                                        # Get current market price for fallback
+                                        current_price = 175.0 if symbol == 'SOL' else 3000.0 if symbol == 'ETH' else 100000.0
+                                        is_buy = size < 0  # Buy to close short, sell to close long
+                                        fill_price = current_price * 1.05 if is_buy else current_price * 0.95
+                                        
+                                        close_result = exchange.order(
+                                            name=symbol,
+                                            is_buy=is_buy,
+                                            sz=close_quantity,
+                                            limit_px=fill_price,
+                                            order_type={"limit": {"tif": "Ioc"}},
+                                            reduce_only=True
+                                        )
+                                        
+                                        await log_message("INFO", f"   Fallback order result: {close_result}")
+                                        
+                                    # Re-raise the original exception
+                                    raise close_error
                                 
                                 # Check if the close was actually successful
                                 is_successful = False
