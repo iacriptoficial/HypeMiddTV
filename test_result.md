@@ -241,19 +241,25 @@ backend:
           comment: "✅ COMPREHENSIVE TESTING COMPLETED: Market order execution using exchange.market_open() method is working PERFECTLY! Verified TRUE market order execution with Order ID 35603030542 filled immediately at $174.81 for 0.2 SOL. The system correctly uses exchange.market_open() method and orders are filled immediately (not resting), confirming they are genuine market orders, not limit orders. Market order functionality is fully operational and meets all requirements."
 
   - task: "Market close method for position closing"
-    implemented: true
-    working: true
+    implemented: false
+    working: false
     file: "/app/backend/server.py"
-    stuck_count: 0
+    stuck_count: 1
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
+        - working: false
+          agent: "main"
+          comment: "❌ CRITICAL BUG IDENTIFIED: The clear_symbol_orders_and_positions function is using exchange.order() with IOC + reduce_only=True instead of exchange.market_close(). This causes 'Order could not immediately match against any resting orders' errors. User confirmed NOT a liquidity issue with $150K+ daily volume."
         - working: true
           agent: "main"
           comment: "✅ FIXED: Successfully implemented exchange.market_close() method for closing positions. The method now uses correct parameter 'coin' instead of 'name' and properly closes positions using market execution. Position inversion works correctly - closes existing positions before opening new ones."
         - working: true
           agent: "testing"
           comment: "✅ VERIFIED: Position management and inversion working correctly. System successfully processes position changes and handles position inversion (closing existing positions before opening new ones). Market close functionality is operational."
+        - working: false
+          agent: "user"
+          comment: "❌ REPORTED: Position clearing still failing with 'Order could not immediately match against any resting orders' error when trying to close -10.73 SOL position. User emphasized this is NOT liquidity issue."
 
   - task: "Take profit implementation (TP1 and TP2)"
     implemented: true
