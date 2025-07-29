@@ -985,13 +985,36 @@ async def clear_symbol_orders_and_positions(symbol: str, webhook_id: str):
                                     if response_data.get("type") == "order":
                                         statuses = response_data.get("data", {}).get("statuses", [])
                                         
-                                        for status in statuses:
-                                            if "error" in status:
-                                                error_message = status["error"]
-                                                break
-                                            elif "filled" in status or "resting" in status:
-                                                is_successful = True
-                                                break
+                                        # For market_close, check for successful execution
+                                        if statuses:
+                                            for status in statuses:
+                                                if isinstance(status, dict) and "error" in status:
+                                                    error_message = status["error"]
+                                                    break
+                                                elif "filled" in str(status).lower() or status == "success":
+                                                    is_successful = True
+                                                    break
+                                            
+                                            # If no explicit error found and we have a status, consider it successful
+                                            if not error_message and not is_successful and statuses:
+                                                # Check if the first status doesn't contain error
+                                                first_status = statuses[0]
+                                                if isinstance(first_status, dict):
+                                                    if "error" not in first_status:
+                                                        is_successful = True
+                                                else:
+                                                    if "error" not in str(first_status).lower():
+                                                        is_successful = True
+                                        else:
+                                            # No statuses but OK response - likely successful
+                                            is_successful = True
+                                    else:
+                                        # Non-order type response but OK status - likely successful
+                                        is_successful = True
+                                else:
+                                    # Extract error message from failed response
+                                    if close_result:
+                                        error_message = str(close_result.get("error", close_result))
                                 
                                 # Store the REAL Hyperliquid response with correct success/error
                                 close_response_data = {
