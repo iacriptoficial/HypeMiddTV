@@ -102,7 +102,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "User reported that market orders were showing as Limit orders in the exchange instead of true Market orders. After investigation and testing, the issue was resolved by implementing the dedicated `exchange.market_open()` method for market orders and `exchange.market_close()` method for position closing. The implementation now correctly executes market orders as true market orders (filled immediately) and limit orders as resting orders."
+user_problem_statement: "User reported persistent 'Order could not immediately match against any resting orders' error when trying to close positions (e.g., -10.73 SOL short position). Error occurs in clear_symbol_orders_and_positions function during position clearing phase. User confirmed this is NOT a liquidity issue despite $150K+ daily volume. Investigation revealed the function is using exchange.order() with IOC + reduce_only=True instead of the proper exchange.market_close() method. Need to fix position closing mechanism to use exchange.market_close() which is designed for closing positions."
 
 backend:
   - task: "Hyperliquid agent wallet to main account discovery"
