@@ -339,7 +339,7 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Market close method for position closing - CRITICAL: market_close() method implemented but failing with null response"
+    - "Market close method for position closing - ROOT CAUSE IDENTIFIED: market_close() returns None, fallback not triggered"
   stuck_tasks:
     - "Market close method for position closing"
   test_all: false
@@ -364,6 +364,8 @@ agent_communication:
       message: "🔍 ROOT CAUSE IDENTIFIED: The clear_symbol_orders_and_positions function is incorrectly using exchange.order() with IOC + reduce_only=True for position closing, causing 'Order could not immediately match' errors. The proper solution is to use exchange.market_close() method which is specifically designed for closing positions. This will be fixed immediately."
     - agent: "testing"
       message: "🎯 POSITION CLEARING MECHANISM TESTING COMPLETED! Key findings: 1) ✅ GOOD NEWS: The exchange.market_close() fix HAS been implemented correctly - logs confirm '🎯 Using exchange.market_close() to close position: -10.73 SOL', 2) ✅ GOOD NEWS: The original 'Order could not immediately match against any resting orders' error is NO LONGER occurring - that specific fix worked, 3) ❌ BAD NEWS: The market_close() method itself is failing with 'Unknown error' and returning null response from Hyperliquid, 4) ❌ IMPACT: All webhook attempts fail with 'Failed to clear existing positions' preventing new orders from executing, 5) 🔍 ROOT CAUSE: The market_close() call is failing silently - possibly due to invalid parameters, API changes, or connection issues. The position clearing logic is working correctly but the actual Hyperliquid market_close() method call needs debugging. The main agent should investigate the market_close() method parameters and error handling."
+    - agent: "testing"
+      message: "🎯 CRITICAL ROOT CAUSE IDENTIFIED! Enhanced testing with detailed error logging reveals the exact issue with the position clearing mechanism: 1) ✅ CONFIRMED: exchange.market_close() IS being called correctly (logs show '🎯 Using exchange.market_close() to close position: -10.73 SOL'), 2) ❌ PROBLEM: market_close() returns None/null instead of proper response (logs show 'market_close() completed, result type: <class 'NoneType'>' and 'market_close() raw result: None'), 3) ❌ FALLBACK ISSUE: The fallback mechanism exists but is NOT triggered because None return doesn't throw exception - only exceptions trigger fallback, 4) 🔍 CODE ISSUE: Line 1025 in server.py checks 'if close_result and close_result.get(\"status\") == \"ok\"' but when close_result is None, this fails and marks operation as failed without attempting fallback, 5) ✅ ORIGINAL FIX WORKED: The 'Order could not immediately match' error is completely resolved - this is a different issue. SOLUTION: Modify code to treat None response from market_close() as failure condition that triggers fallback to reduce_only orders."
 
 Technical_Details:
     issue_root_cause: "Private key was for an 'agent' wallet (API wallet) associated with main trading account, not the trading account itself"
