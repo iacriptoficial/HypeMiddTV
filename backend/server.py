@@ -1078,8 +1078,8 @@ async def clear_symbol_orders_and_positions(symbol: str, webhook_id: str):
                                     if close_result:
                                         error_message = str(close_result.get("error", close_result))
                                         # Check if we're using the fallback method
-                                        if "reduce_only" in str(close_result).lower():
-                                            method_used = "reduce_only_fallback"
+                                        if "market_open" in str(close_result).lower():
+                                            method_used = "market_open_fallback"
                                     else:
                                         error_message = "Unknown error - no response received"
                                 
