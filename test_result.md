@@ -333,12 +333,9 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Market order execution using exchange.market_open() method - WORKING"
-    - "Market close method for position closing - WORKING"
-    - "Order history and verification endpoints - WORKING"
-    - "Position inversion working correctly"
-    - "Take profit implementation - NEXT PHASE"
-  stuck_tasks: []
+    - "Market close method for position closing - CRITICAL BUG FIX NEEDED"
+  stuck_tasks:
+    - "Market close method for position closing"
   test_all: false
   test_priority: "high_first"
 
