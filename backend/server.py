@@ -1094,9 +1094,9 @@ async def clear_symbol_orders_and_positions(symbol: str, webhook_id: str):
                                         "symbol": symbol,
                                         "original_size": size,
                                         "close_quantity": close_quantity,
-                                        "close_method": method_used,  # Track actual method used (market_close or reduce_only_fallback)
+                                        "close_method": method_used,  # Track actual method used (market_close, market_open_fallback, etc)
                                         "direction": "closing_short" if size < 0 else "closing_long",
-                                        "fallback_used": method_used == "reduce_only_fallback"
+                                        "fallback_used": "fallback" in method_used
                                     },
                                     "hyperliquid_response": close_result,  # REAL response from Hyperliquid
                                     "error": error_message if error_message else None
