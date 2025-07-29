@@ -355,7 +355,7 @@ agent_communication:
     - agent: "user"
       message: "User reported: 'As ordens ainda estão como Market.' (Orders are still showing as Market) despite previous fixes. Also reported error: '❌ Error placing TP4 order: 'isMarket'' indicating the trigger order structure is incorrect."
     - agent: "main"
-      message: "🔄 IMPLEMENTING SIMPLE LIMIT ORDERS: Based on user feedback and research, implementing simple limit orders without triggers for TPs and Stop Loss. Using structure: {'type': 'limit', 'reduceOnly': true, 'price': 'X', 'size': 'Y'} instead of trigger orders. Market orders for entry will remain unchanged to ensure immediate execution."
+      message: "🔍 ROOT CAUSE IDENTIFIED: The clear_symbol_orders_and_positions function is incorrectly using exchange.order() with IOC + reduce_only=True for position closing, causing 'Order could not immediately match' errors. The proper solution is to use exchange.market_close() method which is specifically designed for closing positions. This will be fixed immediately."
     - agent: "testing"
       message: "🎯 SIMPLE LIMIT ORDERS IMPLEMENTATION FIXED AND VERIFIED! The user's 'isMarket' error has been completely resolved. Root cause: Missing order_type parameter in exchange.order() calls for TP and SL orders. Fixed by adding order_type={'limit': {'tif': 'Gtc'}} to all TP/SL order calls. Comprehensive testing confirms: 1) Stop Loss orders process without 'isMarket' errors, 2) All Take Profit orders (TP1-TP4) work correctly, 3) Complete order flow (entry + stop + multiple TPs) functions properly, 4) TP4 specific error case is resolved, 5) No trigger-related errors occur. Simple limit order implementation is working correctly and orders are placed as proper limit orders on Hyperliquid exchange."
 
