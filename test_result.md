@@ -342,7 +342,7 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Market close method for position closing - ROOT CAUSE IDENTIFIED: market_close() returns None, fallback not triggered"
+    - "Market close method for position closing - SOLUTION IDENTIFIED: Update fallback mechanism to use exchange.market_open() instead of exchange.order()"
   stuck_tasks:
     - "Market close method for position closing"
   test_all: false
