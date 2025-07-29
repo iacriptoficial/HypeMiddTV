@@ -1030,7 +1030,7 @@ def run_all_tests():
     """Run all tests and report results"""
     print("=" * 80)
     print("TRADINGVIEW TO HYPERLIQUID MIDDLEWARE BACKEND TESTS")
-    print("FOCUS: Clear logs functionality and Brazilian timezone testing")
+    print("FOCUS: Position clearing mechanism with exchange.market_close() fix")
     print("=" * 80)
     print(f"Testing against: {BASE_URL}")
     print(f"Test started at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
@@ -1047,7 +1047,11 @@ def run_all_tests():
     status_success = test_status_endpoint()
     results["Status Endpoint"] = status_success
     
-    # NEW: Test clear logs functionality (MAIN FOCUS OF REVIEW REQUEST)
+    # PRIORITY: Test position clearing mechanism (MAIN FOCUS OF REVIEW REQUEST)
+    position_clearing_success = test_position_clearing_mechanism()
+    results["Position Clearing Mechanism"] = position_clearing_success
+    
+    # Test clear logs functionality
     clear_logs_success = test_clear_logs_functionality()
     results["Clear Logs Functionality"] = clear_logs_success
     
@@ -1092,7 +1096,7 @@ def run_all_tests():
         if not passed:
             all_passed = False
             # Mark critical failures
-            if test_name in ["Clear Logs Functionality", "Logs Endpoint", "Webhook Endpoint", "Hyperliquid Connection", "Status Endpoint"]:
+            if test_name in ["Position Clearing Mechanism", "Hyperliquid Connection", "Status Endpoint", "Webhook Endpoint"]:
                 critical_failures.append(test_name)
     
     print(f"\nOVERALL RESULT: {'✅ ALL TESTS PASSED' if all_passed else '❌ SOME TESTS FAILED'}")
@@ -1100,6 +1104,13 @@ def run_all_tests():
     if critical_failures:
         print(f"\n🚨 CRITICAL FAILURES: {', '.join(critical_failures)}")
         print("These are the key areas mentioned in the review request that need attention.")
+        
+        # Special focus on position clearing
+        if "Position Clearing Mechanism" in critical_failures:
+            print("\n🚨 POSITION CLEARING MECHANISM FAILED:")
+            print("   - The exchange.market_close() fix may not be working properly")
+            print("   - 'Order could not immediately match' error may still be occurring")
+            print("   - Position inversion (close existing -> place new) may be failing")
     
     print("=" * 80)
     
