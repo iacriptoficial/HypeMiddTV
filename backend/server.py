@@ -1006,21 +1006,21 @@ async def clear_symbol_orders_and_positions(symbol: str, webhook_id: str):
                                     except Exception as minimal_error:
                                         await log_message("ERROR", f"❌ Minimal parameter attempt also failed: {str(minimal_error)}")
                                         
-                                        # FINAL FALLBACK: Use the old reduce_only order method
-                                        await log_message("WARNING", f"🔄 Falling back to reduce_only order method...")
+                                        # FINAL FALLBACK: Use market_open method for closing positions
+                                        await log_message("WARNING", f"🔄 Falling back to market_open method for closing...")
                                         
-                                        # Get current market price for fallback
-                                        current_price = 175.0 if symbol == 'SOL' else 3000.0 if symbol == 'ETH' else 100000.0
-                                        is_buy = size < 0  # Buy to close short, sell to close long
-                                        fill_price = current_price * 1.05 if is_buy else current_price * 0.95
+                                        # Use market_open with appropriate side for closing the position
+                                        # If size < 0 (short), we need to BUY to close
+                                        # If size > 0 (long), we need to SELL to close
+                                        is_buy_to_close = size < 0
                                         
-                                        close_result = exchange.order(
+                                        close_result = exchange.market_open(
                                             name=symbol,
-                                            is_buy=is_buy,
+                                            is_buy=is_buy_to_close,
                                             sz=close_quantity,
-                                            limit_px=fill_price,
-                                            order_type={"limit": {"tif": "Ioc"}},
-                                            reduce_only=True
+                                            px=None,  # Use market price
+                                            slippage=0.05,  # 5% slippage
+                                            cloid=None
                                         )
                                         
                                         await log_message("INFO", f"   Fallback order result: {close_result}")
