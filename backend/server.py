@@ -961,7 +961,7 @@ async def clear_symbol_orders_and_positions(symbol: str, webhook_id: str):
                             is_buy = size < 0  # Buy to close short, sell to close long
                             close_quantity = abs(size)
                             
-                            await log_message("INFO", f"🔄 Closing position: {size} {symbol} using reduce_only order")
+                            await log_message("INFO", f"🔄 Closing position: {size} {symbol} using market_close method")
                             
                             try:
                                 # Use exchange.market_close() method for proper position closing
