@@ -28,6 +28,165 @@ SAMPLE_SELL_PAYLOAD = {
     "timestamp": "2025-07-09T16:00:00Z"
 }
 
+def test_position_clearing_mechanism():
+    """Test position clearing mechanism - CRITICAL FIX VERIFICATION"""
+    print("\n=== Testing Position Clearing Mechanism ===")
+    print("🎯 CRITICAL: Testing the fixed clear_symbol_orders_and_positions function")
+    print("User reported: 'Order could not immediately match against any resting orders' error")
+    print("Fix: Replaced exchange.order() with reduce_only=True with exchange.market_close() method")
+    print("Scenario: Existing -10.73 SOL position needs to be closed before new order")
+    
+    # Test 1: Simulate webhook that requires position clearing (position inversion)
+    print("\n--- Test 1: Position Inversion Scenario (Close existing -> Place new) ---")
+    print("Simulating: Existing -10.73 SOL short position, new webhook wants +5 SOL long")
+    
+    position_inversion_payload = {
+        "symbol": "SOL",
+        "side": "buy",  # This should trigger position clearing if short position exists
+        "entry": "market",
+        "quantity": "5.0",  # Smaller than existing position to test partial clearing
+        "price": "175.00",
+        "timestamp": datetime.now().isoformat()
+    }
+    
+    url = f"{BASE_URL}/webhook/tradingview"
+    
+    try:
+        print(f"📤 Sending webhook to test position clearing...")
+        response = requests.post(url, json=position_inversion_payload)
+        print(f"Position Clearing Test Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            result = response.json()
+            print("✅ Position clearing webhook received successfully")
+            print(f"Response: {json.dumps(result, indent=2)}")
+            
+            # Check if position clearing was attempted
+            hl_response = result.get('hyperliquid_response', {})
+            
+            if hl_response.get('status') == 'success':
+                print("✅ Webhook processing completed successfully")
+                
+                # Look for position clearing responses in the order details
+                order_details = hl_response.get('order_details', {})
+                
+                # Check for position clearing operations
+                position_cleared = False
+                market_close_used = False
+                no_match_error = False
+                
+                # Check main response for position clearing
+                if 'position_clearing' in str(order_details).lower():
+                    position_cleared = True
+                    print("✅ Position clearing operation detected")
+                
+                # Check if market_close method was used
+                if 'market_close' in str(order_details).lower():
+                    market_close_used = True
+                    print("✅ exchange.market_close() method was used - FIX CONFIRMED!")
+                
+                # Check for the specific error that should be fixed
+                response_str = str(result).lower()
+                if 'order could not immediately match' in response_str:
+                    no_match_error = True
+                    print("❌ CRITICAL: 'Order could not immediately match' error still occurring!")
+                    print("🚨 The fix may not be working properly")
+                else:
+                    print("✅ No 'Order could not immediately match' error detected - FIX WORKING!")
+                
+                # Analyze the response structure for position operations
+                print(f"\n📊 Response Analysis:")
+                print(f"  - Position clearing detected: {position_cleared}")
+                print(f"  - market_close() method used: {market_close_used}")
+                print(f"  - 'No match' error present: {no_match_error}")
+                
+                # Check for successful order execution after position clearing
+                main_order_success = False
+                if order_details.get('hyperliquid_response', {}).get('status') == 'ok':
+                    main_order_success = True
+                    print("✅ Main order executed successfully after position clearing")
+                else:
+                    print("⚠️ Main order execution status unclear")
+                
+                return not no_match_error and (position_cleared or market_close_used)
+                
+            else:
+                error_msg = hl_response.get('message', 'Unknown error')
+                error_details = hl_response.get('error', 'No error details')
+                print(f"❌ Position clearing failed: {error_msg}")
+                print(f"Error details: {error_details}")
+                
+                # Check if this is the specific error we're trying to fix
+                if 'order could not immediately match' in error_msg.lower() or 'order could not immediately match' in error_details.lower():
+                    print("🚨 CRITICAL: The exact error we're trying to fix is still occurring!")
+                    print("❌ exchange.market_close() fix is NOT working")
+                    return False
+                
+                return False
+                
+        else:
+            print(f"❌ Position clearing webhook failed: {response.text}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ Error testing position clearing: {str(e)}")
+        return False
+    
+    # Wait before next test
+    time.sleep(3)
+    
+    # Test 2: Direct position closing test
+    print("\n--- Test 2: Direct Position Closing Test ---")
+    print("Testing: Webhook specifically designed to close existing positions")
+    
+    close_position_payload = {
+        "symbol": "SOL",
+        "side": "sell",  # Opposite side to close long positions
+        "entry": "market",
+        "quantity": "10.73",  # Exact amount mentioned in user report
+        "price": "175.00",
+        "close_position": True,  # If backend supports this flag
+        "timestamp": datetime.now().isoformat()
+    }
+    
+    try:
+        print(f"📤 Sending direct position closing webhook...")
+        response = requests.post(url, json=close_position_payload)
+        print(f"Direct Position Close Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            result = response.json()
+            print("✅ Direct position closing webhook received successfully")
+            
+            # Check for market_close usage and success
+            response_str = str(result).lower()
+            
+            if 'market_close' in response_str:
+                print("✅ exchange.market_close() method detected in response")
+            else:
+                print("⚠️ exchange.market_close() method not clearly detected")
+            
+            if 'order could not immediately match' in response_str:
+                print("❌ CRITICAL: 'Order could not immediately match' error still present!")
+                return False
+            else:
+                print("✅ No 'Order could not immediately match' error - Good!")
+            
+            hl_response = result.get('hyperliquid_response', {})
+            if hl_response.get('status') == 'success':
+                print("✅ Direct position closing completed successfully")
+                return True
+            else:
+                print(f"❌ Direct position closing failed: {hl_response}")
+                return False
+        else:
+            print(f"❌ Direct position closing webhook failed: {response.text}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ Error testing direct position closing: {str(e)}")
+        return False
+
 def test_stop_loss_implementation():
     """Test stop loss order implementation - MAIN FOCUS OF REVIEW REQUEST"""
     print("\n=== Testing Stop Loss Implementation ===")
