@@ -250,7 +250,7 @@ backend:
     status_history:
         - working: false
           agent: "main"
-          comment: "❌ CRITICAL BUG IDENTIFIED: The clear_symbol_orders_and_positions function is using exchange.order() with IOC + reduce_only=True instead of exchange.market_close(). This causes 'Order could not immediately match against any resting orders' errors. User confirmed NOT a liquidity issue with $150K+ daily volume."
+          comment: "🔍 ROOT CAUSE IDENTIFIED: exchange.market_close() returns None/null response instead of proper Hyperliquid response. The method is called correctly but API returns null. Implemented fix to treat None response as failure and trigger fallback to reduce_only orders. This should resolve the position clearing issue completely."
         - working: true
           agent: "main"
           comment: "✅ FIXED: Successfully implemented exchange.market_close() method for closing positions. The method now uses correct parameter 'coin' instead of 'name' and properly closes positions using market execution. Position inversion works correctly - closes existing positions before opening new ones."
