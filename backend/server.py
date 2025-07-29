@@ -1130,7 +1130,7 @@ async def clear_symbol_orders_and_positions(symbol: str, webhook_id: str):
                                         "symbol": symbol,
                                         "original_size": size,
                                         "close_method": method_used,
-                                        "fallback_used": method_used == "reduce_only_fallback"
+                                        "fallback_used": "fallback" in method_used
                                     }
                                 }
                                 
