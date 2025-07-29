@@ -241,12 +241,12 @@ backend:
           comment: "✅ COMPREHENSIVE TESTING COMPLETED: Market order execution using exchange.market_open() method is working PERFECTLY! Verified TRUE market order execution with Order ID 35603030542 filled immediately at $174.81 for 0.2 SOL. The system correctly uses exchange.market_open() method and orders are filled immediately (not resting), confirming they are genuine market orders, not limit orders. Market order functionality is fully operational and meets all requirements."
 
   - task: "Market close method for position closing"
-    implemented: false
+    implemented: true
     working: false
     file: "/app/backend/server.py"
     stuck_count: 1
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: false
           agent: "main"
@@ -260,6 +260,9 @@ backend:
         - working: false
           agent: "user"
           comment: "❌ REPORTED: Position clearing still failing with 'Order could not immediately match against any resting orders' error when trying to close -10.73 SOL position. User emphasized this is NOT liquidity issue."
+        - working: false
+          agent: "testing"
+          comment: "❌ CRITICAL ISSUE CONFIRMED: Position clearing mechanism is failing. GOOD NEWS: exchange.market_close() method IS implemented and being used correctly (logs show '🎯 Using exchange.market_close() to close position: -10.73 SOL'). BAD NEWS: The market_close() call is failing with 'Unknown error' and returning null response. The original 'Order could not immediately match' error is NOT occurring anymore - the fix worked for that part. However, the market_close() method itself is failing silently, possibly due to: 1) Exception in market_close() call, 2) Invalid parameters, 3) Hyperliquid API issue, 4) Network/connection problem. All webhook attempts result in 'Failed to clear existing positions' preventing new orders from executing."
 
   - task: "Take profit implementation (TP1 and TP2)"
     implemented: true
