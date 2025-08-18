@@ -857,7 +857,7 @@ async def handle_tradingview_webhook(request: Request):
         # Forward to Hyperliquid
         try:
             await log_message("INFO", "🚀 FORWARDING TO HYPERLIQUID")
-            hyperliquid_response = await forward_to_hyperliquid(webhook_msg.id, payload)
+            hyperliquid_response = await forward_to_hyperliquid(webhook_msg.id, payload, strategy_id)
             stats['successful_forwards'] += 1
             
             await log_message("INFO", "✅ HYPERLIQUID FORWARD SUCCESS")
