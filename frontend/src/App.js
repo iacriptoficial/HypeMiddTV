@@ -874,6 +874,9 @@ function App() {
                         }`}>
                           {webhook.status}
                         </span>
+                        <span className="px-2 py-1 rounded text-xs bg-purple-700 text-purple-200">
+                          {webhook.strategy_id || 'OTHERS'}
+                        </span>
                       </div>
                       <button
                         onClick={() => reExecuteWebhook(webhook)}
