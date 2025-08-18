@@ -339,11 +339,15 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Strategy segmentation system by strategy_id - VERIFIED WORKING: Complete system with auto-segmentation, rule center, API endpoints, auto-filters, and visual interface support"
-    - "Market close method for position closing - VERIFIED WORKING: Both exchange.market_close() and fallback exchange.market_open() methods are functional"
+    - "Sistema de segmentação por strategy_id - COMPLETO E FUNCIONAL"
+    - "IMBA_HYPER strategy with max_position_size=100.0"
+    - "OTHERS default strategy with max_position_size=50.0"
+    - "Auto-discovery de novas estratégias funcionando"
+    - "Filtros automáticos nas abas Webhooks e Responses"
+    - "API endpoints /api/strategies completos e operacionais"
   stuck_tasks: []
   test_all: false
-  test_priority: "high_first"
+  test_priority: "completed"
 
 agent_communication:
     - agent: "main"
