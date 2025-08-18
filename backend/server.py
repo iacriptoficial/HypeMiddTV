@@ -2827,7 +2827,8 @@ async def get_hyperliquid_responses(limit: int = 50, strategy_ids: Optional[str]
                 "webhook_id": response.get("webhook_id"),
                 "response_data": response.get("response_data"),
                 "status": response.get("status"),
-                "error": response.get("error")
+                "error": response.get("error"),
+                "strategy_id": response.get("strategy_id", "OTHERS")
             }
             responses_data.append(response_data)
             
