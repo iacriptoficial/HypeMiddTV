@@ -99,6 +99,7 @@ class WebhookMessage(BaseModel):
     payload: Dict[str, Any]
     status: str = "received"
     error: Optional[str] = None
+    strategy_id: Optional[str] = "OTHERS"  # Strategy segmentation
 
 class HyperliquidResponse(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -107,6 +108,16 @@ class HyperliquidResponse(BaseModel):
     response_data: Dict[str, Any]
     status: str = "sent"
     error: Optional[str] = None
+    strategy_id: Optional[str] = "OTHERS"  # Strategy segmentation
+
+class StrategyRule(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    strategy_id: str
+    rule_name: str
+    rule_config: Dict[str, Any] = {}
+    enabled: bool = True
+    created_at: str = Field(default_factory=lambda: get_brazil_time().isoformat())
+    updated_at: str = Field(default_factory=lambda: get_brazil_time().isoformat())
 
 class ServerStatus(BaseModel):
     status: str
