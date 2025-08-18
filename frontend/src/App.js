@@ -884,7 +884,11 @@ function App() {
                   </div>
                 ))}
                 {responses.length === 0 && (
-                  <div className="text-center text-gray-500 py-8">No responses available</div>
+                  <div className="text-center text-gray-500 py-8">
+                    {Object.values(selectedStrategies).some(Boolean) 
+                      ? "Nenhuma response encontrada para as estratégias selecionadas" 
+                      : "Selecione uma ou mais estratégias nos filtros acima para ver as responses"}
+                  </div>
                 )}
                 </div>
               </div>
