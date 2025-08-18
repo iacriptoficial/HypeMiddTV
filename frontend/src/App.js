@@ -827,7 +827,11 @@ function App() {
                   </div>
                 ))}
                 {webhooks.length === 0 && (
-                  <div className="text-center text-gray-500 py-8">No webhooks received</div>
+                  <div className="text-center text-gray-500 py-8">
+                    {Object.values(selectedStrategies).some(Boolean) 
+                      ? "Nenhum webhook encontrado para as estratégias selecionadas" 
+                      : "Selecione uma ou mais estratégias nos filtros acima para ver os webhooks"}
+                  </div>
                 )}
                 </div>
               </div>
