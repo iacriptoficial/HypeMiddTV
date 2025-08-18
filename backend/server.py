@@ -197,8 +197,9 @@ class StrategyManager:
         await log_message("INFO", f"🔄 Nova estratégia descoberta automaticamente: {strategy_id}")
     
     def get_all_strategy_ids(self) -> List[str]:
-        """Get all known strategy IDs"""
-        return list(self.strategies.keys())
+        """Get all known strategy IDs, excluding test strategies"""
+        excluded_strategies = ['TEST_STRATEGY_1755553991', 'TEST_STRATEGY_1755552323']
+        return [sid for sid in self.strategies.keys() if sid not in excluded_strategies]
     
     def is_strategy_enabled(self, strategy_id: str) -> bool:
         """Check if strategy is enabled"""
