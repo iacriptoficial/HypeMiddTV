@@ -108,8 +108,14 @@ function App() {
     try {
       // Build strategy filter parameter
       const activeStrategies = Object.keys(selectedStrategies).filter(id => selectedStrategies[id]);
-      const strategyParam = activeStrategies.length > 0 ? `&strategy_ids=${activeStrategies.join(',')}` : '';
       
+      // Se nenhuma estratégia está selecionada, não buscar dados (mostrar vazio)
+      if (activeStrategies.length === 0) {
+        setWebhooks([]);
+        return;
+      }
+      
+      const strategyParam = `&strategy_ids=${activeStrategies.join(',')}`;
       const response = await axios.get(`${API}/webhooks?limit=${limit}${strategyParam}`);
       setWebhooks(response.data.webhooks);
     } catch (err) {
@@ -121,8 +127,14 @@ function App() {
     try {
       // Build strategy filter parameter
       const activeStrategies = Object.keys(selectedStrategies).filter(id => selectedStrategies[id]);
-      const strategyParam = activeStrategies.length > 0 ? `&strategy_ids=${activeStrategies.join(',')}` : '';
       
+      // Se nenhuma estratégia está selecionada, não buscar dados (mostrar vazio)
+      if (activeStrategies.length === 0) {
+        setResponses([]);
+        return;
+      }
+      
+      const strategyParam = `&strategy_ids=${activeStrategies.join(',')}`;
       const response = await axios.get(`${API}/responses?limit=${limit}${strategyParam}`);
       setResponses(response.data.responses);
     } catch (err) {
