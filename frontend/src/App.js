@@ -166,11 +166,10 @@ function App() {
       const ids = response.data.strategy_ids;
       setAvailableStrategyIds(ids);
       
-      // Initialize selectedStrategies with all strategies DISABLED by default
-      // This prevents the auto-refresh from showing unfiltered data
+      // Initialize selectedStrategies with PRIMEIRO filtro ATIVO por padrão
       const initialSelection = {};
-      ids.forEach(id => {
-        initialSelection[id] = false;
+      ids.forEach((id, index) => {
+        initialSelection[id] = index === 0; // Apenas o primeiro ativo
       });
       setSelectedStrategies(initialSelection);
     } catch (err) {
