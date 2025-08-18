@@ -1753,11 +1753,25 @@ def format_price_with_px_decimals(price: float, px_decimals: int) -> float:
     """
     return truncate_to_decimals(price, px_decimals)
 
-async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
+async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any], strategy_id: str = "OTHERS"):
     """Forward the webhook payload to Hyperliquid and execute real trades"""
     try:
-        await log_message("INFO", f"🚀 Processing TradingView webhook {webhook_id}")
+        await log_message("INFO", f"🚀 Processing TradingView webhook {webhook_id} [Strategy: {strategy_id}]")
         await log_message("INFO", f"📊 Payload received: {payload}")
+        
+        # Get strategy configuration
+        strategy_config = strategy_manager.get_strategy(strategy_id)
+        
+        # Check if strategy is enabled
+        if not strategy_manager.is_strategy_enabled(strategy_id):
+            await log_message("WARNING", f"🚫 Strategy {strategy_id} is disabled, skipping execution")
+            return {
+                "status": "skipped",
+                "message": f"Strategy {strategy_id} is disabled",
+                "strategy_id": strategy_id
+            }
+        
+        await log_message("INFO", f"⚙️ Using strategy configuration: {strategy_config['name']}")
         
         # Parse the TradingView payload - NEW FORMAT
         symbol = payload.get("symbol", "").upper()  # SOL, BTC, ETH, etc.
@@ -1766,6 +1780,15 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any]):
         raw_quantity = float(payload.get("quantity", 0))
         raw_price = float(payload.get("price", 0)) if payload.get("price") else None  # Price for limit orders
         stop_price = float(payload.get("stop", 0)) if payload.get("stop") else None  # Stop loss price
+        
+        # Apply strategy-specific rules
+        strategy_rules = strategy_config.get("rules", {})
+        max_position_size = strategy_rules.get("max_position_size", 100.0)
+        
+        # Validate position size against strategy limits
+        if raw_quantity > max_position_size:
+            await log_message("WARNING", f"⚠️ Position size {raw_quantity} exceeds strategy limit {max_position_size}, adjusting")
+            raw_quantity = max_position_size
         
         # Parse take profit levels
         tp1_price = float(payload.get("tp1_price", 0)) if payload.get("tp1_price") else None
