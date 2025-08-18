@@ -362,11 +362,10 @@ function App() {
       await Promise.allSettled([
         loadWithTimeout(fetchStatus, 'status'),
         loadWithTimeout(fetchLogs, 'logs'),
-        loadWithTimeout(fetchWebhooks, 'webhooks'),
-        loadWithTimeout(fetchResponses, 'responses'),
         loadWithTimeout(fetchEnvironment, 'environment'),
         loadWithTimeout(fetchStrategies, 'strategies'),
         loadWithTimeout(fetchStrategyIds, 'strategy_ids')
+        // Não carregar webhooks/responses inicialmente - aguardar seleção de filtros
       ]);
       
       setLoading(false);
