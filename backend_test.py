@@ -1126,6 +1126,365 @@ def test_responses_endpoint():
         print("❌ CRITICAL: Serialization issues NOT fixed - exception occurred")
         return False
 
+def test_strategy_filters_fixed():
+    """Test the FIXED strategy filters - MAIN FOCUS OF CURRENT REVIEW REQUEST"""
+    print("\n=== Testing FIXED Strategy Filters ===")
+    print("🎯 CRITICAL: Testing strategy filters that were recently corrected")
+    print("User reported: Filters not working correctly - IMBA_HYPER showed 2 records initially")
+    print("then several unrelated records appeared after a few seconds")
+    print("CORRECTIONS IMPLEMENTED:")
+    print("1. Simplified interface - removed 'mark/unmark all' buttons")
+    print("2. Fixed auto-refresh problem that ignored filters")
+    print("3. Initialization with all strategies DISABLED by default")
+    print("4. Added 'Update' button for manual refresh")
+    print("5. Better handling of empty filters")
+    
+    # Test 1: Test IMBA_HYPER filter specifically
+    print("\n--- Test 1: IMBA_HYPER Filter (User's Reported Issue) ---")
+    
+    # First, create some test data with IMBA_HYPER strategy
+    webhook_url = f"{BASE_URL}/webhook/tradingview"
+    
+    # Create IMBA_HYPER webhook
+    imba_webhook = {
+        "symbol": "SOL",
+        "side": "buy",
+        "entry": "market",
+        "quantity": "0.5",
+        "price": "175.00",
+        "strategy_id": "IMBA_HYPER",
+        "timestamp": datetime.now().isoformat()
+    }
+    
+    try:
+        print("📤 Creating IMBA_HYPER webhook for testing...")
+        response = requests.post(webhook_url, json=imba_webhook)
+        if response.status_code == 200:
+            imba_webhook_id = response.json().get('webhook_id')
+            print(f"✅ IMBA_HYPER webhook created: {imba_webhook_id}")
+        else:
+            print(f"❌ Failed to create IMBA_HYPER webhook: {response.text}")
+            return False
+    except Exception as e:
+        print(f"❌ Error creating IMBA_HYPER webhook: {str(e)}")
+        return False
+    
+    # Create OTHERS webhook for comparison
+    others_webhook = {
+        "symbol": "BTC",
+        "side": "sell",
+        "entry": "market",
+        "quantity": "0.01",
+        "price": "45000.00",
+        # No strategy_id - should default to OTHERS
+        "timestamp": datetime.now().isoformat()
+    }
+    
+    try:
+        print("📤 Creating OTHERS webhook for testing...")
+        response = requests.post(webhook_url, json=others_webhook)
+        if response.status_code == 200:
+            others_webhook_id = response.json().get('webhook_id')
+            print(f"✅ OTHERS webhook created: {others_webhook_id}")
+        else:
+            print(f"❌ Failed to create OTHERS webhook: {response.text}")
+            return False
+    except Exception as e:
+        print(f"❌ Error creating OTHERS webhook: {str(e)}")
+        return False
+    
+    # Wait for processing
+    time.sleep(2)
+    
+    # Test IMBA_HYPER filter - this was the user's main complaint
+    print("\n🔍 Testing IMBA_HYPER filter (User's reported issue)...")
+    imba_filter_url = f"{BASE_URL}/webhooks?strategy_ids=IMBA_HYPER"
+    
+    try:
+        response = requests.get(imba_filter_url)
+        print(f"IMBA_HYPER Filter Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            data = response.json()
+            webhooks = data.get('webhooks', [])
+            print(f"✅ IMBA_HYPER filter returned {len(webhooks)} webhooks")
+            
+            # Critical check: Verify NO data leakage
+            imba_count = 0
+            leaked_count = 0
+            leaked_strategies = set()
+            
+            for webhook in webhooks:
+                strategy_id = webhook.get('strategy_id')
+                if strategy_id == 'IMBA_HYPER':
+                    imba_count += 1
+                else:
+                    leaked_count += 1
+                    leaked_strategies.add(strategy_id)
+            
+            print(f"📊 Filter Results Analysis:")
+            print(f"  - IMBA_HYPER webhooks: {imba_count}")
+            print(f"  - Leaked webhooks: {leaked_count}")
+            if leaked_strategies:
+                print(f"  - Leaked strategy_ids: {list(leaked_strategies)}")
+            
+            # This is the CRITICAL test - no data leakage
+            if leaked_count == 0:
+                print("✅ PERFECT: No data leakage detected in IMBA_HYPER filter!")
+                print("✅ User's reported issue appears to be FIXED!")
+            else:
+                print(f"❌ CRITICAL: Data leakage detected! {leaked_count} non-IMBA_HYPER webhooks returned")
+                print(f"❌ This confirms user's report - filter is NOT working correctly")
+                print(f"❌ Leaked strategies: {list(leaked_strategies)}")
+                return False
+            
+            # Verify our test webhook is included
+            found_test_webhook = False
+            for webhook in webhooks:
+                if webhook.get('id') == imba_webhook_id:
+                    found_test_webhook = True
+                    break
+            
+            if found_test_webhook:
+                print("✅ Test IMBA_HYPER webhook correctly included in filter results")
+            else:
+                print("❌ Test IMBA_HYPER webhook missing from filter results")
+                return False
+                
+        else:
+            print(f"❌ IMBA_HYPER filter failed: {response.text}")
+            return False
+    except Exception as e:
+        print(f"❌ Error testing IMBA_HYPER filter: {str(e)}")
+        return False
+    
+    # Test 2: Test OTHERS filter
+    print("\n--- Test 2: OTHERS Filter ---")
+    
+    others_filter_url = f"{BASE_URL}/webhooks?strategy_ids=OTHERS"
+    
+    try:
+        response = requests.get(others_filter_url)
+        print(f"OTHERS Filter Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            data = response.json()
+            webhooks = data.get('webhooks', [])
+            print(f"✅ OTHERS filter returned {len(webhooks)} webhooks")
+            
+            # Check for data leakage
+            others_count = 0
+            leaked_count = 0
+            leaked_strategies = set()
+            
+            for webhook in webhooks:
+                strategy_id = webhook.get('strategy_id')
+                if strategy_id == 'OTHERS':
+                    others_count += 1
+                else:
+                    leaked_count += 1
+                    leaked_strategies.add(strategy_id)
+            
+            print(f"📊 OTHERS Filter Results:")
+            print(f"  - OTHERS webhooks: {others_count}")
+            print(f"  - Leaked webhooks: {leaked_count}")
+            if leaked_strategies:
+                print(f"  - Leaked strategy_ids: {list(leaked_strategies)}")
+            
+            if leaked_count == 0:
+                print("✅ No data leakage in OTHERS filter")
+            else:
+                print(f"❌ Data leakage in OTHERS filter: {leaked_count} non-OTHERS webhooks")
+                return False
+            
+            # Verify our test webhook is included
+            found_test_webhook = False
+            for webhook in webhooks:
+                if webhook.get('id') == others_webhook_id:
+                    found_test_webhook = True
+                    break
+            
+            if found_test_webhook:
+                print("✅ Test OTHERS webhook correctly included in filter results")
+            else:
+                print("❌ Test OTHERS webhook missing from filter results")
+                return False
+                
+        else:
+            print(f"❌ OTHERS filter failed: {response.text}")
+            return False
+    except Exception as e:
+        print(f"❌ Error testing OTHERS filter: {str(e)}")
+        return False
+    
+    # Test 3: Test combined filter (IMBA_HYPER,OTHERS)
+    print("\n--- Test 3: Combined Filter (IMBA_HYPER,OTHERS) ---")
+    
+    combined_filter_url = f"{BASE_URL}/webhooks?strategy_ids=IMBA_HYPER,OTHERS"
+    
+    try:
+        response = requests.get(combined_filter_url)
+        print(f"Combined Filter Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            data = response.json()
+            webhooks = data.get('webhooks', [])
+            print(f"✅ Combined filter returned {len(webhooks)} webhooks")
+            
+            # Check for data leakage
+            valid_strategies = {'IMBA_HYPER', 'OTHERS'}
+            valid_count = 0
+            leaked_count = 0
+            leaked_strategies = set()
+            
+            for webhook in webhooks:
+                strategy_id = webhook.get('strategy_id')
+                if strategy_id in valid_strategies:
+                    valid_count += 1
+                else:
+                    leaked_count += 1
+                    leaked_strategies.add(strategy_id)
+            
+            print(f"📊 Combined Filter Results:")
+            print(f"  - Valid webhooks (IMBA_HYPER/OTHERS): {valid_count}")
+            print(f"  - Leaked webhooks: {leaked_count}")
+            if leaked_strategies:
+                print(f"  - Leaked strategy_ids: {list(leaked_strategies)}")
+            
+            if leaked_count == 0:
+                print("✅ No data leakage in combined filter")
+            else:
+                print(f"❌ Data leakage in combined filter: {leaked_count} invalid webhooks")
+                return False
+            
+            # Verify both test webhooks are included
+            found_imba = False
+            found_others = False
+            for webhook in webhooks:
+                webhook_id = webhook.get('id')
+                if webhook_id == imba_webhook_id:
+                    found_imba = True
+                elif webhook_id == others_webhook_id:
+                    found_others = True
+            
+            if found_imba and found_others:
+                print("✅ Both test webhooks correctly included in combined filter")
+            else:
+                print(f"❌ Missing test webhooks - IMBA: {found_imba}, OTHERS: {found_others}")
+                return False
+                
+        else:
+            print(f"❌ Combined filter failed: {response.text}")
+            return False
+    except Exception as e:
+        print(f"❌ Error testing combined filter: {str(e)}")
+        return False
+    
+    # Test 4: Test responses filtering (same issue could affect responses)
+    print("\n--- Test 4: Responses Filter Testing ---")
+    
+    # Test IMBA_HYPER responses filter
+    imba_responses_url = f"{BASE_URL}/responses?strategy_ids=IMBA_HYPER"
+    
+    try:
+        response = requests.get(imba_responses_url)
+        print(f"IMBA_HYPER Responses Filter Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            data = response.json()
+            responses = data.get('responses', [])
+            print(f"✅ IMBA_HYPER responses filter returned {len(responses)} responses")
+            
+            # Check for data leakage in responses
+            imba_count = 0
+            leaked_count = 0
+            leaked_strategies = set()
+            
+            for response_item in responses:
+                strategy_id = response_item.get('strategy_id')
+                if strategy_id == 'IMBA_HYPER':
+                    imba_count += 1
+                else:
+                    leaked_count += 1
+                    leaked_strategies.add(strategy_id)
+            
+            print(f"📊 IMBA_HYPER Responses Filter:")
+            print(f"  - IMBA_HYPER responses: {imba_count}")
+            print(f"  - Leaked responses: {leaked_count}")
+            if leaked_strategies:
+                print(f"  - Leaked strategy_ids: {list(leaked_strategies)}")
+            
+            if leaked_count == 0:
+                print("✅ No data leakage in IMBA_HYPER responses filter")
+            else:
+                print(f"❌ Data leakage in IMBA_HYPER responses filter: {leaked_count} invalid responses")
+                return False
+                
+        else:
+            print(f"❌ IMBA_HYPER responses filter failed: {response.text}")
+            return False
+    except Exception as e:
+        print(f"❌ Error testing IMBA_HYPER responses filter: {str(e)}")
+        return False
+    
+    # Test 5: Test empty filter (should return all)
+    print("\n--- Test 5: Empty Filter (Should Return All) ---")
+    
+    all_webhooks_url = f"{BASE_URL}/webhooks"
+    
+    try:
+        response = requests.get(all_webhooks_url)
+        print(f"All Webhooks Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            data = response.json()
+            all_webhooks = data.get('webhooks', [])
+            print(f"✅ All webhooks endpoint returned {len(all_webhooks)} webhooks")
+            
+            # This should include both our test webhooks
+            found_imba = False
+            found_others = False
+            strategy_counts = {}
+            
+            for webhook in all_webhooks:
+                webhook_id = webhook.get('id')
+                strategy_id = webhook.get('strategy_id', 'None')
+                
+                strategy_counts[strategy_id] = strategy_counts.get(strategy_id, 0) + 1
+                
+                if webhook_id == imba_webhook_id:
+                    found_imba = True
+                elif webhook_id == others_webhook_id:
+                    found_others = True
+            
+            print(f"📊 All Webhooks Strategy Distribution:")
+            for strategy, count in strategy_counts.items():
+                print(f"  - {strategy}: {count} webhooks")
+            
+            if found_imba and found_others:
+                print("✅ Both test webhooks found in unfiltered results")
+            else:
+                print(f"❌ Missing test webhooks in unfiltered results - IMBA: {found_imba}, OTHERS: {found_others}")
+                return False
+                
+        else:
+            print(f"❌ All webhooks endpoint failed: {response.text}")
+            return False
+    except Exception as e:
+        print(f"❌ Error testing all webhooks endpoint: {str(e)}")
+        return False
+    
+    print("\n✅ STRATEGY FILTERS TESTING COMPLETED SUCCESSFULLY!")
+    print("🎯 KEY FINDINGS:")
+    print("✅ IMBA_HYPER filter working correctly - no data leakage detected")
+    print("✅ OTHERS filter working correctly - no data leakage detected")
+    print("✅ Combined filters working correctly - no data leakage detected")
+    print("✅ Responses filters working correctly - no data leakage detected")
+    print("✅ Empty filters working correctly - returns all data")
+    print("🎉 USER'S REPORTED ISSUE APPEARS TO BE FIXED!")
+    
+    return True
+
 def test_strategy_segmentation_system():
     """Test the complete strategy segmentation system - MAIN FOCUS OF REVIEW REQUEST"""
     print("\n=== Testing Strategy Segmentation System ===")
