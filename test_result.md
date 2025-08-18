@@ -105,6 +105,18 @@
 user_problem_statement: "User reported persistent 'Order could not immediately match against any resting orders' error when trying to close positions (e.g., -10.73 SOL short position). Error occurs in clear_symbol_orders_and_positions function during position clearing phase. User confirmed this is NOT a liquidity issue despite $150K+ daily volume. Investigation revealed the function is using exchange.order() with IOC + reduce_only=True instead of the proper exchange.market_close() method. Need to fix position closing mechanism to use exchange.market_close() which is designed for closing positions."
 
 backend:
+  - task: "Strategy segmentation system by strategy_id"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ COMPREHENSIVE STRATEGY SEGMENTATION SYSTEM TESTING COMPLETED! All features working perfectly: 1) ✅ AUTOMATIC SEGMENTATION: Webhooks automatically classified by strategy_id (IMBA_HYPER, OTHERS, custom strategies), 2) ✅ STRATEGY RULE CENTER: Each strategy has distinct rules - IMBA_HYPER (max_position_size: 100.0, max_daily_trades: 50) vs OTHERS (max_position_size: 50.0, max_daily_trades: 25), 3) ✅ API ENDPOINTS: All endpoints working - GET /api/strategies (retrieves all strategies with stats), GET /api/strategies/ids (lists all strategy IDs), POST /api/strategies/{id}/toggle (enables/disables strategies), GET /api/strategies/{id} (gets specific strategy config), 4) ✅ AUTO-DISCOVERY: New strategy_ids automatically registered when discovered in webhooks (tested with TEST_STRATEGY_1755552323), 5) ✅ FILTERING SYSTEM: Strategy filtering working in both /api/webhooks?strategy_ids=IMBA_HYPER and /api/responses?strategy_ids=IMBA_HYPER endpoints, 6) ✅ STRATEGY TOGGLE: Successfully tested enabling/disabling strategies via API, 7) ✅ WEBHOOK PROCESSING: Webhooks WITH strategy_id correctly classified, webhooks WITHOUT strategy_id default to OTHERS. The complete strategy segmentation system is production-ready and fully functional!"
+
   - task: "Hyperliquid agent wallet to main account discovery"
     implemented: true
     working: true
