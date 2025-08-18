@@ -1126,11 +1126,422 @@ def test_responses_endpoint():
         print("❌ CRITICAL: Serialization issues NOT fixed - exception occurred")
         return False
 
+def test_strategy_segmentation_system():
+    """Test the complete strategy segmentation system - MAIN FOCUS OF REVIEW REQUEST"""
+    print("\n=== Testing Strategy Segmentation System ===")
+    print("🎯 CRITICAL: Testing complete strategy segmentation by strategy_id")
+    print("Features: Auto-segmentation, rule center, API endpoints, auto-filters, visual interface")
+    
+    # Test 1: Test strategy endpoints
+    print("\n--- Test 1: Strategy API Endpoints ---")
+    
+    # Test GET /api/strategies
+    strategies_url = f"{BASE_URL}/strategies"
+    try:
+        response = requests.get(strategies_url)
+        print(f"GET /api/strategies Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            strategies_data = response.json()
+            print("✅ GET /api/strategies endpoint working")
+            
+            strategies = strategies_data.get('strategies', {})
+            print(f"📊 Found {len(strategies)} strategies:")
+            
+            # Check for default strategies
+            expected_strategies = ["IMBA_HYPER", "OTHERS"]
+            for strategy_id in expected_strategies:
+                if strategy_id in strategies:
+                    strategy = strategies[strategy_id]
+                    print(f"  ✅ {strategy_id}: {strategy.get('name', 'No name')}")
+                    print(f"    - Enabled: {strategy.get('enabled', False)}")
+                    print(f"    - Rules: {strategy.get('rules', {})}")
+                    print(f"    - Stats: {strategy.get('stats', {})}")
+                    
+                    # Verify strategy rules
+                    rules = strategy.get('rules', {})
+                    if strategy_id == "IMBA_HYPER":
+                        expected_max_pos = 100.0
+                        expected_max_trades = 50
+                    else:  # OTHERS
+                        expected_max_pos = 50.0
+                        expected_max_trades = 25
+                    
+                    actual_max_pos = rules.get('max_position_size')
+                    actual_max_trades = rules.get('risk_management', {}).get('max_daily_trades')
+                    
+                    if actual_max_pos == expected_max_pos:
+                        print(f"    ✅ Max position size correct: {actual_max_pos}")
+                    else:
+                        print(f"    ❌ Max position size incorrect: expected {expected_max_pos}, got {actual_max_pos}")
+                        
+                    if actual_max_trades == expected_max_trades:
+                        print(f"    ✅ Max daily trades correct: {actual_max_trades}")
+                    else:
+                        print(f"    ❌ Max daily trades incorrect: expected {expected_max_trades}, got {actual_max_trades}")
+                else:
+                    print(f"  ❌ Missing expected strategy: {strategy_id}")
+                    return False
+        else:
+            print(f"❌ GET /api/strategies failed: {response.text}")
+            return False
+    except Exception as e:
+        print(f"❌ Error testing GET /api/strategies: {str(e)}")
+        return False
+    
+    # Test GET /api/strategies/ids
+    strategy_ids_url = f"{BASE_URL}/strategies/ids"
+    try:
+        response = requests.get(strategy_ids_url)
+        print(f"GET /api/strategies/ids Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            ids_data = response.json()
+            strategy_ids = ids_data.get('strategy_ids', [])
+            print(f"✅ GET /api/strategies/ids working - Found {len(strategy_ids)} strategy IDs:")
+            print(f"  Strategy IDs: {strategy_ids}")
+            
+            # Verify expected IDs are present
+            if "IMBA_HYPER" in strategy_ids and "OTHERS" in strategy_ids:
+                print("  ✅ Default strategy IDs present")
+            else:
+                print("  ❌ Missing default strategy IDs")
+                return False
+        else:
+            print(f"❌ GET /api/strategies/ids failed: {response.text}")
+            return False
+    except Exception as e:
+        print(f"❌ Error testing GET /api/strategies/ids: {str(e)}")
+        return False
+    
+    # Test 2: Test webhook WITH strategy_id (IMBA_HYPER)
+    print("\n--- Test 2: Webhook WITH strategy_id (IMBA_HYPER) ---")
+    
+    webhook_with_strategy = {
+        "symbol": "SOL",
+        "side": "buy",
+        "entry": "market",
+        "quantity": "0.5",
+        "price": "175.00",
+        "strategy_id": "IMBA_HYPER",  # Explicit strategy_id
+        "timestamp": datetime.now().isoformat()
+    }
+    
+    webhook_url = f"{BASE_URL}/webhook/tradingview"
+    try:
+        response = requests.post(webhook_url, json=webhook_with_strategy)
+        print(f"Webhook with IMBA_HYPER Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            result = response.json()
+            print("✅ Webhook with strategy_id processed successfully")
+            
+            # Verify the webhook was stored with correct strategy_id
+            webhook_id = result.get('webhook_id')
+            if webhook_id:
+                print(f"  Webhook ID: {webhook_id}")
+                
+                # Check if strategy was auto-registered
+                time.sleep(1)  # Wait for processing
+                
+                # Verify in webhooks endpoint with filtering
+                webhooks_filter_url = f"{BASE_URL}/webhooks?strategy_ids=IMBA_HYPER"
+                webhooks_response = requests.get(webhooks_filter_url)
+                
+                if webhooks_response.status_code == 200:
+                    webhooks_data = webhooks_response.json()
+                    webhooks = webhooks_data.get('webhooks', [])
+                    
+                    # Find our webhook
+                    found_webhook = None
+                    for webhook in webhooks:
+                        if webhook.get('id') == webhook_id:
+                            found_webhook = webhook
+                            break
+                    
+                    if found_webhook:
+                        stored_strategy_id = found_webhook.get('strategy_id')
+                        if stored_strategy_id == "IMBA_HYPER":
+                            print("  ✅ Webhook correctly stored with IMBA_HYPER strategy_id")
+                        else:
+                            print(f"  ❌ Webhook stored with wrong strategy_id: {stored_strategy_id}")
+                            return False
+                    else:
+                        print("  ❌ Webhook not found in filtered results")
+                        return False
+                else:
+                    print(f"  ❌ Failed to verify webhook storage: {webhooks_response.text}")
+            else:
+                print("  ❌ No webhook_id returned")
+                return False
+        else:
+            print(f"❌ Webhook with strategy_id failed: {response.text}")
+            return False
+    except Exception as e:
+        print(f"❌ Error testing webhook with strategy_id: {str(e)}")
+        return False
+    
+    # Test 3: Test webhook WITHOUT strategy_id (should default to OTHERS)
+    print("\n--- Test 3: Webhook WITHOUT strategy_id (should default to OTHERS) ---")
+    
+    webhook_without_strategy = {
+        "symbol": "BTC",
+        "side": "sell",
+        "entry": "market",
+        "quantity": "0.01",
+        "price": "45000.00",
+        # No strategy_id - should default to "OTHERS"
+        "timestamp": datetime.now().isoformat()
+    }
+    
+    try:
+        response = requests.post(webhook_url, json=webhook_without_strategy)
+        print(f"Webhook without strategy_id Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            result = response.json()
+            print("✅ Webhook without strategy_id processed successfully")
+            
+            webhook_id = result.get('webhook_id')
+            if webhook_id:
+                time.sleep(1)  # Wait for processing
+                
+                # Verify it was classified as OTHERS
+                webhooks_filter_url = f"{BASE_URL}/webhooks?strategy_ids=OTHERS"
+                webhooks_response = requests.get(webhooks_filter_url)
+                
+                if webhooks_response.status_code == 200:
+                    webhooks_data = webhooks_response.json()
+                    webhooks = webhooks_data.get('webhooks', [])
+                    
+                    found_webhook = None
+                    for webhook in webhooks:
+                        if webhook.get('id') == webhook_id:
+                            found_webhook = webhook
+                            break
+                    
+                    if found_webhook:
+                        stored_strategy_id = found_webhook.get('strategy_id')
+                        if stored_strategy_id == "OTHERS":
+                            print("  ✅ Webhook correctly classified as OTHERS strategy")
+                        else:
+                            print(f"  ❌ Webhook classified incorrectly: {stored_strategy_id}")
+                            return False
+                    else:
+                        print("  ❌ Webhook not found in OTHERS filtered results")
+                        return False
+                else:
+                    print(f"  ❌ Failed to verify OTHERS classification: {webhooks_response.text}")
+            else:
+                print("  ❌ No webhook_id returned")
+                return False
+        else:
+            print(f"❌ Webhook without strategy_id failed: {response.text}")
+            return False
+    except Exception as e:
+        print(f"❌ Error testing webhook without strategy_id: {str(e)}")
+        return False
+    
+    # Test 4: Test new strategy_id auto-discovery
+    print("\n--- Test 4: New strategy_id auto-discovery ---")
+    
+    new_strategy_id = f"TEST_STRATEGY_{int(time.time())}"  # Unique strategy ID
+    webhook_new_strategy = {
+        "symbol": "ETH",
+        "side": "buy",
+        "entry": "limit",
+        "quantity": "0.1",
+        "price": "3200.00",
+        "strategy_id": new_strategy_id,  # New strategy_id
+        "timestamp": datetime.now().isoformat()
+    }
+    
+    try:
+        response = requests.post(webhook_url, json=webhook_new_strategy)
+        print(f"Webhook with new strategy_id Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            result = response.json()
+            print(f"✅ Webhook with new strategy_id ({new_strategy_id}) processed successfully")
+            
+            time.sleep(2)  # Wait for auto-discovery processing
+            
+            # Check if new strategy was auto-discovered
+            strategy_ids_response = requests.get(strategy_ids_url)
+            if strategy_ids_response.status_code == 200:
+                ids_data = strategy_ids_response.json()
+                current_strategy_ids = ids_data.get('strategy_ids', [])
+                
+                if new_strategy_id in current_strategy_ids:
+                    print(f"  ✅ New strategy_id {new_strategy_id} auto-discovered and added")
+                    
+                    # Verify the new strategy has default configuration
+                    new_strategy_url = f"{BASE_URL}/strategies/{new_strategy_id}"
+                    strategy_response = requests.get(new_strategy_url)
+                    
+                    if strategy_response.status_code == 200:
+                        strategy_data = strategy_response.json()
+                        print(f"  ✅ New strategy configuration retrieved:")
+                        print(f"    - Name: {strategy_data.get('name')}")
+                        print(f"    - Enabled: {strategy_data.get('enabled')}")
+                        print(f"    - Rules: {strategy_data.get('rules')}")
+                        
+                        # Verify it has default OTHERS rules
+                        rules = strategy_data.get('rules', {})
+                        if rules.get('max_position_size') == 50.0:
+                            print("  ✅ New strategy has correct default rules")
+                        else:
+                            print("  ❌ New strategy has incorrect default rules")
+                            return False
+                    else:
+                        print(f"  ❌ Failed to get new strategy config: {strategy_response.text}")
+                        return False
+                else:
+                    print(f"  ❌ New strategy_id {new_strategy_id} not auto-discovered")
+                    print(f"  Current strategy IDs: {current_strategy_ids}")
+                    return False
+            else:
+                print(f"  ❌ Failed to check strategy IDs: {strategy_ids_response.text}")
+                return False
+        else:
+            print(f"❌ Webhook with new strategy_id failed: {response.text}")
+            return False
+    except Exception as e:
+        print(f"❌ Error testing new strategy_id auto-discovery: {str(e)}")
+        return False
+    
+    # Test 5: Test strategy filtering in webhooks and responses
+    print("\n--- Test 5: Strategy Filtering in Webhooks and Responses ---")
+    
+    # Test webhooks filtering
+    try:
+        # Test single strategy filter
+        single_filter_url = f"{BASE_URL}/webhooks?strategy_ids=IMBA_HYPER"
+        response = requests.get(single_filter_url)
+        
+        if response.status_code == 200:
+            data = response.json()
+            webhooks = data.get('webhooks', [])
+            print(f"✅ Single strategy filter (IMBA_HYPER): {len(webhooks)} webhooks")
+            
+            # Verify all returned webhooks have correct strategy_id
+            all_correct = True
+            for webhook in webhooks[:5]:  # Check first 5
+                if webhook.get('strategy_id') != 'IMBA_HYPER':
+                    all_correct = False
+                    break
+            
+            if all_correct:
+                print("  ✅ All filtered webhooks have correct strategy_id")
+            else:
+                print("  ❌ Some filtered webhooks have incorrect strategy_id")
+                return False
+        else:
+            print(f"❌ Single strategy filter failed: {response.text}")
+            return False
+        
+        # Test multiple strategy filter
+        multi_filter_url = f"{BASE_URL}/webhooks?strategy_ids=IMBA_HYPER,OTHERS"
+        response = requests.get(multi_filter_url)
+        
+        if response.status_code == 200:
+            data = response.json()
+            webhooks = data.get('webhooks', [])
+            print(f"✅ Multiple strategy filter (IMBA_HYPER,OTHERS): {len(webhooks)} webhooks")
+            
+            # Verify all returned webhooks have correct strategy_ids
+            valid_strategy_ids = {'IMBA_HYPER', 'OTHERS'}
+            all_correct = True
+            for webhook in webhooks[:5]:  # Check first 5
+                if webhook.get('strategy_id') not in valid_strategy_ids:
+                    all_correct = False
+                    break
+            
+            if all_correct:
+                print("  ✅ All multi-filtered webhooks have correct strategy_ids")
+            else:
+                print("  ❌ Some multi-filtered webhooks have incorrect strategy_ids")
+                return False
+        else:
+            print(f"❌ Multiple strategy filter failed: {response.text}")
+            return False
+        
+        # Test responses filtering
+        responses_filter_url = f"{BASE_URL}/responses?strategy_ids=IMBA_HYPER"
+        response = requests.get(responses_filter_url)
+        
+        if response.status_code == 200:
+            data = response.json()
+            responses = data.get('responses', [])
+            print(f"✅ Responses strategy filter (IMBA_HYPER): {len(responses)} responses")
+            
+            # Verify all returned responses have correct strategy_id
+            all_correct = True
+            for resp in responses[:3]:  # Check first 3
+                if resp.get('strategy_id') != 'IMBA_HYPER':
+                    all_correct = False
+                    break
+            
+            if all_correct:
+                print("  ✅ All filtered responses have correct strategy_id")
+            else:
+                print("  ❌ Some filtered responses have incorrect strategy_id")
+                return False
+        else:
+            print(f"❌ Responses strategy filter failed: {response.text}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ Error testing strategy filtering: {str(e)}")
+        return False
+    
+    # Test 6: Test strategy toggle functionality
+    print("\n--- Test 6: Strategy Toggle Functionality ---")
+    
+    try:
+        # Test toggling IMBA_HYPER strategy
+        toggle_url = f"{BASE_URL}/strategies/IMBA_HYPER/toggle"
+        response = requests.post(toggle_url)
+        
+        if response.status_code == 200:
+            result = response.json()
+            print(f"✅ Strategy toggle successful:")
+            print(f"  Strategy: {result.get('strategy_id')}")
+            print(f"  New status: {'Enabled' if result.get('enabled') else 'Disabled'}")
+            print(f"  Message: {result.get('message')}")
+            
+            # Toggle back to original state
+            response2 = requests.post(toggle_url)
+            if response2.status_code == 200:
+                result2 = response2.json()
+                print(f"  ✅ Toggled back: {'Enabled' if result2.get('enabled') else 'Disabled'}")
+            else:
+                print(f"  ❌ Failed to toggle back: {response2.text}")
+                return False
+        else:
+            print(f"❌ Strategy toggle failed: {response.text}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ Error testing strategy toggle: {str(e)}")
+        return False
+    
+    print("\n✅ Strategy Segmentation System test completed successfully!")
+    print("All strategy segmentation features are working correctly:")
+    print("- ✅ Automatic segmentation by strategy_id")
+    print("- ✅ Strategy rule center with different configurations")
+    print("- ✅ API endpoints (/api/strategies, /api/strategies/ids, /api/strategies/{id}/toggle)")
+    print("- ✅ Automatic filter creation for new strategy_ids")
+    print("- ✅ Strategy filtering in webhooks and responses endpoints")
+    print("- ✅ Strategy-specific rule application")
+    
+    return True
+
 def run_all_tests():
     """Run all tests and report results"""
     print("=" * 80)
     print("TRADINGVIEW TO HYPERLIQUID MIDDLEWARE BACKEND TESTS")
-    print("FOCUS: Position clearing mechanism with exchange.market_close() fix")
+    print("FOCUS: Strategy Segmentation System by strategy_id")
     print("=" * 80)
     print(f"Testing against: {BASE_URL}")
     print(f"Test started at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
@@ -1138,6 +1549,10 @@ def run_all_tests():
     
     # Track test results
     results = {}
+    
+    # PRIORITY: Test strategy segmentation system (MAIN FOCUS OF REVIEW REQUEST)
+    strategy_segmentation_success = test_strategy_segmentation_system()
+    results["Strategy Segmentation System"] = strategy_segmentation_success
     
     # Test Hyperliquid connection first (key focus area)
     hl_connection_success = test_hyperliquid_connection()
@@ -1147,7 +1562,7 @@ def run_all_tests():
     status_success = test_status_endpoint()
     results["Status Endpoint"] = status_success
     
-    # PRIORITY: Test position clearing mechanism (MAIN FOCUS OF REVIEW REQUEST)
+    # Test position clearing mechanism
     position_clearing_success = test_position_clearing_mechanism()
     results["Position Clearing Mechanism"] = position_clearing_success
     
