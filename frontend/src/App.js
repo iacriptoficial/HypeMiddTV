@@ -822,6 +822,9 @@ function App() {
 
         {activeTab === "webhooks" && (
           <div className="space-y-6">
+            {/* Strategy Filters */}
+            <StrategyFilters showTitle={true} />
+            
             {/* Webhook Configuration */}
             <div className="bg-gray-800 border border-gray-700 rounded-lg">
               <div className="p-6">
