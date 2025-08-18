@@ -901,23 +901,33 @@ function App() {
         )}
 
         {activeTab === "responses" && (
-          <div className="bg-gray-800 border border-gray-700 rounded-lg">
-            <div className="p-6">
-              <div className="space-y-4">
-                {responses.map((response, index) => (
-                  <div key={index} className="bg-gray-700 rounded-lg p-4">
-                    <div className="flex justify-between items-start mb-2">
-                      <span className="text-sm text-gray-400">
-                        {formatTimestamp(response.timestamp)}
-                      </span>
-                      <span className={`px-2 py-1 rounded text-xs ${
-                        response.status === 'sent' ? 'bg-blue-700 text-blue-200' :
-                        response.status === 'failed' ? 'bg-red-700 text-red-200' :
-                        'bg-gray-600 text-gray-200'
-                      }`}>
-                        {response.status}
-                      </span>
-                    </div>
+          <div className="space-y-6">
+            {/* Strategy Filters */}
+            <StrategyFilters showTitle={true} />
+            
+            {/* Recent Responses */}
+            <div className="bg-gray-800 border border-gray-700 rounded-lg">
+              <div className="p-6">
+                <div className="space-y-4">
+                  {responses.map((response, index) => (
+                    <div key={index} className="bg-gray-700 rounded-lg p-4">
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="flex items-center space-x-3">
+                          <span className="text-sm text-gray-400">
+                            {formatTimestamp(response.timestamp)}
+                          </span>
+                          <span className={`px-2 py-1 rounded text-xs ${
+                            response.status === 'sent' ? 'bg-blue-700 text-blue-200' :
+                            response.status === 'failed' ? 'bg-red-700 text-red-200' :
+                            'bg-gray-600 text-gray-200'
+                          }`}>
+                            {response.status}
+                          </span>
+                          <span className="px-2 py-1 rounded text-xs bg-purple-700 text-purple-200">
+                            {response.strategy_id || 'OTHERS'}
+                          </span>
+                        </div>
+                      </div>
                     <pre className="text-sm text-gray-300 bg-gray-800 p-3 rounded overflow-x-auto">
                       {JSON.stringify(response.response_data, null, 2)}
                     </pre>
