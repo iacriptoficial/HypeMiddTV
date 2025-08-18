@@ -2793,11 +2793,20 @@ async def force_refresh_balance():
         raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.get("/responses")
-async def get_hyperliquid_responses(limit: int = 50):
-    """Get recent Hyperliquid responses"""
+async def get_hyperliquid_responses(limit: int = 50, strategy_ids: Optional[str] = None):
+    """Get recent Hyperliquid responses with optional strategy filtering"""
     try:
+        # Build filter query based on strategy_ids
+        filter_query = {}
+        
+        if strategy_ids:
+            # Parse comma-separated strategy_ids
+            strategy_list = [s.strip() for s in strategy_ids.split(',') if s.strip()]
+            if strategy_list:
+                filter_query["strategy_id"] = {"$in": strategy_list}
+        
         # Use _id for sorting to ensure proper chronological order
-        responses = await db.hyperliquid_responses.find().sort("_id", -1).limit(limit).to_list(limit)
+        responses = await db.hyperliquid_responses.find(filter_query).sort("_id", -1).limit(limit).to_list(limit)
         
         # Convert to JSON-serializable format
         responses_data = []
