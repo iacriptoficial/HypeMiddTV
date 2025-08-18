@@ -1900,7 +1900,7 @@ def run_all_tests():
     """Run all tests and report results"""
     print("=" * 80)
     print("TRADINGVIEW TO HYPERLIQUID MIDDLEWARE BACKEND TESTS")
-    print("FOCUS: Strategy Segmentation System by strategy_id")
+    print("FOCUS: Strategy Filters Testing (User's Main Complaint)")
     print("=" * 80)
     print(f"Testing against: {BASE_URL}")
     print(f"Test started at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
@@ -1909,7 +1909,11 @@ def run_all_tests():
     # Track test results
     results = {}
     
-    # PRIORITY: Test strategy segmentation system (MAIN FOCUS OF REVIEW REQUEST)
+    # PRIORITY 1: Test strategy filters (USER'S MAIN COMPLAINT)
+    strategy_filters_success = test_strategy_filters_fixed()
+    results["Strategy Filters (FIXED)"] = strategy_filters_success
+    
+    # PRIORITY 2: Test strategy segmentation system (MAIN FOCUS OF REVIEW REQUEST)
     strategy_segmentation_success = test_strategy_segmentation_system()
     results["Strategy Segmentation System"] = strategy_segmentation_success
     
@@ -1970,7 +1974,7 @@ def run_all_tests():
         if not passed:
             all_passed = False
             # Mark critical failures
-            if test_name in ["Strategy Segmentation System", "Hyperliquid Connection", "Status Endpoint", "Webhook Endpoint"]:
+            if test_name in ["Strategy Filters (FIXED)", "Strategy Segmentation System", "Hyperliquid Connection", "Status Endpoint", "Webhook Endpoint"]:
                 critical_failures.append(test_name)
     
     print(f"\nOVERALL RESULT: {'✅ ALL TESTS PASSED' if all_passed else '❌ SOME TESTS FAILED'}")
@@ -1978,6 +1982,14 @@ def run_all_tests():
     if critical_failures:
         print(f"\n🚨 CRITICAL FAILURES: {', '.join(critical_failures)}")
         print("These are the key areas mentioned in the review request that need attention.")
+        
+        # Special focus on strategy filters
+        if "Strategy Filters (FIXED)" in critical_failures:
+            print("\n🚨 STRATEGY FILTERS STILL FAILING:")
+            print("   - IMBA_HYPER filter may still be showing unrelated records")
+            print("   - Data leakage detected in filtered results")
+            print("   - Auto-refresh may still be ignoring filters")
+            print("   - User's reported issue is NOT fixed")
         
         # Special focus on strategy segmentation system
         if "Strategy Segmentation System" in critical_failures:
