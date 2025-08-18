@@ -747,18 +747,7 @@ function App() {
         {activeTab === "webhooks" && (
           <div className="space-y-6">
             {/* Strategy Filters */}
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <StrategyFilters showTitle={true} />
-              </div>
-              <button
-                onClick={() => fetchWebhooks()}
-                className="ml-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm transition-colors"
-                title="Atualizar lista de webhooks"
-              >
-                🔄 Atualizar
-              </button>
-            </div>
+            <StrategyFilters showTitle={true} />
             
             {/* Webhook Configuration */}
             <div className="bg-gray-800 border border-gray-700 rounded-lg">
