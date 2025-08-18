@@ -2431,11 +2431,12 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any], strat
         # Store the response
         hl_response = HyperliquidResponse(
             webhook_id=webhook_id,
-            response_data=response_data
+            response_data=response_data,
+            strategy_id=strategy_id
         )
         await db.hyperliquid_responses.insert_one(hl_response.dict())
         
-        await log_message("INFO", f"💾 Response stored with webhook_id: {webhook_id}")
+        await log_message("INFO", f"💾 Response stored with webhook_id: {webhook_id} [Strategy: {strategy_id}]")
         
         return response_data
         
