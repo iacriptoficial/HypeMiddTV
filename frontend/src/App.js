@@ -351,7 +351,9 @@ function App() {
         loadWithTimeout(fetchLogs, 'logs'),
         loadWithTimeout(fetchWebhooks, 'webhooks'),
         loadWithTimeout(fetchResponses, 'responses'),
-        loadWithTimeout(fetchEnvironment, 'environment')
+        loadWithTimeout(fetchEnvironment, 'environment'),
+        loadWithTimeout(fetchStrategies, 'strategies'),
+        loadWithTimeout(fetchStrategyIds, 'strategy_ids')
       ]);
       
       setLoading(false);
