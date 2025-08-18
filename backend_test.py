@@ -1620,6 +1620,14 @@ def run_all_tests():
         print(f"\n🚨 CRITICAL FAILURES: {', '.join(critical_failures)}")
         print("These are the key areas mentioned in the review request that need attention.")
         
+        # Special focus on strategy segmentation system
+        if "Strategy Segmentation System" in critical_failures:
+            print("\n🚨 STRATEGY SEGMENTATION SYSTEM FAILED:")
+            print("   - Strategy API endpoints may not be working properly")
+            print("   - Auto-segmentation by strategy_id may be failing")
+            print("   - Strategy filtering in webhooks/responses may not work")
+            print("   - New strategy auto-discovery may be broken")
+        
         # Special focus on position clearing
         if "Position Clearing Mechanism" in critical_failures:
             print("\n🚨 POSITION CLEARING MECHANISM FAILED:")
