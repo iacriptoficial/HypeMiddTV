@@ -2863,6 +2863,122 @@ async def get_environment():
     """Get current environment"""
     return {"environment": hyperliquid_config.environment}
 
+# Strategy Management Endpoints
+@api_router.get("/strategies")
+async def get_strategies():
+    """Get all strategies with their configurations"""
+    try:
+        strategies = strategy_manager.strategies
+        
+        # Get statistics for each strategy
+        strategy_data = {}
+        for strategy_id, config in strategies.items():
+            # Get webhook count for this strategy
+            webhook_count = await db.webhooks.count_documents({"strategy_id": strategy_id})
+            
+            # Get response count for this strategy
+            response_count = await db.hyperliquid_responses.count_documents({"strategy_id": strategy_id})
+            
+            strategy_data[strategy_id] = {
+                "id": strategy_id,
+                "name": config.get("name", strategy_id),
+                "enabled": config.get("enabled", True),
+                "rules": config.get("rules", {}),
+                "stats": {
+                    "total_webhooks": webhook_count,
+                    "total_responses": response_count
+                }
+            }
+        
+        return {"strategies": strategy_data}
+        
+    except Exception as e:
+        await log_message("ERROR", f"Failed to get strategies: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/strategies/ids")
+async def get_strategy_ids():
+    """Get all known strategy IDs for filtering"""
+    try:
+        # Get strategy IDs from strategy manager
+        manager_ids = strategy_manager.get_all_strategy_ids()
+        
+        # Also get any strategy IDs from the database that might not be in manager
+        webhook_ids = await db.webhooks.distinct("strategy_id")
+        response_ids = await db.hyperliquid_responses.distinct("strategy_id")
+        
+        # Combine all IDs and remove duplicates
+        all_ids = set(manager_ids + webhook_ids + response_ids)
+        
+        # Remove None values and ensure OTHERS is included
+        strategy_ids = [sid for sid in all_ids if sid is not None]
+        if "OTHERS" not in strategy_ids:
+            strategy_ids.append("OTHERS")
+        
+        # Sort for consistent ordering
+        strategy_ids.sort()
+        
+        return {"strategy_ids": strategy_ids}
+        
+    except Exception as e:
+        await log_message("ERROR", f"Failed to get strategy IDs: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/strategies/{strategy_id}/toggle")
+async def toggle_strategy(strategy_id: str):
+    """Toggle strategy enabled/disabled status"""
+    try:
+        if strategy_id not in strategy_manager.strategies:
+            raise HTTPException(status_code=404, detail=f"Strategy {strategy_id} not found")
+        
+        current_status = strategy_manager.strategies[strategy_id].get("enabled", True)
+        new_status = not current_status
+        
+        strategy_manager.strategies[strategy_id]["enabled"] = new_status
+        
+        await log_message("INFO", f"⚙️ Strategy {strategy_id} {'enabled' if new_status else 'disabled'}")
+        
+        return {
+            "strategy_id": strategy_id,
+            "enabled": new_status,
+            "message": f"Strategy {strategy_id} {'enabled' if new_status else 'disabled'}"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        await log_message("ERROR", f"Failed to toggle strategy {strategy_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/strategies/{strategy_id}")
+async def get_strategy(strategy_id: str):
+    """Get specific strategy configuration"""
+    try:
+        if strategy_id not in strategy_manager.strategies:
+            # Auto-create if not exists
+            strategy_manager.add_strategy(strategy_id)
+        
+        config = strategy_manager.get_strategy(strategy_id)
+        
+        # Get statistics for this strategy
+        webhook_count = await db.webhooks.count_documents({"strategy_id": strategy_id})
+        response_count = await db.hyperliquid_responses.count_documents({"strategy_id": strategy_id})
+        
+        return {
+            "id": strategy_id,
+            "name": config.get("name", strategy_id),
+            "enabled": config.get("enabled", True),
+            "rules": config.get("rules", {}),
+            "stats": {
+                "total_webhooks": webhook_count,
+                "total_responses": response_count
+            }
+        }
+        
+    except Exception as e:
+        await log_message("ERROR", f"Failed to get strategy {strategy_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @api_router.delete("/logs")
 async def clear_logs():
     """Clear all logs from the database"""
