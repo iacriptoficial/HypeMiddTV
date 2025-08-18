@@ -106,7 +106,11 @@ function App() {
 
   const fetchWebhooks = async (limit = 100) => {
     try {
-      const response = await axios.get(`${API}/webhooks?limit=${limit}`);
+      // Build strategy filter parameter
+      const activeStrategies = Object.keys(selectedStrategies).filter(id => selectedStrategies[id]);
+      const strategyParam = activeStrategies.length > 0 ? `&strategy_ids=${activeStrategies.join(',')}` : '';
+      
+      const response = await axios.get(`${API}/webhooks?limit=${limit}${strategyParam}`);
       setWebhooks(response.data.webhooks);
     } catch (err) {
       console.error("Error fetching webhooks:", err);
@@ -115,7 +119,11 @@ function App() {
 
   const fetchResponses = async (limit = 100) => {
     try {
-      const response = await axios.get(`${API}/responses?limit=${limit}`);
+      // Build strategy filter parameter
+      const activeStrategies = Object.keys(selectedStrategies).filter(id => selectedStrategies[id]);
+      const strategyParam = activeStrategies.length > 0 ? `&strategy_ids=${activeStrategies.join(',')}` : '';
+      
+      const response = await axios.get(`${API}/responses?limit=${limit}${strategyParam}`);
       setResponses(response.data.responses);
     } catch (err) {
       console.error("Error fetching responses:", err);
