@@ -836,16 +836,23 @@ async def handle_tradingview_webhook(request: Request):
             stats['failed_forwards'] += 1
             raise HTTPException(status_code=400, detail="Payload must be a JSON object")
         
-        # Log successful webhook processing
+        # Extract strategy_id from payload
+        strategy_id = payload.get("strategy_id", "OTHERS")
+        
+        # Auto-register new strategies
+        strategy_manager.add_strategy(strategy_id)
+        
+        # Log successful webhook processing with strategy info
         await log_message("INFO", "✅ WEBHOOK VALIDATION SUCCESS")
+        await log_message("INFO", f"Strategy ID: {strategy_id}")
         await log_message("INFO", f"Final Payload: {payload}")
         
-        # Log the incoming webhook
-        webhook_msg = WebhookMessage(payload=payload)
+        # Log the incoming webhook with strategy_id
+        webhook_msg = WebhookMessage(payload=payload, strategy_id=strategy_id)
         await db.webhooks.insert_one(webhook_msg.dict())
         stats['total_webhooks'] += 1
         
-        await log_message("INFO", f"✅ WEBHOOK STORED: {webhook_msg.id}")
+        await log_message("INFO", f"✅ WEBHOOK STORED: {webhook_msg.id} [Strategy: {strategy_id}]")
         
         # Forward to Hyperliquid
         try:
