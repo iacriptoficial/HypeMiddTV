@@ -368,9 +368,10 @@ function App() {
     
     const dataInterval = setInterval(() => {
       fetchLogs();
-      fetchWebhooks();
-      fetchResponses();
-    }, 5000);  // Keep logs/webhooks/responses at 5 seconds
+      // IMPORTANTE: NÃO atualizar webhooks e responses automaticamente para manter filtros
+      // fetchWebhooks(); 
+      // fetchResponses();
+    }, 5000);  // Apenas logs são atualizados automaticamente
 
     return () => {
       clearInterval(statusInterval);
