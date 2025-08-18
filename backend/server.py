@@ -138,6 +138,76 @@ class LogEntry(BaseModel):
     message: str
     details: Optional[Dict[str, Any]] = None
 
+# Strategy Management System
+class StrategyManager:
+    def __init__(self):
+        self.strategies = {}
+        self.default_strategies = {
+            "IMBA_HYPER": {
+                "name": "IMBA Hyper Strategy",
+                "enabled": True,
+                "rules": {
+                    "max_position_size": 100.0,
+                    "stop_loss_enabled": True,
+                    "take_profit_enabled": True,
+                    "position_clearing_method": "market_close",
+                    "risk_management": {
+                        "max_daily_trades": 50,
+                        "max_drawdown": 0.05
+                    }
+                }
+            },
+            "OTHERS": {
+                "name": "Other Strategies",
+                "enabled": True,
+                "rules": {
+                    "max_position_size": 50.0,
+                    "stop_loss_enabled": True,
+                    "take_profit_enabled": True,
+                    "position_clearing_method": "market_close",
+                    "risk_management": {
+                        "max_daily_trades": 25,
+                        "max_drawdown": 0.03
+                    }
+                }
+            }
+        }
+        self.load_strategies()
+    
+    def load_strategies(self):
+        """Load strategies from database or use defaults"""
+        self.strategies = self.default_strategies.copy()
+    
+    def get_strategy(self, strategy_id: str) -> Dict[str, Any]:
+        """Get strategy configuration"""
+        return self.strategies.get(strategy_id, self.strategies["OTHERS"])
+    
+    def add_strategy(self, strategy_id: str, config: Dict[str, Any] = None):
+        """Add new strategy automatically"""
+        if strategy_id not in self.strategies:
+            self.strategies[strategy_id] = {
+                "name": f"Strategy {strategy_id}",
+                "enabled": True,
+                "rules": config or self.default_strategies["OTHERS"]["rules"].copy()
+            }
+            asyncio.create_task(self.log_new_strategy(strategy_id))
+    
+    async def log_new_strategy(self, strategy_id: str):
+        """Log when a new strategy is discovered"""
+        await log_message("INFO", f"🔄 Nova estratégia descoberta automaticamente: {strategy_id}")
+    
+    def get_all_strategy_ids(self) -> List[str]:
+        """Get all known strategy IDs"""
+        return list(self.strategies.keys())
+    
+    def is_strategy_enabled(self, strategy_id: str) -> bool:
+        """Check if strategy is enabled"""
+        strategy = self.get_strategy(strategy_id)
+        return strategy.get("enabled", True)
+
+# Global strategy manager instance
+strategy_manager = StrategyManager()
+
 # Stats tracking
 stats = defaultdict(int)
 stats['total_webhooks'] = 0
