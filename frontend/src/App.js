@@ -418,9 +418,147 @@ function App() {
 
   // Filter logs based on selected filter
   const filteredLogs = logs.filter(log => {
-    if (logFilter === 'ALL') return true;
-    return log.level === logFilter;
+    switch (logFilter) {
+      case 'ERROR':
+        return log.level === 'ERROR';
+      case 'INFO':
+        return log.level === 'INFO';
+      case 'ALL':
+      default:
+        return true;
+    }
   });
+
+  // Strategy Filter Component
+  const StrategyFilters = ({ showTitle = true }) => {
+    if (availableStrategyIds.length === 0) return null;
+
+    const toggleAllStrategies = (enabled) => {
+      const newSelection = {};
+      availableStrategyIds.forEach(id => {
+        newSelection[id] = enabled;
+      });
+      setSelectedStrategies(newSelection);
+    };
+
+    const selectedCount = Object.values(selectedStrategies).filter(Boolean).length;
+    const allSelected = selectedCount === availableStrategyIds.length;
+    const noneSelected = selectedCount === 0;
+
+    return (
+      <div className="mb-4 p-4 bg-gray-800 rounded-lg border border-gray-700">
+        {showTitle && (
+          <h3 className="text-lg font-semibold text-white mb-3">Filtros de Estratégia</h3>
+        )}
+        
+        {/* Strategy Controls */}
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center space-x-2">
+            <span className="text-sm text-gray-400">
+              {selectedCount} de {availableStrategyIds.length} estratégias selecionadas
+            </span>
+          </div>
+          <div className="flex space-x-2">
+            <button
+              onClick={() => toggleAllStrategies(true)}
+              disabled={allSelected}
+              className={`px-3 py-1 text-xs rounded transition-colors ${
+                allSelected 
+                  ? 'bg-gray-600 text-gray-400 cursor-not-allowed' 
+                  : 'bg-green-600 hover:bg-green-700 text-white'
+              }`}
+            >
+              Selecionar Todas
+            </button>
+            <button
+              onClick={() => toggleAllStrategies(false)}
+              disabled={noneSelected}
+              className={`px-3 py-1 text-xs rounded transition-colors ${
+                noneSelected 
+                  ? 'bg-gray-600 text-gray-400 cursor-not-allowed' 
+                  : 'bg-red-600 hover:bg-red-700 text-white'
+              }`}
+            >
+              Desmarcar Todas
+            </button>
+          </div>
+        </div>
+
+        {/* Strategy Toggle Buttons */}
+        <div className="flex flex-wrap gap-2">
+          {availableStrategyIds.map(strategyId => {
+            const isSelected = selectedStrategies[strategyId];
+            const strategy = strategies[strategyId];
+            const isEnabled = strategy?.enabled !== false;
+            
+            return (
+              <div key={strategyId} className="flex items-center">
+                <button
+                  onClick={() => toggleStrategyFilter(strategyId)}
+                  className={`px-3 py-2 text-sm rounded-lg border transition-all duration-200 flex items-center space-x-2 ${
+                    isSelected
+                      ? 'bg-blue-600 border-blue-500 text-white shadow-lg'
+                      : 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600'
+                  }`}
+                >
+                  <span className={`w-2 h-2 rounded-full ${isEnabled ? 'bg-green-400' : 'bg-red-400'}`}></span>
+                  <span>{strategyId}</span>
+                  {strategy?.stats && (
+                    <span className="text-xs opacity-75">
+                      ({strategy.stats.total_webhooks})
+                    </span>
+                  )}
+                </button>
+                
+                {/* Strategy Enable/Disable Toggle */}
+                <button
+                  onClick={() => toggleStrategy(strategyId)}
+                  className={`ml-1 px-2 py-1 text-xs rounded transition-colors ${
+                    isEnabled
+                      ? 'bg-green-600 hover:bg-green-700 text-white'
+                      : 'bg-red-600 hover:bg-red-700 text-white'
+                  }`}
+                  title={`${isEnabled ? 'Desabilitar' : 'Habilitar'} estratégia ${strategyId}`}
+                >
+                  {isEnabled ? '✓' : '✗'}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Strategy Stats Summary */}
+        <div className="mt-3 pt-3 border-t border-gray-700">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+            <div className="text-center">
+              <div className="text-lg font-bold text-blue-400">
+                {Object.values(strategies).reduce((sum, s) => sum + (s.stats?.total_webhooks || 0), 0)}
+              </div>
+              <div className="text-gray-400">Total Webhooks</div>
+            </div>
+            <div className="text-center">
+              <div className="text-lg font-bold text-green-400">
+                {Object.values(strategies).reduce((sum, s) => sum + (s.stats?.total_responses || 0), 0)}
+              </div>
+              <div className="text-gray-400">Total Responses</div>
+            </div>
+            <div className="text-center">
+              <div className="text-lg font-bold text-yellow-400">
+                {Object.values(strategies).filter(s => s.enabled !== false).length}
+              </div>
+              <div className="text-gray-400">Ativas</div>
+            </div>
+            <div className="text-center">
+              <div className="text-lg font-bold text-gray-400">
+                {availableStrategyIds.length}
+              </div>
+              <div className="text-gray-400">Total</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   // Simple copy function for webhook URL
   const copyWebhookUrl = () => {
