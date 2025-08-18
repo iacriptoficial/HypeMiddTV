@@ -2678,12 +2678,21 @@ async def get_logs(limit: int = 100, level: Optional[str] = None):
         raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.get("/webhooks")
-async def get_webhooks(limit: int = 50):
-    """Get recent webhooks"""
+async def get_webhooks(limit: int = 50, strategy_ids: Optional[str] = None):
+    """Get recent webhooks with optional strategy filtering"""
     try:
+        # Build filter query based on strategy_ids
+        filter_query = {}
+        
+        if strategy_ids:
+            # Parse comma-separated strategy_ids
+            strategy_list = [s.strip() for s in strategy_ids.split(',') if s.strip()]
+            if strategy_list:
+                filter_query["strategy_id"] = {"$in": strategy_list}
+        
         # Use _id for sorting to ensure proper chronological order
         # _id contains timestamp information and is always in chronological order
-        webhooks = await db.webhooks.find().sort("_id", -1).limit(limit).to_list(limit)
+        webhooks = await db.webhooks.find(filter_query).sort("_id", -1).limit(limit).to_list(limit)
         
         # Convert to JSON-serializable format
         webhooks_data = []
@@ -2694,7 +2703,8 @@ async def get_webhooks(limit: int = 50):
                 "source": webhook.get("source"),
                 "payload": webhook.get("payload"),
                 "status": webhook.get("status"),
-                "error": webhook.get("error")
+                "error": webhook.get("error"),
+                "strategy_id": webhook.get("strategy_id", "OTHERS")
             }
             webhooks_data.append(webhook_data)
             
