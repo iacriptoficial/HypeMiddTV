@@ -139,6 +139,49 @@ function App() {
     }
   };
 
+  const fetchStrategies = async () => {
+    try {
+      const response = await axios.get(`${API}/strategies`);
+      setStrategies(response.data.strategies);
+    } catch (err) {
+      console.error("Error fetching strategies:", err);
+    }
+  };
+
+  const fetchStrategyIds = async () => {
+    try {
+      const response = await axios.get(`${API}/strategies/ids`);
+      const ids = response.data.strategy_ids;
+      setAvailableStrategyIds(ids);
+      
+      // Initialize selectedStrategies with all strategies enabled by default
+      const initialSelection = {};
+      ids.forEach(id => {
+        initialSelection[id] = true;
+      });
+      setSelectedStrategies(initialSelection);
+    } catch (err) {
+      console.error("Error fetching strategy IDs:", err);
+    }
+  };
+
+  const toggleStrategy = async (strategyId) => {
+    try {
+      await axios.post(`${API}/strategies/${strategyId}/toggle`);
+      // Refresh strategies data
+      fetchStrategies();
+    } catch (err) {
+      console.error("Error toggling strategy:", err);
+    }
+  };
+
+  const toggleStrategyFilter = (strategyId) => {
+    setSelectedStrategies(prev => ({
+      ...prev,
+      [strategyId]: !prev[strategyId]
+    }));
+  };
+
   const switchEnvironment = async (env) => {
     try {
       await axios.post(`${API}/environment`, null, {
