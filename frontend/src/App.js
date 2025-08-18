@@ -831,18 +831,7 @@ function App() {
         {activeTab === "responses" && (
           <div className="space-y-6">
             {/* Strategy Filters */}
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <StrategyFilters showTitle={true} />
-              </div>
-              <button
-                onClick={() => fetchResponses()}
-                className="ml-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm transition-colors"
-                title="Atualizar lista de responses"
-              >
-                🔄 Atualizar
-              </button>
-            </div>
+            <StrategyFilters showTitle={true} />
             
             {/* Recent Responses */}
             <div className="bg-gray-800 border border-gray-700 rounded-lg">
