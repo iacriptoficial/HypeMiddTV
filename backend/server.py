@@ -2457,7 +2457,8 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any], strat
         
         hl_response = HyperliquidResponse(
             webhook_id=webhook_id,
-            response_data=error_response
+            response_data=error_response,
+            strategy_id=strategy_id
         )
         await db.hyperliquid_responses.insert_one(hl_response.dict())
         
