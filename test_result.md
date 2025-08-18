@@ -357,6 +357,7 @@ metadata:
 
 test_plan:
   current_focus:
+    - "Strategy segmentation system by strategy_id - VERIFIED WORKING: Complete system with auto-segmentation, rule center, API endpoints, auto-filters, and visual interface support"
     - "Market close method for position closing - VERIFIED WORKING: Both exchange.market_close() and fallback exchange.market_open() methods are functional"
   stuck_tasks: []
   test_all: false
