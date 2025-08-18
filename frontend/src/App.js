@@ -378,6 +378,14 @@ function App() {
     };
   }, []);
 
+  // Separate useEffect to handle strategy filter changes
+  useEffect(() => {
+    if (availableStrategyIds.length > 0) {
+      fetchWebhooks();
+      fetchResponses();
+    }
+  }, [selectedStrategies]);
+
   const formatTimestamp = (timestamp) => {
     return new Date(timestamp).toLocaleString();
   };
