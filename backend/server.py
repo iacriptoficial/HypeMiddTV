@@ -1780,7 +1780,7 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any], strat
         entry_type = payload.get("entry", "market").lower()  # market/limit
         raw_quantity = float(payload.get("quantity", 0))
         raw_price = float(payload.get("price", 0)) if payload.get("price") else None  # Price for limit orders
-        stop_price = float(payload.get("stop", 0)) if payload.get("stop") else None  # Stop loss price
+        # Stop price será definido na seção de estratégia específica
         
         # Apply strategy-specific rules
         strategy_rules = strategy_config.get("rules", {})
