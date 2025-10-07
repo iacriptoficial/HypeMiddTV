@@ -2173,8 +2173,8 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any], strat
                                 "isMarket": True,  # True = Market execution when triggered
                                 "tpsl": "tp"  # Take Profit
                             }
-                        },
-                        reduce_only=True  # Only reduce existing position
+                        }
+                        # Removido reduce_only=True para ordens trigger com tpsl
                     )
                     
                     if tp1_order_result and tp1_order_result.get("status") == "ok":
