@@ -2245,8 +2245,7 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any], strat
                         order_type={
                             "trigger": {
                                 "triggerPx": formatted_tp_price,
-                                "isMarket": True,  # True = Market execution when triggered
-                                "tpsl": "tp"  # Take Profit
+                                "isMarket": False  # False = Limit execution when triggered
                             }
                         },
                         reduce_only=True  # Only reduce existing position
@@ -2322,8 +2321,7 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any], strat
                         order_type={
                             "trigger": {
                                 "triggerPx": formatted_tp_price,
-                                "isMarket": True,  # True = Market execution when triggered
-                                "tpsl": "tp"  # Take Profit
+                                "isMarket": False  # False = Limit execution when triggered
                             }
                         },
                         reduce_only=True  # Only reduce existing position
@@ -2400,8 +2398,7 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any], strat
                         order_type={
                             "trigger": {
                                 "triggerPx": formatted_tp_price,
-                                "isMarket": True,  # True = Market execution when triggered
-                                "tpsl": "tp"  # Take Profit
+                                "isMarket": False  # False = Limit execution when triggered
                             }
                         },
                         reduce_only=True  # Only reduce existing position
