@@ -157,6 +157,22 @@ class StrategyManager:
                     }
                 }
             },
+            "IMBA_TREND": {
+                "name": "IMBA Trend Strategy",
+                "enabled": True,
+                "rules": {
+                    "max_position_size": 75.0,
+                    "stop_loss_enabled": True,
+                    "take_profit_enabled": True,
+                    "single_tp_only": True,  # Apenas 1 TP
+                    "use_sl_price": True,    # Usar sl_price em vez de stop
+                    "position_clearing_method": "market_close",
+                    "risk_management": {
+                        "max_daily_trades": 30,
+                        "max_drawdown": 0.04
+                    }
+                }
+            },
             "OTHERS": {
                 "name": "Other Strategies",
                 "enabled": True,
