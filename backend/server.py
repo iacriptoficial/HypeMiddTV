@@ -2095,8 +2095,8 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any], strat
                                 "isMarket": True,  # True = Market execution when triggered
                                 "tpsl": "sl"  # Stop Loss
                             }
-                        },
-                        reduce_only=True
+                        }
+                        # Removido reduce_only=True para ordens trigger com tpsl
                     )
                     
                     if stop_order_result and stop_order_result.get("status") == "ok":
