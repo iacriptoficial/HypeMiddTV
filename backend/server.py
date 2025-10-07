@@ -1791,15 +1791,37 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any], strat
             await log_message("WARNING", f"⚠️ Position size {raw_quantity} exceeds strategy limit {max_position_size}, adjusting")
             raw_quantity = max_position_size
         
-        # Parse take profit levels
-        tp1_price = float(payload.get("tp1_price", 0)) if payload.get("tp1_price") else None
-        tp1_perc = float(payload.get("tp1_perc", 0)) if payload.get("tp1_perc") else None
-        tp2_price = float(payload.get("tp2_price", 0)) if payload.get("tp2_price") else None
-        tp2_perc = float(payload.get("tp2_perc", 0)) if payload.get("tp2_perc") else None
-        tp3_price = float(payload.get("tp3_price", 0)) if payload.get("tp3_price") else None
-        tp3_perc = float(payload.get("tp3_perc", 0)) if payload.get("tp3_perc") else None
-        tp4_price = float(payload.get("tp4_price", 0)) if payload.get("tp4_price") else None
-        tp4_perc = float(payload.get("tp4_perc", 0)) if payload.get("tp4_perc") else None
+        # Parse take profit levels - ESTRATÉGIA ESPECÍFICA
+        if strategy_id == "IMBA_TREND":
+            # Para IMBA_TREND, usar apenas tp_price como tp1 e sl_price como stop
+            tp1_price = float(payload.get("tp_price", 0)) if payload.get("tp_price") else None
+            tp1_perc = None  # IMBA_TREND usa preço absoluto, não percentual
+            tp2_price = None
+            tp2_perc = None
+            tp3_price = None
+            tp3_perc = None
+            tp4_price = None
+            tp4_perc = None
+            
+            # Para IMBA_TREND, usar sl_price se disponível, senão usar stop
+            if payload.get("sl_price"):
+                stop_price = float(payload.get("sl_price"))
+            elif payload.get("stop"):
+                stop_price = float(payload.get("stop"))
+            else:
+                stop_price = None
+                
+            await log_message("INFO", f"📊 IMBA_TREND: tp_price={tp1_price}, sl_price={stop_price}")
+        else:
+            # Para outras estratégias, usar sistema multi-TP original
+            tp1_price = float(payload.get("tp1_price", 0)) if payload.get("tp1_price") else None
+            tp1_perc = float(payload.get("tp1_perc", 0)) if payload.get("tp1_perc") else None
+            tp2_price = float(payload.get("tp2_price", 0)) if payload.get("tp2_price") else None
+            tp2_perc = float(payload.get("tp2_perc", 0)) if payload.get("tp2_perc") else None
+            tp3_price = float(payload.get("tp3_price", 0)) if payload.get("tp3_price") else None
+            tp3_perc = float(payload.get("tp3_perc", 0)) if payload.get("tp3_perc") else None
+            tp4_price = float(payload.get("tp4_price", 0)) if payload.get("tp4_price") else None
+            tp4_perc = float(payload.get("tp4_perc", 0)) if payload.get("tp4_perc") else None
         
         # Get asset information from Hyperliquid
         await log_message("INFO", f"🔍 Getting asset info for {symbol}")
