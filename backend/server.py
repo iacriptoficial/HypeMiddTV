@@ -1822,6 +1822,9 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any], strat
             tp3_perc = float(payload.get("tp3_perc", 0)) if payload.get("tp3_perc") else None
             tp4_price = float(payload.get("tp4_price", 0)) if payload.get("tp4_price") else None
             tp4_perc = float(payload.get("tp4_perc", 0)) if payload.get("tp4_perc") else None
+            
+            # Para outras estratégias, usar campo "stop" padrão
+            stop_price = float(payload.get("stop", 0)) if payload.get("stop") else None
         
         # Get asset information from Hyperliquid
         await log_message("INFO", f"🔍 Getting asset info for {symbol}")
