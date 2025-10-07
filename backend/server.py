@@ -940,22 +940,23 @@ async def get_asset_info(symbol: str):
                     break
         
         if asset_info:
-            # For perpetual contracts, get szDecimals and pxDecimals from tokens
-            if "tokens" in asset_info:
-                # This is a perpetual contract like "SOL/USDC"
-                token_index = asset_info["tokens"][0]  # First token is the base asset
-                if token_index < len(meta_data["tokens"]):
-                    token_info = meta_data["tokens"][token_index]
-                    sz_decimals = token_info.get("szDecimals", 3)
-                    px_decimals = token_info.get("pxDecimals", 2)
-                    await log_message("INFO", f"📏 {symbol} perpetual szDecimals: {sz_decimals}, pxDecimals: {px_decimals}")
-                    return {"szDecimals": sz_decimals, "pxDecimals": px_decimals}
-            else:
-                # This is a spot token
-                sz_decimals = asset_info.get("szDecimals", 3)
-                px_decimals = asset_info.get("pxDecimals", 2)
-                await log_message("INFO", f"📏 {symbol} spot szDecimals: {sz_decimals}, pxDecimals: {px_decimals}")
-                return {"szDecimals": sz_decimals, "pxDecimals": px_decimals}
+            # Get szDecimals from asset info
+            sz_decimals = asset_info.get("szDecimals", 3)
+            
+            # Manual mapping for pxDecimals since Hyperliquid API doesn't provide it consistently
+            px_decimals_map = {
+                "ETH": 2,    # ETH prices like 4514.49 (2 decimals)
+                "BTC": 1,    # BTC prices like 65432.1 (1 decimal)  
+                "SOL": 2,    # SOL prices like 175.45 (2 decimals)
+                "AVAX": 2,   # AVAX similar to SOL
+                "ATOM": 2,   # ATOM similar precision
+                "BNB": 2,    # BNB similar precision
+            }
+            
+            px_decimals = px_decimals_map.get(symbol, 2)  # Default to 2 decimals
+            
+            await log_message("INFO", f"📏 {symbol} szDecimals: {sz_decimals}, pxDecimals: {px_decimals} (manual mapping)")
+            return {"szDecimals": sz_decimals, "pxDecimals": px_decimals}
         
         # Default fallback
         await log_message("WARNING", f"⚠️ Asset {symbol} not found in metadata, using default szDecimals: 3, pxDecimals: 2")
