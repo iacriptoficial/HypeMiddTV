@@ -1811,7 +1811,7 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any], strat
         # Parse take profit levels - ESTRATÉGIA ESPECÍFICA
         if strategy_id == "IMBA_TREND":
             # Para IMBA_TREND, usar apenas tp_price como tp1 e sl_price como stop
-            tp1_price = float(payload.get("tp_price", 0)) if payload.get("tp_price") else None
+            raw_tp1_price = float(payload.get("tp_price", 0)) if payload.get("tp_price") else None
             tp1_perc = None  # IMBA_TREND usa preço absoluto, não percentual
             tp2_price = None
             tp2_perc = None
@@ -1822,13 +1822,22 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any], strat
             
             # Para IMBA_TREND, usar sl_price se disponível, senão usar stop
             if payload.get("sl_price"):
-                stop_price = float(payload.get("sl_price"))
+                raw_stop_price = float(payload.get("sl_price"))
             elif payload.get("stop"):
-                stop_price = float(payload.get("stop"))
+                raw_stop_price = float(payload.get("stop"))
             else:
-                stop_price = None
+                raw_stop_price = None
+            
+            # IMPORTANTE: Aplicar formatação imediatamente para IMBA_TREND
+            # Obter asset_info primeiro para pegar px_decimals
+            asset_info = await get_asset_info(symbol)
+            px_decimals_temp = asset_info["pxDecimals"]
+            
+            # Formatar preços para evitar "Invalid TP/SL price"
+            tp1_price = format_price_with_px_decimals(raw_tp1_price, px_decimals_temp) if raw_tp1_price else None
+            stop_price = format_price_with_px_decimals(raw_stop_price, px_decimals_temp) if raw_stop_price else None
                 
-            await log_message("INFO", f"📊 IMBA_TREND: tp_price={tp1_price}, sl_price={stop_price}")
+            await log_message("INFO", f"📊 IMBA_TREND formatado: tp_price={tp1_price} (orig: {raw_tp1_price}), sl_price={stop_price} (orig: {raw_stop_price})")
         else:
             # Para IMBA_HYPER e outras estratégias, usar sistema multi-TP original completo
             tp1_price = float(payload.get("tp1_price", 0)) if payload.get("tp1_price") else None
