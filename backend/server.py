@@ -2171,10 +2171,11 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any], strat
                         order_type={
                             "trigger": {
                                 "triggerPx": formatted_tp_price,
-                                "isMarket": True  # Market execution when triggered  
+                                "isMarket": True,  # Market execution when triggered
+                                "tpsl": "tp"  # Take Profit
                             }
-                        },
-                        reduce_only=True
+                        }
+                        # SEM reduce_only=True - essa foi a chave do sucesso anterior
                         # Removido reduce_only=True para ordens trigger com tpsl
                     )
                     
