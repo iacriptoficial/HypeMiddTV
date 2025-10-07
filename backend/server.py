@@ -2436,27 +2436,35 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any], strat
                     await log_message("ERROR", f"❌ Error placing TP4 order: {str(tp_error)}")
                     tp_order_results.append({"tp4": {"error": str(tp_error)}})
             
-            # Prepare successful response
-            response_data = {
-                "status": "success",
-                "message": "Order executed successfully on Hyperliquid",
-                "environment": hyperliquid_config.environment,
-                "timestamp": get_brazil_time().isoformat(),
-                "order_details": {
-                    "symbol": symbol,
-                    "side": side,
-                    "entry_type": entry_type,
-                    "quantity": quantity,
-                    "price": price,
-                    "stop_price": stop_price,
-                    "tp1_price": tp1_price,
-                    "tp1_perc": tp1_perc,
+            # Prepare successful response - ajustado por estratégia
+            order_details_base = {
+                "symbol": symbol,
+                "side": side,
+                "entry_type": entry_type,
+                "quantity": quantity,
+                "price": price,
+                "stop_price": stop_price,
+                "tp1_price": tp1_price,
+                "tp1_perc": tp1_perc,
+            }
+            
+            # Adicionar TPs adicionais apenas para estratégias que os usam
+            if strategy_id not in ["IMBA_HYPER", "IMBA_TREND"]:
+                order_details_base.update({
                     "tp2_price": tp2_price,
                     "tp2_perc": tp2_perc,
                     "tp3_price": tp3_price,
                     "tp3_perc": tp3_perc,
                     "tp4_price": tp4_price,
                     "tp4_perc": tp4_perc,
+                })
+                
+            response_data = {
+                "status": "success",
+                "message": "Order executed successfully on Hyperliquid",
+                "environment": hyperliquid_config.environment,
+                "timestamp": get_brazil_time().isoformat(),
+                "order_details": order_details_base | {
                     "attempts": attempt,
                     "hyperliquid_response": main_order_result,
                     "stop_loss_response": stop_order_result,
