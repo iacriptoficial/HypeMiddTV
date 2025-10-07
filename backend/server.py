@@ -2421,7 +2421,7 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any], strat
                     await log_message("ERROR", f"❌ Error placing TP4 order: {str(tp_error)}")
                     tp_order_results.append({"tp4": {"error": str(tp_error)}})
             
-            # Prepare successful response - ajustado por estratégia
+            # Prepare successful response - ajustado apenas para IMBA_TREND
             order_details_base = {
                 "symbol": symbol,
                 "side": side,
@@ -2433,8 +2433,8 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any], strat
                 "tp1_perc": tp1_perc,
             }
             
-            # Adicionar TPs adicionais apenas para estratégias que os usam
-            if strategy_id not in ["IMBA_HYPER", "IMBA_TREND"]:
+            # Adicionar TPs adicionais apenas para estratégias que NÃO são IMBA_TREND
+            if strategy_id != "IMBA_TREND":
                 order_details_base.update({
                     "tp2_price": tp2_price,
                     "tp2_perc": tp2_perc,
