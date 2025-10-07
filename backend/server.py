@@ -1829,23 +1829,8 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any], strat
                 stop_price = None
                 
             await log_message("INFO", f"📊 IMBA_TREND: tp_price={tp1_price}, sl_price={stop_price}")
-        elif strategy_id == "IMBA_HYPER":
-            # Para IMBA_HYPER, usar apenas TP1 (remover TP2, TP3, TP4)
-            tp1_price = float(payload.get("tp1_price", 0)) if payload.get("tp1_price") else None
-            tp1_perc = float(payload.get("tp1_perc", 0)) if payload.get("tp1_perc") else None
-            tp2_price = None  # IMBA_HYPER não usa TP2
-            tp2_perc = None
-            tp3_price = None  # IMBA_HYPER não usa TP3
-            tp3_perc = None
-            tp4_price = None  # IMBA_HYPER não usa TP4
-            tp4_perc = None
-            
-            # Para IMBA_HYPER, usar campo "stop" padrão
-            stop_price = float(payload.get("stop", 0)) if payload.get("stop") else None
-            
-            await log_message("INFO", f"📊 IMBA_HYPER: apenas TP1 - tp1_price={tp1_price}, tp1_perc={tp1_perc}, stop={stop_price}")
         else:
-            # Para outras estratégias, usar sistema multi-TP original completo
+            # Para IMBA_HYPER e outras estratégias, usar sistema multi-TP original completo
             tp1_price = float(payload.get("tp1_price", 0)) if payload.get("tp1_price") else None
             tp1_perc = float(payload.get("tp1_perc", 0)) if payload.get("tp1_perc") else None
             tp2_price = float(payload.get("tp2_price", 0)) if payload.get("tp2_price") else None
