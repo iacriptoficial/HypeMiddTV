@@ -1895,16 +1895,12 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any], strat
             else:
                 raw_stop_price = None
             
-            # IMPORTANTE: Aplicar formatação imediatamente para IMBA_TREND
-            # Obter asset_info primeiro para pegar px_decimals
-            asset_info = await get_asset_info(symbol)
-            px_decimals_temp = asset_info["pxDecimals"]
-            
-            # Formatar preços usando pxDecimals do ativo
-            tp1_price = format_price_with_px_decimals(raw_tp1_price, px_decimals_temp) if raw_tp1_price else None
-            stop_price = format_price_with_px_decimals(raw_stop_price, px_decimals_temp) if raw_stop_price else None
+            # IMPORTANTE: Aplicar formatação específica por ativo para IMBA_TREND
+            # ETH requer preços inteiros, outros aceitam decimais
+            tp1_price = format_tpsl_price(raw_tp1_price, symbol) if raw_tp1_price else None
+            stop_price = format_tpsl_price(raw_stop_price, symbol) if raw_stop_price else None
                 
-            await log_message("INFO", f"📊 IMBA_TREND formatado: tp_price={tp1_price} (orig: {raw_tp1_price}), sl_price={stop_price} (orig: {raw_stop_price})")
+            await log_message("INFO", f"📊 IMBA_TREND formatado: tp_price={tp1_price} (orig: {raw_tp1_price}), sl_price={stop_price} (orig: {raw_stop_price}) - formatação específica para {symbol}")
         else:
             # Para IMBA_HYPER e outras estratégias, usar sistema multi-TP original completo
             tp1_price = float(payload.get("tp1_price", 0)) if payload.get("tp1_price") else None
