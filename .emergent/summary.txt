@@ -1,98 +1,62 @@
 <analysis>
-The previous AI engineer successfully evolved a Hyperliquid trading application. Initially, efforts focused on resolving the complex behavior of Stop Loss (SL) and Take Profit (TP) orders, which repeatedly appeared as market orders on the exchange. This involved multiple iterations: from simple limit orders (which executed immediately incorrectly) to conditional trigger orders, and finally, reverting to *market execution when triggered* for guaranteed fills due to perceived slippage with triggered limit orders. Price precision was enhanced via .
+The previous AI engineer progressively built a Hyperliquid trading application. Initially, it resolved a critical Order could not immediately match error by switching to  and  with robust fallback, which was successfully fixed after identifying an issue where  returned .
 
-A key feature added was external uptime monitoring, which unexpectedly revealed persistent server restarts every ~45 minutes. Investigation pinpointed  in the supervisor configuration and potential platform-level monitoring () as causes. The core solution for uptime persistence was implementing *true database persistence* for statistics to survive container restarts, alongside meticulous timestamp formatting. Frontend UI bugs (e.g.,  error on balance) and Hyperliquid API rate limits were also identified and resolved with robust caching.
+Subsequently, a  segmentation system was implemented, allowing different trading strategies (e.g., IMBA_HYPER, IMBA_TREND, OTHERS) to have distinct rules and filtering on the UI. This involved significant backend modifications for data models, webhook processing, and new API endpoints, alongside a responsive frontend filter interface.
 
-The most critical outstanding issue, as reported by the user, is a recurring Order could not immediately match against any resting orders when attempting to clear positions. Although initially diagnosed as a liquidity problem, the user's latest feedback disputes this, indicating a deeper, unresolved problem with order matching that requires further investigation. This remains the primary focus.
+Challenges arose with the filter's auto-refresh mechanism overriding user selections, which was fixed by disabling auto-refresh for filtered views and simplifying the UI. Data inconsistencies required correcting historical webhooks to be classified under OTHERS and synchronizing  between webhook payload and database records.
+
+Most recently, the focus shifted to  strategy, specifically addressing Invalid TP/SL price errors for ETH. After extensive debugging, the root cause was narrowed down to  and specific price handling for ETH, which rejects decimal prices for TP/SL orders while SOL accepts them. This is the immediate problem.
 </analysis>
 
 <product_requirements>
-The application serves as a robust interface for Hyperliquid futures trading, designed to automate trade execution based on TradingView webhooks. The progressive feature set and current state include:
-
-1.  **Accurate Balance & Wallet Display**: Fetches and displays Hyperliquid account balance and wallet address. Initially had a  error due to incorrect data type, now resolved.
-2.  **TradingView Webhook Integration**: Implements a  endpoint to receive and process TradingView alerts.
-3.  **Real Order Execution & Precision**: Executes real buy/sell orders. Dynamically adjusts quantities using  and prices using  (truncated for  compliance), with retry mechanisms.
-4.  **UI/UX Enhancements**: Frontend includes sticky headers, infinite scrolling for logs/webhooks/responses, Copy webhook URL, Restart Server, and log filtering (ERROR/INFO/ALL). Dashboard updates every 10 seconds.
-5.  **Stop Loss Order Functionality**: Processes  prices from webhooks. Initially attempted as simple limit orders (executed immediately), then as trigger limit orders (experienced slippage), and now as **trigger market orders** for guaranteed execution upon trigger.
-6.  **Brazilian Timezone (GMT-3)**: Ensures all application timestamps reflect the  timezone.
-7.  **Log Management**: Provides a Clear Logs option on the frontend. Backend now stores up to 1,000 logs, and logs are never automatically deleted by the server.
-8.  **Webhook Re-execution**: Allows re-sending existing webhook payloads for testing via a UI Execute button.
-9.  **Position Management & Inversion**: Automatically closes existing positions and cancels open orders for a symbol before placing new inverse orders. This process has encountered persistent Order could not immediately match against any resting orders errors, which are currently being investigated.
-10. **Multi-level Take Profit (TP)**: Implements TP1-TP4 functionality, using  as direct size and  for absolute price. Sizes and prices are truncated for precision using  and . Like SL, TPs are now **trigger market orders**. Minimum order value check (0) is implemented.
-11. **External Uptime Monitoring**: A system to monitor server connectivity (pinging 1.1.1.1 every 5 seconds) has been implemented. Statistics (percentage, total pings, successful, failed) are displayed on the frontend under External Uptime, along with Monitoring Since (date/time of first successful ping after server restart). This system uses **true database persistence** for its counters to survive container restarts and platform-level reloads. A reset functionality is available.
-12. **Resilience to Rate Limits**: Implemented handling for Hyperliquid API 429 errors (Too Many Requests) by using cached data, waiting, and extending cache duration when rate-limited.
+The application automates Hyperliquid futures trading via TradingView webhooks, focusing on reliable, precise, and customizable trade execution.
+1.  **Core Trading**: Executes market orders, manages positions (closing before new inverse orders), and handles multi-level Take Profits (TP1-TP4) and Stop Loss (SL) as trigger market orders. Includes dynamic precision (, , ).
+2.  **API/UI**: Frontend displays balance, logs, uptime. Supports webhook re-execution, log filtering, and sticky UI elements.
+3.  **Resilience**: Implements rate limit handling and ensures timezone consistency (). Uptime monitoring with database persistence.
+4.  **Strategy Segmentation**: Webhooks are categorized by  (e.g., IMBA_HYPER, IMBA_TREND, OTHERS). Each strategy has custom risk management rules.
+5.  **Dynamic Filters**: Frontend provides interactive filters for webhooks and responses based on , with automatic strategy discovery.
+6.  **Current Problem**:  strategy for ETH fails to place TP/SL orders due to Invalid TP/SL price. asset=4, despite working for SOL and initial debugging showing 1% distance is acceptable for ETH. This is currently under investigation, pointing to asset-specific price precision requirements.
 </product_requirements>
 
 <key_technical_concepts>
--   **Full-stack Development**: React.js (frontend), FastAPI (backend), MongoDB (database).
--   **Hyperliquid Python SDK**: For account balance, order execution (, , ).
--   **Webhooks**: Receiving and processing TradingView alerts.
--   **Timezone Management**:  for  (GMT-3).
--   **Order Precision**: Dynamic , , , and custom truncation logic.
--   **Process Management**: backend                          RUNNING   pid 80, uptime 0:00:05
-code-server                      RUNNING   pid 85, uptime 0:00:05
-frontend                         STOPPED   Jul 29 12:42 PM
-mongodb                          RUNNING   pid 87, uptime 0:00:05
-supervisor>  for managing backend/frontend services.
--   **Asynchronous Programming**:  in Python for background tasks like uptime monitoring.
--   **Database Persistence**: Storing critical, non-volatile data (like uptime stats) in MongoDB to survive application/container restarts.
--   **API Rate Limiting**: Strategies for handling 429 responses from external APIs.
+-   **Full-stack**: React.js (frontend), FastAPI (backend), MongoDB (database).
+-   **Hyperliquid SDK**: For trade execution (, , ).
+-   **Webhooks**: TradingView integration,  for rule-based processing.
+-   **Order Management**: Trigger market orders for TP/SL, dynamic price/size precision.
+-   **Asynchronous Tasks**:  for background services (uptime monitor).
+-   **Persistence**: MongoDB for stats (uptime, strategies).
 </key_technical_concepts>
 
 <code_architecture>
-The application adheres to a standard full-stack architecture:
 
-
-
+-   ****: Stores , , , .  is .
 -   ****:
-    -   **Summary**: Stores essential backend environment variables (, , , ).
-    -   **Changes**:  was confirmed and used as .
-
--   ****:
-    -   **Summary**: The core FastAPI application. Handles API routes, Hyperliquid interactions, data logging, and background tasks.
+    -   **Summary**: Core FastAPI application, handles API, Hyperliquid interaction, logging, background tasks.
     -   **Changes Made**:
-        -   **Timezone Integration**:  for  timezone used for all timestamp logging and Pydantic model serialization.
-        -   **Market Order Execution**: Switched from  with IOC to dedicated  and  for true market orders.
-        -   **Position Management ()**: Refined to use  with  and aggressive prices. Includes delays and robust success/failure checks before opening new inverse orders. Returns  if position clearing fails. This function is currently the focus of an ongoing bug investigation related to Order could not immediately match.
-        -   **Take Profit (TP) Logic**: Implemented TP1, TP2, TP3, TP4.  now represents direct size. A  function applies truncation to TP sizes ().
-        -   **Price Precision (TP/SL)**:  added for  compliance. **Crucially,  was modified to return , and a new  function was introduced and applied to  and  to ensure exact price matching as per webhook signal.**
-        -   **Trigger Order Structure (TP/SL)**: Initially struggled with orders appearing as Market. First attempt was simple limit orders, which failed due to immediate execution. Later, re-implemented as **trigger orders with **, then **reverted to ** (meaning market execution upon trigger) to avoid slippage issues experienced with triggered limit orders. The  structure used is . Minimum order value (0) check implemented for TP orders.
-        -   **API Endpoints**:  (clear, now supports  and increased  to 1000),  (re-send),  (fixed missing decorator, returns uptime stats, balance, wallet). New  endpoint added.
-        -   **Balance Cache**:  duration increased to 5 minutes. Enhanced with specific error handling for 429 (Rate Limit) errors, using cached data, a 2-second wait, and extending cache to 15 minutes.
-        -   **Uptime Monitoring**: Implemented  as an  task, pinging 1.1.1.1 every 5 seconds using  for container compatibility. Statistics (, , , ) are stored in a new ** collection in MongoDB for true persistence** across server restarts.  captures the timestamp of the first successful ping after a server restart, formatted as . The  was modified to remove  to prevent constant server restarts due to file changes.
-        -   **Error Logging**: Enhanced to clearly log Rate Limit issues and uptime check failures.
-
+        -   **Timezone**: Uses  for .
+        -   **Position Management**:  uses / with robust fallback, fixing Order could not immediately match.
+        -   **Strategy Segmentation**: Added  class and  model. Webhook endpoint now parses  from payload, falling back to OTHERS.  uses strategy-specific configs.  and  now store . New API endpoints: , , , . Webhooks and responses endpoints accept  for filtering. Default strategies , ,  defined.
+        -   **TP/SL Logic**:  for size,  for absolute price. , ,  ensure precision. SL/TP are trigger market orders. Removed  from trigger orders with  due to Hyperliquid API rejection (Chat 472-481).  now processes  and  and only uses a single TP.
+        -   **Error Handling**: Enhanced logging for Hyperliquid responses and rate limits.
+-   ****: Stores  for API calls.
 -   ****:
-    -   **Summary**: Stores .
-    -   **Changes**: Ensures all frontend API calls use this variable.
-
--   ****:
-    -   **Summary**: Main React component.
-    -   **Changes**: Displays balance, webhook URL, logs. Features include sticky header, infinite scrolling, log filtering, Clear Logs, and Execute webhook buttons. Data fetching optimized. Polling frequency for  was reduced to mitigate rate limiting, then increased to every 10 seconds for real-time dashboard updates. **Fixed  by ensuring  is a number.** Added External Uptime section to Dashboard with , , , , and . Includes a Reset button.
-
--   ****:
-    -   **Summary**: Comprehensive project documentation for setup and usage.
-    -   **Changes**: Extensively updated with sections on functionalities, requirements, installation, configuration, Hyperliquid keys, TradingView webhooks, API endpoints, project structure, troubleshooting, security, monitoring, and warnings.
+    -   **Summary**: Main React component for UI.
+    -   **Changes Made**: Displays balance, logs, uptime, webhooks, responses. Implements strategy filtering functionality:  for active strategies,  to fetch strategies and data,  component dynamically renders buttons for each strategy (toggle on/off). Displays  in logs. Removed auto-refresh for webhooks/responses and Select All/Deselect All buttons. Filters now respond immediately on click, with the first filter active by default.
 </code_architecture>
 
 <pending_tasks>
--   **Resolve Order could not immediately match Error**: Investigate why the  function fails with Order could not immediately match against any resting orders despite user's claim of sufficient market liquidity. This is the primary unresolved issue.
+-   **Investigate Invalid TP/SL price. asset=4 for ETH in IMBA_TREND**: Determine the exact price precision or range requirements for ETH (asset ID 4) stop loss and take profit orders in the Hyperliquid API, given that SOL works with decimals. Dynamically read asset information to apply correct precision rules.
 </pending_tasks>
 
 <current_work>
-Immediately prior to this summary, the AI engineer was focused on diagnosing a persistent and critical error reported by the user:  followed by .
+Immediately prior to this summary, the AI engineer was deep-diving into the Invalid TP/SL price. asset=4 error, specifically for the  strategy when trading ETH. The user had pointed out that  and  from the webhook were being rejected, despite using a 3% difference, which should be acceptable.
 
-This error occurs during the position clearing phase, where the system attempts to close an existing position (e.g., -10.73 SOL short) before opening a new inverse position. The  function uses  orders, which require immediate matching.
+Through a series of tests, the engineer confirmed that  in conjunction with  in trigger orders was problematic and was removed (Chat 472-481). The error was initially traced to  being incorrectly  instead of  for ETH, and later to specific decimal values (e.g., ) being rejected by Hyperliquid for ETH, whereas integer values (e.g., ) worked. However, the user questioned why SOL works with decimals.
 
-The AI engineer's previous diagnosis was that this was a **liquidity problem** on Hyperliquid's side, especially at low-activity hours, where there weren't enough opposing orders in the book for the system's  (Immediate Or Cancel) equivalent close order to match against. The system was seen to correctly abort the new order placement to prevent conflicting positions.
-
-However, the user explicitly challenged this diagnosis in Chat Message 728: Não é problema de liquides, investigue, pois essa é a liquidez da corretora: 24h Volume 50.572,73. The user emphasized that given the 24-hour volume, liquidity should not be an issue.
-
-The AI engineer acknowledged the user's feedback in Chat Message 730: Você está absolutamente correto! Com volume de 50K em 24h, definitivamente não é problema de liquidez. Vou investigar profundamente o que está causando esse erro.
-
-The  left off with the AI engineer accepting that the previous liquidity diagnosis was incorrect and committing to a deeper investigation into the actual cause of the  error, despite the 24h volume. This implies a more complex underlying issue than mere liquidity.
+The last action was to verify that SOL accepts decimal prices (, ) for SL/TP, while ETH fails with them (, ). The immediate task is to dynamically read this asset-specific information from Hyperliquid to apply the correct price precision based on the asset.
 </current_work>
 
 <optional_next_step>
-Investigate the  error, beginning with the latest logs as requested by the user.
+Investigate how to dynamically read asset-specific price precision requirements (e.g.,  or ) for ETH and SOL from the Hyperliquid API.
 </optional_next_step>
+

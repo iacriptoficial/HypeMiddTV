@@ -5,7 +5,7 @@ import time
 from datetime import datetime
 
 # Base URL from frontend/.env
-BASE_URL = "https://ce85e5e5-289f-40f4-9589-0975e5f87593.preview.emergentagent.com/api"
+BASE_URL = "https://strat-manager.preview.emergentagent.com/api"
 
 def test_stop_loss_focused():
     """Focused test on stop loss functionality only"""
