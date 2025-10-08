@@ -985,6 +985,32 @@ def format_quantity(quantity: float, sz_decimals: int) -> float:
     # Always use the maximum decimal places allowed by szDecimals
     return round(quantity, sz_decimals)
 
+def format_tpsl_price(price: float, symbol: str) -> float:
+    """
+    Format TP/SL price based on asset-specific requirements
+    
+    CRITICAL: Based on testing, ETH rejects decimal prices for TP/SL orders
+    while other assets like SOL accept them.
+    
+    Args:
+        price: The raw price to format
+        symbol: The asset symbol (e.g., 'ETH', 'SOL', 'BTC')
+    
+    Returns:
+        Formatted price (integer for ETH, decimal for others)
+    """
+    # Assets that require INTEGER prices for TP/SL (no decimals)
+    INTEGER_PRICE_ASSETS = {'ETH', 'BTC'}
+    
+    if symbol in INTEGER_PRICE_ASSETS:
+        # Round to nearest integer for ETH/BTC
+        formatted_price = float(int(round(price)))
+        return formatted_price
+    else:
+        # For other assets (SOL, AVAX, etc.), use 2 decimal places
+        formatted_price = round(price, 2)
+        return formatted_price
+
 async def get_open_positions_internal(symbol: str):
     """Internal helper function to get open positions for a specific symbol"""
     try:
