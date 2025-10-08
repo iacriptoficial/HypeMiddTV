@@ -1011,6 +1011,47 @@ def format_tpsl_price(price: float, symbol: str) -> float:
         formatted_price = round(price, 2)
         return formatted_price
 
+def check_order_response_for_errors(response: dict) -> tuple[bool, str]:
+    """
+    Check Hyperliquid order response for errors
+    
+    IMPORTANT: Hyperliquid returns status="ok" even when orders fail.
+    The actual error is inside response.data.statuses[]
+    
+    Args:
+        response: The response from Hyperliquid API
+    
+    Returns:
+        Tuple of (success: bool, error_message: str)
+    """
+    if not response:
+        return False, "No response received"
+    
+    # Check top-level status
+    if response.get("status") != "ok":
+        return False, str(response.get("error", "Unknown error"))
+    
+    # Check inside statuses for actual errors
+    response_data = response.get("response", {})
+    if response_data.get("type") == "order":
+        statuses = response_data.get("data", {}).get("statuses", [])
+        
+        for status in statuses:
+            if isinstance(status, dict):
+                # Check for error field
+                if "error" in status:
+                    return False, status["error"]
+                # Check for filled or resting (success)
+                if "filled" in status or "resting" in status:
+                    return True, ""
+        
+        # If we have statuses but no error and no success indicator
+        if statuses:
+            return True, ""
+    
+    # Default to success if status is "ok"
+    return True, ""
+
 async def get_open_positions_internal(symbol: str):
     """Internal helper function to get open positions for a specific symbol"""
     try:
