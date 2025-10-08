@@ -2152,10 +2152,10 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any], strat
                     # For stop loss: if we bought, sell at stop price; if we sold, buy at stop price
                     stop_is_buy = not is_buy  # Opposite of main order
                     
-                    # Format stop price using pxDecimals for precise price formatting
-                    formatted_stop_price = format_price_with_px_decimals(stop_price, px_decimals)
+                    # Format stop price using asset-specific formatting (ETH=integer, others=decimal)
+                    formatted_stop_price = format_tpsl_price(stop_price, symbol)
                     
-                    await log_message("INFO", f"🛑 Placing stop loss: {'BUY' if stop_is_buy else 'SELL'} {quantity} {symbol} at ${formatted_stop_price} (original: ${stop_price}, formatted with pxDecimals: {px_decimals})")
+                    await log_message("INFO", f"🛑 Placing stop loss: {'BUY' if stop_is_buy else 'SELL'} {quantity} {symbol} at ${formatted_stop_price} (original: ${stop_price}, formatted for {symbol})")
                     
                     # TRIGGER ORDER: Stop Loss as conditional trigger order (Market execution)
                     await log_message("INFO", f"🛑 Placing stop loss as TRIGGER ORDER (Market execution when triggered)")
