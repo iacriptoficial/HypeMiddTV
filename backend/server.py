@@ -2227,8 +2227,8 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any], strat
                     # For take profit: if we bought, sell at TP price; if we sold, buy at TP price
                     tp_is_buy = not is_buy  # Opposite of main order
                     
-                    # Format TP price using pxDecimals for precise price formatting
-                    formatted_tp_price = format_price_with_px_decimals(tp1_target, px_decimals)
+                    # Format TP price using asset-specific formatting (ETH=integer, others=decimal)
+                    formatted_tp_price = format_tpsl_price(tp1_target, symbol)
                     
                     # Check if order value meets minimum requirement ($10)
                     order_value = tp1_size * formatted_tp_price
