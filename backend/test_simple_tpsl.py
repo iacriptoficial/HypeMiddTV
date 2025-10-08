@@ -145,7 +145,7 @@ def test_eth_tpsl_decimal_vs_integer():
     print(f"\n📤 Abrindo posição LONG de 0.01 ETH...")
     try:
         entry_result = exchange.market_open(
-            coin=symbol,
+            name=symbol,
             is_buy=True,
             sz=0.01,
             px=None,
