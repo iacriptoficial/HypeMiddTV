@@ -253,8 +253,8 @@ def test_1_simple_grouped_order():
         print(f"\n📤 Sending grouped order...")
         print(f"Request: {json.dumps(grouped_order, indent=2)}")
         
-        # Send the order
-        result = exchange.api_post("/exchange", grouped_order)
+        # Send the order using exchange.post method
+        result = exchange.post("/exchange", grouped_order)
         
         print(f"\n📥 Response:")
         print(json.dumps(result, indent=2))
