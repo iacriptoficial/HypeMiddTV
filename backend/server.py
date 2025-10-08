@@ -2458,8 +2458,8 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any], strat
                     # For take profit: if we bought, sell at TP price; if we sold, buy at TP price
                     tp_is_buy = not is_buy  # Opposite of main order
                     
-                    # Format TP price using pxDecimals for precise price formatting
-                    formatted_tp_price = format_price_with_px_decimals(tp4_target, px_decimals)
+                    # Format TP price using asset-specific formatting (ETH=integer, others=decimal)
+                    formatted_tp_price = format_tpsl_price(tp4_target, symbol)
                     
                     # Check if order value meets minimum requirement ($10)
                     order_value = tp4_size * formatted_tp_price
@@ -2467,7 +2467,7 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any], strat
                         await log_message("INFO", f"🎯 Skipping TP4 - order value ${order_value:.2f} is below minimum $10 requirement")
                         raise ValueError(f"TP4 order value ${order_value:.2f} is below minimum $10 requirement")
                     
-                    await log_message("INFO", f"🎯 Placing TP4: {'BUY' if tp_is_buy else 'SELL'} {tp4_size} {symbol} at ${formatted_tp_price} (price formatted with pxDecimals: {px_decimals}, value: ${order_value:.2f}) (COMPLETE EXIT)")
+                    await log_message("INFO", f"🎯 Placing TP4: {'BUY' if tp_is_buy else 'SELL'} {tp4_size} {symbol} at ${formatted_tp_price} (original: ${tp4_target}, formatted for {symbol}, value: ${order_value:.2f}) (COMPLETE EXIT)")
                     
                     # TRIGGER ORDER: Take Profit as conditional trigger order
                     tp4_order_result = exchange.order(
