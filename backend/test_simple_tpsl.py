@@ -71,7 +71,7 @@ def test_sol_tpsl_with_decimals():
     print(f"\n📤 Abrindo posição LONG de 0.1 SOL...")
     try:
         entry_result = exchange.market_open(
-            coin=symbol,
+            name=symbol,
             is_buy=True,
             sz=0.1,
             px=None,
