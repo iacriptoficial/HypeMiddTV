@@ -2496,13 +2496,17 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any], strat
                         reduce_only=True  # Only reduce existing position
                     )
                     
-                    if tp4_order_result and tp4_order_result.get("status") == "ok":
+                    # Check for errors in response (status="ok" doesn't guarantee success)
+                    is_success, error_msg = check_order_response_for_errors(tp4_order_result)
+                    
+                    if is_success:
                         await log_message("INFO", f"✅ TP4 order placed successfully!")
                         await log_message("INFO", f"🎯 TP4 result: {tp4_order_result}")
                         tp_order_results.append({"tp4": tp4_order_result})
                     else:
-                        await log_message("ERROR", f"❌ Failed to place TP4 order: {tp4_order_result}")
-                        tp_order_results.append({"tp4": {"error": "Failed to place TP4 order"}})
+                        await log_message("ERROR", f"❌ Failed to place TP4 order: {error_msg}")
+                        await log_message("ERROR", f"🎯 Full response: {tp4_order_result}")
+                        tp_order_results.append({"tp4": {"error": error_msg}})
                     
                 except Exception as tp_error:
                     await log_message("ERROR", f"❌ Error placing TP4 order: {str(tp_error)}")
