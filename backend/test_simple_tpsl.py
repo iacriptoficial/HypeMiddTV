@@ -196,7 +196,7 @@ def test_eth_tpsl_decimal_vs_integer():
         print(f"\n📤 Teste B: TP com INTEIRO: ${tp_price_int}.0")
         try:
             tp_result = exchange.order(
-                coin=symbol,
+                name=symbol,
                 is_buy=False,
                 sz=0.01,
                 limit_px=float(tp_price_int),
