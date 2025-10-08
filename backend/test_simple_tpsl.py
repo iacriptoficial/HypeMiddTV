@@ -212,7 +212,7 @@ def test_eth_tpsl_decimal_vs_integer():
         # Fechar posição e limpar
         print(f"\n🧹 Fechando posição...")
         try:
-            close_result = exchange.market_close(coin=symbol)
+            close_result = exchange.market_close(name=symbol)
             print(f"Posição fechada: {json.dumps(close_result, indent=2)}")
         except:
             pass
