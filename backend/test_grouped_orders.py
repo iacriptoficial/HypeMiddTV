@@ -461,7 +461,7 @@ def test_4_price_precision_eth():
     try:
         # Try to place TP order with integer
         tp_result = exchange.order(
-            coin=symbol,
+            name=symbol,
             is_buy=False,
             sz=quantity,
             limit_px=float(tp_price_int),
