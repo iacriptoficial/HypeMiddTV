@@ -430,7 +430,7 @@ def test_4_price_precision_eth():
     try:
         # Try to place TP order with decimal
         tp_result = exchange.order(
-            coin=symbol,
+            name=symbol,
             is_buy=False,
             sz=quantity,
             limit_px=tp_price_decimal,
