@@ -2172,11 +2172,15 @@ async def forward_to_hyperliquid(webhook_id: str, payload: Dict[str, Any], strat
                         # Removido reduce_only=True para ordens trigger com tpsl
                     )
                     
-                    if stop_order_result and stop_order_result.get("status") == "ok":
+                    # Check for errors in response (status="ok" doesn't guarantee success)
+                    is_success, error_msg = check_order_response_for_errors(stop_order_result)
+                    
+                    if is_success:
                         await log_message("INFO", f"✅ Stop loss order placed successfully!")
                         await log_message("INFO", f"🛑 Stop loss result: {stop_order_result}")
                     else:
-                        await log_message("ERROR", f"❌ Failed to place stop loss order: {stop_order_result}")
+                        await log_message("ERROR", f"❌ Failed to place stop loss order: {error_msg}")
+                        await log_message("ERROR", f"🛑 Full response: {stop_order_result}")
                     
                 except Exception as stop_error:
                     await log_message("ERROR", f"❌ Error placing stop loss order: {str(stop_error)}")
