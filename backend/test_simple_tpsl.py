@@ -104,7 +104,7 @@ def test_sol_tpsl_with_decimals():
         
         print(f"\n📤 Colocando SL com DECIMAL: ${sl_price}")
         sl_result = exchange.order(
-            coin=symbol,
+            name=symbol,
             is_buy=False,
             sz=0.1,
             limit_px=sl_price,
